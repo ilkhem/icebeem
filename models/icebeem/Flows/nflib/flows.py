@@ -38,7 +38,7 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 
-from nflib.nets import LeafParam, MLP, ARMLP
+from models.icebeem.Flows.nflib.nets import LeafParam, MLP, ARMLP
 
 class AffineConstantFlow(nn.Module):
     """ 

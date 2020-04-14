@@ -6,7 +6,7 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 
-from nflib.made import MADE
+from models.icebeem.Flows.nflib.made import MADE 
 
 class LeafParam(nn.Module):
     """ 

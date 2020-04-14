@@ -27,19 +27,12 @@ from torch.utils.data import DataLoader
 from torch.utils.data import Dataset
 torch.set_default_tensor_type(torch.cuda.FloatTensor)
 
-# import VAT loss
-from VATLoss import VATLoss 
-
 # load flows - will serve as noise distribution
-import os
-os.chdir('Flows')
-from nflib.flows import MAF, NormalizingFlowModel, Invertible1x1Conv, ActNorm
-from nflib.spline_flows import NSF_AR, NSF_CL
+from models.icebeem.Flows.nflib.flows import MAF, NormalizingFlowModel, Invertible1x1Conv, ActNorm
+from models.icebeem.Flows.nflib.spline_flows import NSF_AR, NSF_CL
 
 # load MLP to parameterize energy function
-import os
-os.chdir('../../DEEN')
-from MLP import MLP, MLPlayer, CustomSyntheticDataset, smoothReLU, compute_sigma_saremi
+from models.icebeem.MLP import MLP, MLPlayer, CustomSyntheticDataset, smoothReLU, compute_sigma_saremi
 
 from scipy.stats import multivariate_normal
 
@@ -343,12 +336,12 @@ class ebmFCEsegments( object ):
 		return act_segment
 
 
-	def train_ebm_fce( self, epochs=500, lr=.0001, cutoff=None, augment=False, finalLayerOnly=False, useVAT=False ):
+	def train_ebm_fce( self, epochs=500, lr=.0001, cutoff=None, augment=False, finalLayerOnly=False ):
 		"""
 		FCE training of EBM model
 		"""
 		if self.verbose:
-			print('Training energy based model using FCE' + useVAT * ' with VAT penalty')
+			print('Training energy based model using FCE')
 
 		if cutoff is None:
 			cutoff = 1.00 # will basically only stop with perfect classification
@@ -395,10 +388,6 @@ class ebmFCEsegments( object ):
 			num_correct = 0
 			loss_val = 0
 			for _, (dat, label, seg) in enumerate( fce_loader ):
-				# consider adding VAT loss
-				if useVAT:
-					vat_loss = VATLoss(xi=10.0, eps=1.0, ip=1)
-					lds = vat_loss( self.energy_MLP, dat )
 
 				# noise model probs:
 				noise_logpdf = self.noise_logpdf( dat ).view(-1,1) #torch.tensor( self.noise_dist.logpdf( dat ).astype(np.float32) ).view(-1,1)
@@ -422,8 +411,6 @@ class ebmFCEsegments( object ):
 
 				# define loss
 				loss = loss_criterion( torch.sigmoid(logits), label )
-				if useVAT:
-					loss += 1 * lds 
 
 				loss_val += loss.item()
 
