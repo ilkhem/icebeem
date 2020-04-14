@@ -31,11 +31,13 @@ torch.set_default_tensor_type(torch.cuda.FloatTensor)
 from models.ebm import UnnormalizedConditialEBM, ConditionalEBM, VATLoss
 
 # load flows - will serve as noise distribution in FCE
-from models.flows import MAF, NormalizingFlowModel, Invertible1x1Conv, ActNorm
-from models.spline_flows import NSF_AR, NSF_CL
+from models.nflib.flows import MAF, NormalizingFlowModel, Invertible1x1Conv, ActNorm
+from models.nflib.spline_flows import NSF_AR, NSF_CL
+#from models.flows import MAF, NormalizingFlowModel, Invertible1x1Conv, ActNorm
+#from models.spline_flows import NSF_AR, NSF_CL
 
 # this should be removed later to use Ilyes' implementation of CBM
-from .nets import CleanMLP
+from models.nets import CleanMLP, MLP_general
 
 # ------------------------
 # define helper functions

@@ -6,7 +6,7 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 
-from .made import MADE
+from models.nflib.made import MADE
 
 class LeafParam(nn.Module):
     """ 
