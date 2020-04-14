@@ -8,7 +8,7 @@ from metrics.mcc import mean_corr_coef
 from models.tcl.tcl_wrapper_gpu import TCL_wrapper
 
 data_dim = 5
-data_segments = 10
+data_segments = 8
 n_layer = [2, 4]
 n_obs_seg = [100, 200, 500, 1000, 2000]
 n_sims = 10
@@ -35,7 +35,8 @@ for l in n_layer:
                               max_steps=stepDict[l][0] * 2, max_steps_init=stepDict[l][1])
 
         # store results
-        results[l][n].append(mean_corr_coef(res_TCL[0].T, st))
+        from sklearn.decomposition import FastICA
+        results[l][n].append(mean_corr_coef( FastICA().fit_transform( res_TCL[0].T ), st))
 
 # prepare output
 Results = {
