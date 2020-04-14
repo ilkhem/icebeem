@@ -13,6 +13,8 @@ n_layer = [2, 4]
 n_obs_seg = [100, 200, 500, 1000, 2000]
 n_sims = 10
 
+stepDict = {1: [int(5e3),int(5e3)], 2:[int(1e4), int(1e4)], 3:[int(1e4), int(1e4)], 4:[int(1e4),int(1e4)], 5:[int(1e4),int(1e4)]}
+
 results = {l: {n: [] for n in n_obs_seg} for l in n_layer}
 
 for l in n_layer:
