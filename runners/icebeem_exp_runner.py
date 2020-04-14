@@ -2,10 +2,13 @@
 #
 #
 
+import numpy as np 
+from scipy.stats import random_correlation
+
 from models.icebeem_FCE import * 
 
 from metrics.solvehungarian import SolveHungarian
-from data.nica import genTCLdataOrtho
+from data.imca import gen_TCL_data_ortho, gen_IMCA_data
 from metrics.mcc import mean_corr_coef
 
 import torch
@@ -25,14 +28,32 @@ n_layers_flow = 10
 n_layers_ebm = 5
 ebm_hidden_size = 32 # 16
 
+# change this to use the parser later on
+simulationMethod = 'TCL' # or 'IMCA'
+
 for l in n_layer:
     for n in n_obs_seg:
         print('Running exp with L={} and n={}'.format(l,n))
-        # generate some TCL data
-        dat_all  = genTCLdataOrtho( Ncomp=data_dim, Nsegment=data_segments, Nlayer=l, source = 'Gaussian', NsegmentObs=n, NonLin='leaky', negSlope=.2, Niter4condThresh=1e4 )
-        data     = dat_all['obs']
-        ut       = to_one_hot( dat_all['labels'] )[0]
-        st       = dat_all['source']
+
+        # generate data
+        if simulationMethod=='TCL':
+            dat_all = gen_TCL_data_ortho(Ncomp=data_dim, Nsegment=data_segments, Nlayer=l, source='Gaussian', NsegmentObs=n,
+                                         NonLin='leaky', negSlope=.2, Niter4condThresh=1e4)
+            data = dat_all['obs']
+            ut = to_one_hot(dat_all['labels'])[0]
+            st = dat_all['source']
+        else:
+            baseEvals  = np.random.rand(data_dim)
+            baseEvals /= ( (1./data_dim) * baseEvals.sum() )
+            baseCov    = random_correlation.rvs( baseEvals )
+
+            dat_all  = gen_IMCA_data(Ncomp=data_dim, Nsegment=data_segments, Nlayer=l, 
+                       NsegmentObs=n, NonLin='leaky',
+                       negSlope=.2, Niter4condThresh=1e4,
+                       BaseCovariance = baseCov)
+            data     = dat_all['obs']
+            ut       = to_one_hot( dat_all['labels'] )[0]
+            st       = dat_all['source']
 
         # define and run ICEBEEM
         model_ebm = MLP_general( input_size=data_dim, hidden_size=[ebm_hidden_size]*n_layers_ebm, n_layers=n_layers_ebm, output_size=data_dim, use_bn=True, activation_function= F.leaky_relu) 
@@ -52,7 +73,6 @@ for l in n_layer:
 
         # instantiate ebmFCE object
         fce_ = ebmFCEsegments( data=data.astype(np.float32), segments=ut.astype(np.float32), energy_MLP=model_ebm, flow_model=model_flow, verbose=False )
-
 
         if pretrain_flow:
             #print('pretraining flow model..')
@@ -83,7 +103,6 @@ for l in n_layer:
             recov = fce_.unmixSamples( data, modelChoice='ebm' )
             source_est_ica = FastICA().fit_transform( ( recov ) )
             recov_sources.append( source_est_ica )
-
 
 		# store results
 		results[l][n].append( np.max([mean_corr_coef( x, st) for x in recov_sources]) )
