@@ -33,5 +33,5 @@ if __name__ == '__main__':
             r = icebeem_exp_runner.runICEBeeMexp( nSims=args.nSims , simulationMethod=args.method) 
 
         # save results
-        fname = 'results/' + args.method + 'res_' + args.dataset +'exp.p'
+        fname = 'results/' + args.method + 'res_' + args.dataset + 'exp_' + str(args.nSims) + '.p'
         pickle.dump( r, open( fname, "wb" ))
