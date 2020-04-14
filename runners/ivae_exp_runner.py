@@ -5,7 +5,6 @@
 from models.ivae.IVAE_wrapper import * 
 
 from metrics.solvehungarian import SolveHungarian
-
 from data.nica import genTCLdataOrtho
 
 import torch
@@ -13,10 +12,6 @@ import os
 torch.set_default_tensor_type('torch.cuda.FloatTensor')
 os.environ["CUDA_VISIBLE_DEVICES"] = '0'
 
-# replace this later on 
-# collect arguments
-import sys
-args = sys.argv 
 data_dim      = 5 
 data_segments = 10
 n_layer       = [2, 4] 
