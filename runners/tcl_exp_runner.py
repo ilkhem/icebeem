@@ -16,6 +16,7 @@ n_sims = 10
 stepDict = {1: [int(5e3),int(5e3)], 2:[int(1e4), int(1e4)], 3:[int(1e4), int(1e4)], 4:[int(1e4),int(1e4)], 5:[int(1e4),int(1e4)]}
 
 results = {l: {n: [] for n in n_obs_seg} for l in n_layer}
+num_comp = data_dim
 
 for l in n_layer:
     for n in n_obs_seg:
