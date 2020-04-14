@@ -27,15 +27,15 @@ from torch.utils.data import DataLoader
 from torch.utils.data import Dataset
 torch.set_default_tensor_type(torch.cuda.FloatTensor)
 
-# load flows - will serve as noise distribution
-from models.icebeem.Flows.nflib.flows import MAF, NormalizingFlowModel, Invertible1x1Conv, ActNorm
-from models.icebeem.Flows.nflib.spline_flows import NSF_AR, NSF_CL
+# import VAT loss
+from models.ebm import UnnormalizedConditialEBM, ConditionalEBM, VATLoss
 
-# load MLP to parameterize energy function
-from models.icebeem.MLP import MLP, MLPlayer, CustomSyntheticDataset, smoothReLU, compute_sigma_saremi
+# load flows - will serve as noise distribution in FCE
+from models.flows import MAF, NormalizingFlowModel, Invertible1x1Conv, ActNorm
+from models.spline_flows import NSF_AR, NSF_CL
 
-from scipy.stats import multivariate_normal
-
+# this should be removed later to use Ilyes' implementation of CBM
+from .nets import CleanMLP
 
 # ------------------------
 # define helper functions
@@ -63,7 +63,6 @@ class CustomSyntheticDatasetDensity(Dataset):
 			'n': self.len,
 			'data_dim': self.data_dim,
 			}    
-
 
 
 class CustomFCEdataset(Dataset):
@@ -127,11 +126,9 @@ def to_one_hot(x, m=None):
 		xoh[i][np.arange(xi.size), xi.astype(np.int)] = 1
 	return xoh
 
-
 # ------------------------
 # define ebm FCE object
 # ------------------------
-
 
 class ebmFCE( object ):
 	"""
@@ -336,12 +333,12 @@ class ebmFCEsegments( object ):
 		return act_segment
 
 
-	def train_ebm_fce( self, epochs=500, lr=.0001, cutoff=None, augment=False, finalLayerOnly=False ):
+	def train_ebm_fce( self, epochs=500, lr=.0001, cutoff=None, augment=False, finalLayerOnly=False, useVAT=False ):
 		"""
 		FCE training of EBM model
 		"""
 		if self.verbose:
-			print('Training energy based model using FCE')
+			print('Training energy based model using FCE' + useVAT * ' with VAT penalty')
 
 		if cutoff is None:
 			cutoff = 1.00 # will basically only stop with perfect classification
@@ -388,6 +385,10 @@ class ebmFCEsegments( object ):
 			num_correct = 0
 			loss_val = 0
 			for _, (dat, label, seg) in enumerate( fce_loader ):
+				# consider adding VAT loss
+				if useVAT:
+					vat_loss = VATLoss(xi=10.0, eps=1.0, ip=1)
+					lds = vat_loss( self.energy_MLP, dat )
 
 				# noise model probs:
 				noise_logpdf = self.noise_logpdf( dat ).view(-1,1) #torch.tensor( self.noise_dist.logpdf( dat ).astype(np.float32) ).view(-1,1)
@@ -411,6 +412,8 @@ class ebmFCEsegments( object ):
 
 				# define loss
 				loss = loss_criterion( torch.sigmoid(logits), label )
+				if useVAT:
+					loss += 1 * lds 
 
 				loss_val += loss.item()
 
