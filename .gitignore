@@ -130,3 +130,5 @@ dmypy.json
 .pyre/
 tags
 
+*DS_Store
+._*
