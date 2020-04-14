@@ -5,6 +5,7 @@ from torch import distributions as dist
 from torch import nn
 from torch.nn import functional as F
 
+import numpy as np
 
 def weights_init(m):
     if isinstance(m, nn.Linear):
