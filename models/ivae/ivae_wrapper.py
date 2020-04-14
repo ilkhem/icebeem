@@ -3,7 +3,7 @@ import torch
 from torch import optim
 from torch.utils.data import DataLoader
 
-from models.ivae.IVAE import iVAE, CustomSyntheticDataset, to_one_hot
+from models.ivae.ivae import iVAE, CustomSyntheticDataset
 
 def IVAE_wrapper(X, U, batch_size=256, max_iter=7e4, seed=0, n_layers=3, hidden_dim=20, lr=1e-3, cuda=True):
     
