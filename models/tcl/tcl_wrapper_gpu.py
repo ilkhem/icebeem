@@ -3,20 +3,18 @@
 # this code is adapted from: https://github.com/hirosm/TCL
 #
 #
-
-
 import os
 
-import tensorflow as tf
-
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 import numpy as np
+import tensorflow as tf
 from sklearn.decomposition import FastICA
 
-from .tcl_preprocessing import pca
-from .tcl_core import train_gpu as train
 from .tcl_core import inference
+from .tcl_core import train_gpu as train
 from .tcl_eval import get_tensor, calc_accuracy
+from .tcl_preprocessing import pca
+
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 
 def TCL_wrapper(sensor, label, list_hidden_nodes, random_seed=0, max_steps=int(7e4), max_steps_init=int(7e4),
