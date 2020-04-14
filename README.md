@@ -16,3 +16,9 @@ Requirements:
  - pytorch 
  - tensorflow (for TCL)
 
+
+Tests:
+- [x] TCL simulations
+- [x] iVAE simulations
+- [ ] ICE-BeeM simulations (in progress)
+- [ ] MNIST experiments 
