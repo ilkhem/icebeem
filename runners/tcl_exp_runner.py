@@ -1,7 +1,7 @@
 ### run TCL experiments
 #
 #
-import numpy as np 
+import numpy as np
 from scipy.stats import random_correlation
 
 from data.imca import gen_TCL_data_ortho, gen_IMCA_data
@@ -41,7 +41,7 @@ def runTCLexp( nSims = 10, simulationMethod='TCL'):
                     baseEvals /= (.5 * baseEvals.sum() )
                     baseCov    = random_correlation.rvs( baseEvals )
 
-                    dat_all  = gen_IMCA_MoG_data(Ncomp=data_dim, Nsegment=data_segments, Nlayer=n_layer, 
+                    dat_all  = gen_IMCA_data(Ncomp=data_dim, Nsegment=data_segments, Nlayer=n_layer,
                                NsegmentObs=n_obs_seg, NonLin='leaky',
                                negSlope=.2, Niter4condThresh=1e4,
                                BaseCovariance = baseCov)
@@ -50,7 +50,7 @@ def runTCLexp( nSims = 10, simulationMethod='TCL'):
                     st       = dat_all['source']
 
 
-                # run iVAE 
+                # run iVAE
                 res_TCL = TCL_wrapper(sensor=data.T, label=dat_all['labels'],
                                       list_hidden_nodes=[num_comp * 2] * (l - 1) + [num_comp],
                                       max_steps=stepDict[l][0] * 2, max_steps_init=stepDict[l][1])
@@ -66,6 +66,6 @@ def runTCLexp( nSims = 10, simulationMethod='TCL'):
         'CorrelationCoef': results
     }
 
-    return Results 
+    return Results
 
 

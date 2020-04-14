@@ -7,8 +7,7 @@ usage:
 """
 
 import argparse 
-from runners import ivae_exp_runner, icebeem_exp_runner
-#from runners import tcl_exp_runner 
+from runners import ivae_exp_runner, icebeem_exp_runner, tcl_exp_runner
 
 import pickle 
 
@@ -27,7 +26,7 @@ if __name__ == '__main__':
 
     if args.dataset in ['TCL', 'IMCA']:
         if args.method.lower() == 'tcl':
-            r = tcl_exp_runner.runiVAEexp( nSims=args.nSims, simulationMethod=args.method ) 
+            r = tcl_exp_runner.runTCLexp( nSims=args.nSims, simulationMethod=args.method )
         if args.method.lower() == 'ivae':
             r = ivae_exp_runner.runiVAEexp( nSims=args.nSims , simulationMethod=args.method )
         if args.method.lower() in ['ice-beem', 'icebeem']:
