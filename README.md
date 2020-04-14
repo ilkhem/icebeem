@@ -12,4 +12,7 @@ The project is set up as follows:
 All folders should include an `__init__.py` so that python recognizes them as modules and we can call them from other files in the same root directory.
 The `main.py` file is the only executable. It will run a runner from `runners` on a particular dataset in `data` according to a config file from `configs`.
 
+Requirements:
+ - pytorch 
+ - tensorflow (for TCL)
 
