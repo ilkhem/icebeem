@@ -1,77 +1,77 @@
 import numpy as np
-import torch
+# import torch
 from scipy.stats import ortho_group
 from sklearn.preprocessing import scale
 from torch.utils.data import Dataset
 
 
 # define Dataset objects
-class FCEDataset(Dataset):
-    def __init__(self, X, Y):
-        self.x = torch.from_numpy(X)
-        self.y = torch.from_numpy(Y)
-        self.len = self.x.shape[0]
-        self.data_dim = self.x.shape[1]
-        self.noise_dim = self.y.shape[1]
+# class FCEDataset(Dataset):
+#     def __init__(self, X, Y):
+#         self.x = torch.from_numpy(X)
+#         self.y = torch.from_numpy(Y)
+#         self.len = self.x.shape[0]
+#         self.data_dim = self.x.shape[1]
+#         self.noise_dim = self.y.shape[1]
 
-    def get_dims(self):
-        return self.data_dim, self.noise_dim
+#     def get_dims(self):
+#         return self.data_dim, self.noise_dim
 
-    def __len__(self):
-        return self.len
+#     def __len__(self):
+#         return self.len
 
-    def __getitem__(self, index):
-        return self.x[index], self.y[index]
-
-
-class ConditionalFCEDataset(Dataset):
-    def __init__(self, X, Y, U):
-        self.x = torch.from_numpy(X)
-        self.y = torch.from_numpy(Y)
-        self.u = torch.from_numpy(U)
-        self.len = self.x.shape[0]
-        self.data_dim = self.x.shape[1]
-        self.noise_dim = self.y.shape[1]
-        self.aux_dim = self.u.shape[1]
-
-    def get_dims(self):
-        return self.data_dim, self.noise_dim, self.aux_dim
-
-    def __len__(self):
-        return self.len
-
-    def __getitem__(self, index):
-        return self.x[index], self.y[index], self.u[index]
+#     def __getitem__(self, index):
+#         return self.x[index], self.y[index]
 
 
-class SingleDataset(Dataset):
-    def __init__(self, X):
-        self.x = torch.from_numpy(X)
-        self.len = self.x.shape[0]
-        self.data_dim = self.x.shape[1]
-        print('data loaded on {}'.format(self.x.device))
+# class ConditionalFCEDataset(Dataset):
+#     def __init__(self, X, Y, U):
+#         self.x = torch.from_numpy(X)
+#         self.y = torch.from_numpy(Y)
+#         self.u = torch.from_numpy(U)
+#         self.len = self.x.shape[0]
+#         self.data_dim = self.x.shape[1]
+#         self.noise_dim = self.y.shape[1]
+#         self.aux_dim = self.u.shape[1]
 
-    def get_dims(self):
-        return self.data_dim
+#     def get_dims(self):
+#         return self.data_dim, self.noise_dim, self.aux_dim
 
-    def __len__(self):
-        return self.len
+#     def __len__(self):
+#         return self.len
 
-    def __getitem__(self, index):
-        return self.x[index]
+#     def __getitem__(self, index):
+#         return self.x[index], self.y[index], self.u[index]
 
 
-class DoubleDataset(Dataset):
-    def __init__(self, X, Y):
-        self.x = torch.from_numpy(X)
-        self.y = torch.from_numpy(Y)
-        self.len = self.x.shape[0]
+# class SingleDataset(Dataset):
+#     def __init__(self, X):
+#         self.x = torch.from_numpy(X)
+#         self.len = self.x.shape[0]
+#         self.data_dim = self.x.shape[1]
+#         print('data loaded on {}'.format(self.x.device))
 
-    def __len__(self):
-        return self.len
+#     def get_dims(self):
+#         return self.data_dim
 
-    def __getitem__(self, index):
-        return self.x[index], self.y[index]
+#     def __len__(self):
+#         return self.len
+
+#     def __getitem__(self, index):
+#         return self.x[index]
+
+
+# class DoubleDataset(Dataset):
+#     def __init__(self, X, Y):
+#         self.x = torch.from_numpy(X)
+#         self.y = torch.from_numpy(Y)
+#         self.len = self.x.shape[0]
+
+#     def __len__(self):
+#         return self.len
+
+#     def __getitem__(self, index):
+#         return self.x[index], self.y[index]
 
 
 
