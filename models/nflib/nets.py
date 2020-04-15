@@ -1,16 +1,17 @@
+# THIS IS A LEGACY CODE, SAFE TO REMOVE
+
+
 """
 Various helper network modules
 """
 
 import torch
-import torch.nn.functional as F
 from torch import nn
 
-from models.nflib.made import MADE
 
 class LeafParam(nn.Module):
     """ 
-    just ignores the input and outputs a parameter tensor, lol 
+    just ignores the input and outputs a parameter tensor
     todo maybe this exists in PyTorch somewhere?
     """
     def __init__(self, n):
@@ -36,7 +37,7 @@ class PositionalEncoder(nn.Module):
         out = torch.cat(sines + coses, dim=1)
         return out
 
-class MLP(nn.Module):
+class MLP4(nn.Module):
     """ a simple 4-layer MLP """
 
     def __init__(self, nin, nout, nh):
@@ -63,17 +64,8 @@ class PosEncMLP(nn.Module):
         super().__init__()
         self.net = nn.Sequential(
             PositionalEncoder(freqs),
-            MLP(nin * len(freqs) * 2, nout, nh),
+            MLP4(nin * len(freqs) * 2, nout, nh),
         )
     def forward(self, x):
         return self.net(x)
 
-class ARMLP(nn.Module):
-    """ a 4-layer auto-regressive MLP, wrapper around MADE net """
-
-    def __init__(self, nin, nout, nh):
-        super().__init__()
-        self.net = MADE(nin, [nh, nh, nh], nout, num_masks=1, natural_ordering=True)
-        
-    def forward(self, x):
-        return self.net(x)

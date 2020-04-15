@@ -1,3 +1,6 @@
+# THIS IS A LEGACY CODE, SAFE TO REMOVE
+
+
 """
 # copy pasted from my earlier MADE implementation
 # https://github.com/karpathy/pytorch-made
