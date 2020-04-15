@@ -23,7 +23,9 @@ Tests:
 - [ ] ICE-BeeM simulations (in progress)
 - [ ] MNIST experiments 
 
-TODO:
-- [ ] remove legacy and unnecessary files
+TODO (ilyes):
+- [x] move all Datase objects to `data/`
+- [x] remove legacy and unnecessary files
+- [ ] work on FCE implementation and compare perf to Ricardo's
 - [ ] add plotting option to `main.py`
 - [ ] add weight checkpoints for easy plotting of Figures without training
