@@ -2,9 +2,9 @@
 #
 # taken from: https://github.com/ermongroup/ncsn/
 
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import torch
 from functools import partial
 
 

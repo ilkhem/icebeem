@@ -7,7 +7,7 @@ from torch import nn
 
 class LeafParam(nn.Module):
     """
-    just ignores the input and outputs a parameter tensor, lol
+    just ignores the input and outputs a parameter tensor
     todo maybe this exists in PyTorch somewhere?
     """
 
@@ -300,7 +300,6 @@ class CleanMLP(nn.Module):
         return self.net(x)
 
 
-
 class ConvolutionalFeatureExtractorMNIST(nn.Module):
     def __init__(self, output_size, n_lin_end=1):
         super().__init__()
@@ -332,48 +331,53 @@ class ConvolutionalFeatureExtractorMNIST(nn.Module):
         c = self.conv(x.view(-1, 1, 28, 28)).squeeze()  # make sure x is image for convolutional layer
         return self.fc(c)
 
+
 class ARMLP(nn.Module):
     """ a 4-layer auto-regressive MLP, wrapper around MADE net """
 
     def __init__(self, nin, nout, nh):
         super().__init__()
         self.net = MADE(nin, [nh, nh, nh], nout, num_masks=1, natural_ordering=True)
-        
+
     def forward(self, x):
         return self.net(x)
 
 
-class MLP_general( nn.Module ):
-  """
-  define a MLP network - this is a more general class than MLP above, allows for user to specify
-  the dimensions at each layer of the network
-  """
-  def __init__( self, input_size,  hidden_size, n_layers, output_size=None, activation_function = F.relu, use_bn=False ):
+class MLP_general(nn.Module):
     """
-    
-    Input:
-     - input_size  : dimension of input data (e.g., 784 for MNIST)
-     - hidden_size : list of hidden representations, one entry per layer 
-     - n_layers    : number of hidden layers 
-     
+    define a MLP network - this is a more general class than MLP above, allows for user to specify
+    the dimensions at each layer of the network
     """
-    super( MLP_general, self ).__init__()
-    
-    if output_size is None:
-      output_size = 1 # because we approximating a log density, output should be scalar!
 
-    self.use_bn = use_bn
-    self.activation_function = activation_function
-    self.linear1st = nn.Linear( input_size, hidden_size[0] ) # map from data dim to dimension of hidden units
-    self.Layers = nn.ModuleList( [MLPlayer( hidden_size[i-1], hidden_size[i], activation_function=self.activation_function, use_bn=self.use_bn ) for i in range(1,n_layers) ] )
-    self.linearLast = nn.Linear( hidden_size[-1], output_size ) # map from dimension of hidden units to dimension of output
-    
-  def forward( self, x ):
-    """
-    forward pass through resnet
-    """
-    x = self.linear1st( x )
-    for current_layer in self.Layers :
-      x = current_layer( x )
-    x =  self.linearLast( x ) 
-    return x
+    def __init__(self, input_size, hidden_size, n_layers, output_size=None, activation_function=F.relu, use_bn=False):
+        """
+
+        Input:
+         - input_size  : dimension of input data (e.g., 784 for MNIST)
+         - hidden_size : list of hidden representations, one entry per layer
+         - n_layers    : number of hidden layers
+
+        """
+        super(MLP_general, self).__init__()
+
+        if output_size is None:
+            output_size = 1  # because we approximating a log density, output should be scalar!
+
+        self.use_bn = use_bn
+        self.activation_function = activation_function
+        self.linear1st = nn.Linear(input_size, hidden_size[0])  # map from data dim to dimension of hidden units
+        self.Layers = nn.ModuleList([MLPlayer(hidden_size[i - 1], hidden_size[i],
+                                              activation_function=self.activation_function, use_bn=self.use_bn) for i in
+                                     range(1, n_layers)])
+        self.linearLast = nn.Linear(hidden_size[-1],
+                                    output_size)  # map from dimension of hidden units to dimension of output
+
+    def forward(self, x):
+        """
+        forward pass through resnet
+        """
+        x = self.linear1st(x)
+        for current_layer in self.Layers:
+            x = current_layer(x)
+        x = self.linearLast(x)
+        return x

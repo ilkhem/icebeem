@@ -1,6 +1,5 @@
-import os
-
 import numpy as np
+import os
 import torch
 from PIL import Image
 from torch.utils.data import Dataset
@@ -63,7 +62,6 @@ class ContrastiveMNIST(Dataset):
 
         self._clip_dset(self.n_labels)
 
-
         self.real_size = self.data.shape[0]
         self.total_size = self.real_size + self.noise_size
 
@@ -74,10 +72,9 @@ class ContrastiveMNIST(Dataset):
         x1 = img.view(-1).min()
         x2 = img.view(-1).max()
         a = 255. / (x2 - x1)
-        b = -x1*a
-        f = lambda x: a*x + b
+        b = -x1 * a
+        f = lambda x: a * x + b
         return f(img)
-
 
     def _clip_dset(self, range):
         labels_to_consider = np.arange(range)
@@ -113,7 +110,7 @@ class ContrastiveMNIST(Dataset):
             img = Image.fromarray(img.numpy(), mode='L')
 
         else:
-            img, segment = self.noise_data[index].view(1,28,28), int(self.noise_segments[index])
+            img, segment = self.noise_data[index].view(1, 28, 28), int(self.noise_segments[index])
             # img = self._scale_inputs(torch.sigmoid(img))
             # doing this so that it is consistent with all other datasets
             # to return a PIL Image

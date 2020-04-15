@@ -2,9 +2,9 @@
 #
 #
 import itertools
-import os
 
 import numpy as np
+import os
 import torch
 import torch.nn.functional as F
 from scipy.stats import random_correlation
@@ -13,8 +13,8 @@ from torch.distributions import Uniform, TransformedDistribution, SigmoidTransfo
 from data.imca import gen_TCL_data_ortho, gen_IMCA_data
 from data.utils import to_one_hot
 from metrics.mcc import mean_corr_coef
+from models.icebeem_fce import ebmFCEsegments
 from models.nets import MLP_general
-from models.icebeem_FCE import ebmFCEsegments
 from models.nflib.flows import NormalizingFlowModel, Invertible1x1Conv, ActNorm
 from models.nflib.spline_flows import NSF_AR
 
@@ -32,6 +32,7 @@ n_layers_flow = 10
 n_layers_ebm = 5
 ebm_hidden_size = 32  # 16
 
+
 def runICEBeeMexp(nSims=10, simulationMethod='TCL'):
     """run ICE-BeeM simulations"""
 
@@ -42,7 +43,8 @@ def runICEBeeMexp(nSims=10, simulationMethod='TCL'):
             for _ in range(nSims):
                 # generate data
                 if simulationMethod == 'TCL':
-                    dat_all = gen_TCL_data_ortho(Ncomp=data_dim, Nsegment=data_segments, Nlayer=l, source='Gaussian', varyMean=1,
+                    dat_all = gen_TCL_data_ortho(Ncomp=data_dim, Nsegment=data_segments, Nlayer=l, source='Gaussian',
+                                                 varyMean=1,
                                                  NsegmentObs=n,
                                                  NonLin='leaky', negSlope=.2, Niter4condThresh=1e4)
                     data = dat_all['obs']

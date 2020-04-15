@@ -3,11 +3,11 @@ import torch
 from torch import optim
 from torch.utils.data import DataLoader
 
-from .ivae_core import iVAE
 from data.imca import ConditionalDataset
+from .ivae_core import iVAE
+
 
 def IVAE_wrapper(X, U, batch_size=256, max_iter=7e4, seed=0, n_layers=3, hidden_dim=20, lr=1e-3, cuda=True):
-    
     torch.manual_seed(seed)
     np.random.seed(seed)
 
@@ -38,8 +38,8 @@ def IVAE_wrapper(X, U, batch_size=256, max_iter=7e4, seed=0, n_layers=3, hidden_
         elbo_train = 0
         epoch = it // len(train_loader) + 1
         for _, (x, u) in enumerate(train_loader):
-            #x.to('cuda', non_blocking=True)
-            #u.to('cuda', non_blocking=True)
+            # x.to('cuda', non_blocking=True)
+            # u.to('cuda', non_blocking=True)
             it += 1
             optimizer.zero_grad()
 
@@ -54,7 +54,7 @@ def IVAE_wrapper(X, U, batch_size=256, max_iter=7e4, seed=0, n_layers=3, hidden_
         elbo_train /= len(train_loader)
 
         scheduler.step(elbo_train)
-        #print('epoch {}/{} \tloss: {}'.format(epoch, max_epochs, elbo_train))
+        # print('epoch {}/{} \tloss: {}'.format(epoch, max_epochs, elbo_train))
 
     Xt, Ut = dset.x, dset.u
     decoder_params, encoder_params, z, prior_params = model(Xt, Ut)

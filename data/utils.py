@@ -1,6 +1,5 @@
-import os
-
 import numpy as np
+import os
 
 
 def to_one_hot(x, m=None):
@@ -18,7 +17,6 @@ def to_one_hot(x, m=None):
         xoh += [np.zeros((xi.size, int(m)), dtype=dtp)]
         xoh[i][np.arange(xi.size), xi.astype(np.int)] = 1
     return xoh
-
 
 
 def one_hot_encode(labels, n_labels=10):

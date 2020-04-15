@@ -2,9 +2,9 @@
 #
 #
 
-import os 
+import numpy as np
+import os
 import torch
-import numpy as np 
 from scipy.stats import random_correlation
 
 from data.imca import gen_TCL_data_ortho, gen_IMCA_data
@@ -22,7 +22,8 @@ n_obs_seg = [100, 200, 500, 1000, 2000]
 
 results = {l: {n: [] for n in n_obs_seg} for l in n_layer}
 
-def runiVAEexp( nSims = 10, simulationMethod='TCL'):
+
+def runiVAEexp(nSims=10, simulationMethod='TCL'):
     """run iVAE simulations"""
 
     for l in n_layer:
@@ -31,24 +32,25 @@ def runiVAEexp( nSims = 10, simulationMethod='TCL'):
 
             for _ in range(nSims):
                 # generate data
-                if simulationMethod=='TCL':
-                    dat_all = gen_TCL_data_ortho(Ncomp=data_dim, Nsegment=data_segments, Nlayer=l, source='Gaussian', NsegmentObs=n, varyMean=True,
+                if simulationMethod == 'TCL':
+                    dat_all = gen_TCL_data_ortho(Ncomp=data_dim, Nsegment=data_segments, Nlayer=l, source='Gaussian',
+                                                 NsegmentObs=n, varyMean=True,
                                                  NonLin='leaky', negSlope=.2, Niter4condThresh=1e4)
                     data = dat_all['obs']
                     ut = to_one_hot(dat_all['labels'])[0]
                     st = dat_all['source']
                 else:
-                    baseEvals  = np.random.rand(data_dim)
-                    baseEvals /= ( (1./data_dim) * baseEvals.sum() )
-                    baseCov    = random_correlation.rvs( baseEvals )
+                    baseEvals = np.random.rand(data_dim)
+                    baseEvals /= ((1. / data_dim) * baseEvals.sum())
+                    baseCov = random_correlation.rvs(baseEvals)
 
-                    dat_all  = gen_IMCA_data(Ncomp=data_dim, Nsegment=data_segments, Nlayer=l, 
-                               NsegmentObs=n, NonLin='leaky',
-                               negSlope=.2, Niter4condThresh=1e4,
-                               BaseCovariance = baseCov)
-                    data     = dat_all['obs']
-                    ut       = to_one_hot( dat_all['labels'] )[0]
-                    st       = dat_all['source']
+                    dat_all = gen_IMCA_data(Ncomp=data_dim, Nsegment=data_segments, Nlayer=l,
+                                            NsegmentObs=n, NonLin='leaky',
+                                            negSlope=.2, Niter4condThresh=1e4,
+                                            BaseCovariance=baseCov)
+                    data = dat_all['obs']
+                    ut = to_one_hot(dat_all['labels'])[0]
+                    st = dat_all['source']
 
                 # run iVAE
                 res_iVAE = IVAE_wrapper(X=data, U=to_one_hot(ut.argmax(1))[0], n_layers=l + 1, hidden_dim=data_dim * 2,
