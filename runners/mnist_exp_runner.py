@@ -196,7 +196,6 @@ class mnist_runner():
                     if self.config.data.dataset == 'MNIST_transferBaseline':
                         # just save the losses, thats all we care about
                         if False:
-                            os.chdir('/nfs/ghome/live/ricardom/IMCA/ncsn-master/transferExperiments/transferRes')
                             import pickle 
                             pickle.dump( loss_vals, open('Baseline_Size' + str(self.subsetSize) + "_Seed" + str(self.seed) + '.p', 'wb'))
                         else:
