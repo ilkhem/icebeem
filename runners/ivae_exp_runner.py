@@ -32,7 +32,7 @@ def runiVAEexp( nSims = 10, simulationMethod='TCL'):
             for _ in range(nSims):
                 # generate data
                 if simulationMethod=='TCL':
-                    dat_all = gen_TCL_data_ortho(Ncomp=data_dim, Nsegment=data_segments, Nlayer=l, source='Gaussian', NsegmentObs=n, varyMean=1,
+                    dat_all = gen_TCL_data_ortho(Ncomp=data_dim, Nsegment=data_segments, Nlayer=l, source='Gaussian', NsegmentObs=n, varyMean=True,
                                                  NonLin='leaky', negSlope=.2, Niter4condThresh=1e4)
                     data = dat_all['obs']
                     ut = to_one_hot(dat_all['labels'])[0]
@@ -52,7 +52,7 @@ def runiVAEexp( nSims = 10, simulationMethod='TCL'):
 
                 # run iVAE
                 res_iVAE = IVAE_wrapper(X=data, U=to_one_hot(ut.argmax(1))[0], n_layers=l + 1, hidden_dim=data_dim * 2,
-                                        cuda=False, max_iter=1e4)
+                                        cuda=False, max_iter=1e5)
 
                 # store results
                 results[l][n].append(mean_corr_coef(res_iVAE[0].detach().numpy(), st))

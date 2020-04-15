@@ -132,3 +132,6 @@ tags
 
 *DS_Store
 ._*
+
+datasets/* 
+results/* 

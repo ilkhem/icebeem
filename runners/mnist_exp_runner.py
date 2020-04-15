@@ -1,27 +1,26 @@
 ### run conditional denoising score matching experiments on MNIST
 #
 #
-
+# much of this could it adapted from: https://github.com/ermongroup/ncsn/
+#
 
 import numpy as np
 import tqdm
-from losses.dsm import dsm_score_estimation, conditional_dsm
+from losses.dsm import conditional_dsm
 import torch.nn.functional as F
 import logging
 import torch
 import os
 import shutil
-#import tensorboardX
 import torch.optim as optim
 from torchvision.datasets import MNIST, CIFAR10, FashionMNIST
 import torchvision.transforms as transforms
 from torch.utils.data import DataLoader, Subset
-from datasets.celeba import CelebA
 from models.refinenet_dilated_baseline import RefineNetDilated
 from torch.utils.data.dataloader import default_collate
 import pickle 
 
-__all__ = ['BaselineRunner_Conditional']
+__all__ = ['mnist_runner']
 
 def my_collate(batch, nSeg=7):
     modified_batch = []
@@ -39,7 +38,7 @@ def my_collate_rev(batch):
             modified_batch.append(item)
     return default_collate(modified_batch)
 
-class BaselineRunner_Conditional():
+class mnist_runner():
     def __init__(self, args, config, nSeg=7, subsetSize=None, seed=0):
         self.args = args
         self.config = config
@@ -82,20 +81,18 @@ class BaselineRunner_Conditional():
             ])
 
         if self.config.data.dataset == 'CIFAR10':
-            dataset = CIFAR10(os.path.join(self.args.run, 'datasets', 'cifar10'), train=True, download=True, transform=tran_transform)
-            test_dataset = CIFAR10(os.path.join(self.args.run, 'datasets', 'cifar10_test'), train=False, download=True,
-                                   transform=test_transform)
-        
+            pass 
+
         elif self.config.data.dataset == 'MNIST':
             print('RUNNING REDUCED MNIST')
-            dataset = MNIST('/nfs/ghome/live/ricardom/IMCA/ncsn-master/datasets', train=True, download=True,
+            dataset = MNIST('/datasets/', train=True, download=True,
                             transform=tran_transform)
-            test_dataset = MNIST('/nfs/ghome/live/ricardom/IMCA/ncsn-master/datasets_test', train=False, download=True,
+            test_dataset = MNIST('/datasets_test/', train=False, download=True,
                                  transform=test_transform)
 
         elif self.config.data.dataset == 'MNIST_transferBaseline':
             # use same dataset as transfer_nets.py
-            test_dataset = MNIST('/nfs/ghome/live/ricardom/IMCA/ncsn-master/datasets/mnist_test', train=False, download=True, transform=test_transform)
+            test_dataset = MNIST('/datasets/mnist_test', train=False, download=True, transform=test_transform)
             print('TRANSFER BASELINES !! Subset size: ' + str(self.subsetSize))
             id_range = list(range(self.subsetSize))
             testset_1 = torch.utils.data.Subset(test_dataset, id_range)
@@ -104,30 +101,6 @@ class BaselineRunner_Conditional():
             #                 transform=tran_transform)
             # test_dataset = MNIST('/nfs/ghome/live/ricardom/IMCA/ncsn-master/datasets_test', train=False, download=True,
             #                      transform=test_transform)
-
-        elif self.config.data.dataset == 'CELEBA':
-            if self.config.data.random_flip:
-                dataset = CelebA(root=os.path.join(self.args.run, 'datasets', 'celeba'), split='train',
-                                 transform=transforms.Compose([
-                                     transforms.CenterCrop(140),
-                                     transforms.Resize(self.config.data.image_size),
-                                     transforms.RandomHorizontalFlip(),
-                                     transforms.ToTensor(),
-                                 ]), download=True)
-            else:
-                dataset = CelebA(root=os.path.join(self.args.run, 'datasets', 'celeba'), split='train',
-                                 transform=transforms.Compose([
-                                     transforms.CenterCrop(140),
-                                     transforms.Resize(self.config.data.image_size),
-                                     transforms.ToTensor(),
-                                 ]), download=True)
-
-            test_dataset = CelebA(root=os.path.join(self.args.run, 'datasets', 'celeba_test'), split='test',
-                                  transform=transforms.Compose([
-                                      transforms.CenterCrop(140),
-                                      transforms.Resize(self.config.data.image_size),
-                                      transforms.ToTensor(),
-                                  ]), download=True)
 
         # apply collation for all datasets ! (we only consider MNIST and CIFAR10 anyway!)
         if self.config.data.dataset in ['MNIST', 'CIFAR10']:

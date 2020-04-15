@@ -1,3 +1,8 @@
+### conditional dsm objective 
+#
+# this code is adapted from: https://github.com/ermongroup/ncsn/
+#
+
 import torch
 import torch.autograd as autograd
 
