@@ -1,4 +1,6 @@
-import numpy as np 
+# THIS IS A LEGACY CODE, SAFE TO REMOVE
+
+import numpy as np
 from scipy.optimize import linear_sum_assignment
 
 def SolveHungarian( recov, source ):

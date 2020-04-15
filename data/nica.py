@@ -1,3 +1,5 @@
+# THIS IS A LEGACY CODE, SAFE TO REMOVE
+
 ### Generate data based on the non-stationary, non-linear ICA model of Hyvarinen & Morioka (2016)
 #
 # data is generated using two distinct non-linearity functions: leaky-ReLU and sigmoid functions 
