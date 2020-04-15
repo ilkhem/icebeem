@@ -15,7 +15,7 @@ The `main.py` file is the only executable. It will run a runner from `runners` o
 Requirements:
  - pytorch 
  - tensorflow (for TCL)
-
+ - tqdm
 
 Tests:
 - [x] TCL simulations (need to be tidied up and run through main.py)
