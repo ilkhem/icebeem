@@ -135,3 +135,6 @@ tags
 
 datasets/* 
 results/* 
+datasets_test/* 
+*.gz 
+*.p 
