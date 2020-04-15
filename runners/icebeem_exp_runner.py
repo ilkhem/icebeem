@@ -13,7 +13,7 @@ from torch.distributions import Uniform, TransformedDistribution, SigmoidTransfo
 from data.imca import gen_TCL_data_ortho, gen_IMCA_data
 from data.utils import to_one_hot
 from metrics.mcc import mean_corr_coef
-from models.MLP import MLP_general
+from models.nets import MLP_general
 from models.icebeem_FCE import ebmFCEsegments
 from models.nflib.flows import NormalizingFlowModel, Invertible1x1Conv, ActNorm
 from models.nflib.spline_flows import NSF_AR

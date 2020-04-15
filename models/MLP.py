@@ -1,4 +1,6 @@
-### implementation of MLP to be used for DEEN density estimator 
+# THIS IS A LEGACY CODE, SAFE TO REMOVE
+
+### implementation of MLP to be used for DEEN density estimator
 #
 #
 #
