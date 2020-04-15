@@ -4,7 +4,6 @@
 
 import numpy as np 
 import os 
-os.chdir('/nfs/ghome/live/ricardom/IMCA/ncsn-master/')
 import torch 
 from torchvision.datasets import MNIST, CIFAR10, FashionMNIST
 import torchvision.transforms as transforms
@@ -70,11 +69,7 @@ else:
         transforms.ToTensor()
     ])
 
-if onCluster:
-	test_dataset = MNIST('/nfs/ghome/live/ricardom/IMCA/ncsn-master/datasets/mnist_test', train=False, download=True, transform=test_transform)
-else:
-	test_dataset = MNIST('/home/projects/IMCA/ncsn-master/datasets/mnist_test', train=False, download=True, transform=test_transform)
-
+test_dataset = MNIST('datasets/mnist_test', train=False, download=True, transform=test_transform)
 
 # define the subset
 
