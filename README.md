@@ -22,3 +22,8 @@ Tests:
 - [x] iVAE simulations (need to be tidied up and run through main.py)
 - [ ] ICE-BeeM simulations (in progress)
 - [ ] MNIST experiments 
+
+TODO:
+- [ ] remove legacy and unnecessary files
+- [ ] add plotting option to `main.py`
+- [ ] add weight checkpoints for easy plotting of Figures without training
