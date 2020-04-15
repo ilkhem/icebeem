@@ -11,7 +11,7 @@ import torch.nn as nn
 import torch.nn.init as init
 import torch.nn.functional as F
 
-from models.nflib.nets import MLP
+from ..nets import MLP4
 
 DEFAULT_MIN_BIN_WIDTH = 1e-3
 DEFAULT_MIN_BIN_HEIGHT = 1e-3
@@ -155,7 +155,7 @@ def RQS(inputs, unnormalized_widths, unnormalized_heights,
 class NSF_AR(nn.Module):
     """ Neural spline flow, coupling layer, [Durkan et al. 2019] """
 
-    def __init__(self, dim, K=5, B=3, hidden_dim=8, base_network=MLP):
+    def __init__(self, dim, K=5, B=3, hidden_dim=8, base_network=MLP4):
         super().__init__()
         self.dim = dim
         self.K = K
@@ -207,7 +207,7 @@ class NSF_AR(nn.Module):
 class NSF_CL(nn.Module):
     """ Neural spline flow, coupling layer, [Durkan et al. 2019] """
 
-    def __init__(self, dim, K=5, B=3, hidden_dim=8, base_network=MLP):
+    def __init__(self, dim, K=5, B=3, hidden_dim=8, base_network=MLP4):
         super().__init__()
         self.dim = dim
         self.K = K

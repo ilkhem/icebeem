@@ -3,7 +3,7 @@ import torch.nn.functional as F
 from torch import nn
 import numpy as np
 
-from .nets import MLP as MLP4
+from ..nets import MLP4
 from .spline_flows import unconstrained_RQS
 
 
