@@ -1,3 +1,6 @@
+# THIS IS A LEGACY CODE, SAFE TO REMOVE
+
+
 """
 Neural Spline Flows, coupling and autoregressive
 
