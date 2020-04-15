@@ -1,3 +1,5 @@
+# config file for transfer learning example on MNIST
+
 training:
   batch_size: 63
   n_epochs: 500000
@@ -9,7 +11,7 @@ training:
 
 data:
   ## mnist
-  dataset: "MNIST_transferBaseline"
+  dataset: "MNIST"
   image_size: 28
   channels: 1
   logit_transform: false

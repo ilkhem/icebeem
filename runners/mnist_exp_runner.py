@@ -85,14 +85,14 @@ class mnist_runner():
 
         elif self.config.data.dataset == 'MNIST':
             print('RUNNING REDUCED MNIST')
-            dataset = MNIST('/datasets/', train=True, download=True,
+            dataset = MNIST('datasets/', train=True, download=True,
                             transform=tran_transform)
-            test_dataset = MNIST('/datasets_test/', train=False, download=True,
+            test_dataset = MNIST('datasets_test/', train=False, download=True,
                                  transform=test_transform)
 
         elif self.config.data.dataset == 'MNIST_transferBaseline':
             # use same dataset as transfer_nets.py
-            test_dataset = MNIST('/datasets/mnist_test', train=False, download=True, transform=test_transform)
+            test_dataset = MNIST('datasets/mnist_test', train=False, download=True, transform=test_transform)
             print('TRANSFER BASELINES !! Subset size: ' + str(self.subsetSize))
             id_range = list(range(self.subsetSize))
             testset_1 = torch.utils.data.Subset(test_dataset, id_range)

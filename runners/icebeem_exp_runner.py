@@ -42,7 +42,7 @@ def runICEBeeMexp(nSims=10, simulationMethod='TCL'):
             for _ in range(nSims):
                 # generate data
                 if simulationMethod == 'TCL':
-                    dat_all = gen_TCL_data_ortho(Ncomp=data_dim, Nsegment=data_segments, Nlayer=l, source='Gaussian',
+                    dat_all = gen_TCL_data_ortho(Ncomp=data_dim, Nsegment=data_segments, Nlayer=l, source='Gaussian', varyMean=1,
                                                  NsegmentObs=n,
                                                  NonLin='leaky', negSlope=.2, Niter4condThresh=1e4)
                     data = dat_all['obs']
@@ -103,7 +103,7 @@ def runICEBeeMexp(nSims=10, simulationMethod='TCL'):
 
                 # iterate between updating noise and tuning the EBM
                 eps = .025
-                for iter_ in range(5):
+                for iter_ in range(3):
                     # update flow model:
                     fce_.train_flow_fce(epochs=5, objConstant=-1., cutoff=.5 - eps, lr=.00001)
                     # update energy based model:
