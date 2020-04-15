@@ -3,7 +3,8 @@ import torch
 from torch import optim
 from torch.utils.data import DataLoader
 
-from .ivae_core import iVAE, CustomSyntheticDataset
+from .ivae_core import iVAE
+from data.imca import ConditionalDataset
 
 def IVAE_wrapper(X, U, batch_size=256, max_iter=7e4, seed=0, n_layers=3, hidden_dim=20, lr=1e-3, cuda=True):
     
@@ -15,7 +16,7 @@ def IVAE_wrapper(X, U, batch_size=256, max_iter=7e4, seed=0, n_layers=3, hidden_
 
     # load data
     print('Creating shuffled dataset..')
-    dset = CustomSyntheticDataset(X.astype(np.float32), U.astype(np.float32), device)
+    dset = ConditionalDataset(X.astype(np.float32), U.astype(np.float32), device)
     loader_params = {'num_workers': 1, 'pin_memory': True} if cuda else {}
     train_loader = DataLoader(dset, shuffle=True, batch_size=batch_size, **loader_params)
     data_dim, latent_dim, aux_dim = dset.get_dims()

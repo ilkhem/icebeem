@@ -24,11 +24,11 @@ from torchvision import datasets, transforms
 from torch.autograd import Variable
 import torch.autograd as autograd
 from torch.utils.data import DataLoader
-from torch.utils.data import Dataset
 torch.set_default_tensor_type(torch.cuda.FloatTensor)
 
 # import VAT loss
 from models.ebm import UnnormalizedConditialEBM, ConditionalEBM, VATLoss
+from data.utils import to_one_hot
 
 # load flows - will serve as noise distribution in FCE
 from models.nflib.flows import MAF, NormalizingFlowModel, Invertible1x1Conv, ActNorm
@@ -39,98 +39,8 @@ from models.nflib.spline_flows import NSF_AR, NSF_CL
 # this should be removed later to use Ilyes' implementation of CBM
 from models.nets import CleanMLP, MLP_general
 
-# ------------------------
-# define helper functions
-# ------------------------
+from data.imca import SimpleDataset, ContrastiveSimpleDataset, ContrastiveConditionalDataset
 
-class CustomSyntheticDatasetDensity(Dataset):
-	def __init__(self, X, device='cpu'):
-		self.device = device
-		self.x = torch.from_numpy(X).to(device)
-		self.len = self.x.shape[0]
-		self.data_dim = self.x.shape[1]
-		print('data loaded on {}'.format(self.x.device))
-
-	def get_dims(self):
-		return self.data_dim
-
-	def __len__(self):
-		return self.len
-
-	def __getitem__(self, index):
-		return self.x[index]
-
-	def get_metadata(self):
-		return {
-			'n': self.len,
-			'data_dim': self.data_dim,
-			}    
-
-
-class CustomFCEdataset(Dataset):
-	def __init__(self, X, Y, device='cpu'):
-		self.device = device
-		self.x = torch.from_numpy(X).to(device)
-		self.y = torch.from_numpy(Y).to(device)
-		self.len = self.x.shape[0]
-		self.data_dim = self.x.shape[1]
-		#print('data loaded on {}'.format(self.x.device))
-
-	def get_dims(self):
-		return self.data_dim
-
-	def __len__(self):
-		return self.len
-
-	def __getitem__(self, index):
-		return self.x[index], self.y[index]
-
-	def get_metadata(self):
-		return {
-			'n': self.len,
-			'data_dim': self.data_dim,
-			}    
-
-class CustomFCEdatasetSegments(Dataset):
-	def __init__(self, X, Y, U, device='cpu'):
-		self.device = device
-		self.x = torch.from_numpy(X).to(device)
-		self.y = torch.from_numpy(Y).to(device)
-		self.u = torch.from_numpy(U).to(device)
-		self.len = self.x.shape[0]
-		self.data_dim = self.x.shape[1]
-		#print('data loaded on {}'.format(self.x.device))
-
-	def get_dims(self):
-		return self.data_dim
-
-	def __len__(self):
-		return self.len
-
-	def __getitem__(self, index):
-		return self.x[index], self.y[index], self.u[index]
-
-
-
-def to_one_hot(x, m=None):
-	"batch one hot"
-	if type(x) is not list:
-		x = [x]
-	if m is None:
-		ml = []
-		for xi in x:
-			ml += [xi.max() + 1]
-		m = max(ml)
-	dtp = x[0].dtype
-	xoh = []
-	for i, xi in enumerate(x):
-		xoh += [np.zeros((xi.size, int(m)), dtype=dtp)]
-		xoh[i][np.arange(xi.size), xi.astype(np.int)] = 1
-	return xoh
-
-# ------------------------
-# define ebm FCE object
-# ------------------------
 
 class ebmFCE( object ):
 	"""
@@ -170,7 +80,7 @@ class ebmFCE( object ):
 		y = np.array( [0] * n + [1] * n ) 
 
 		# define 
-		dat_fce = CustomFCEdataset( np.vstack(( self.data, self.noise_samples)).astype(np.float32), to_one_hot(y)[0].astype(np.float32), device=self.device )
+		dat_fce = ContrastiveSimpleDataset(np.vstack((self.data, self.noise_samples)).astype(np.float32), to_one_hot(y)[0].astype(np.float32), device=self.device)
 		fce_loader = DataLoader( dat_fce, shuffle=True, batch_size=128 )
 
 		# define log normalization constant
@@ -238,7 +148,7 @@ class ebmFCE( object ):
 		y = np.array( [0] * n + [1] * n ) 
 
 		# define 
-		dat_fce = CustomFCEdataset( np.vstack(( self.data, self.noise_samples)).astype(np.float32), to_one_hot(y)[0].astype(np.float32), device=self.device )
+		dat_fce = ContrastiveSimpleDataset(np.vstack((self.data, self.noise_samples)).astype(np.float32), to_one_hot(y)[0].astype(np.float32), device=self.device)
 		fce_loader = DataLoader( dat_fce, shuffle=True, batch_size=128 )
 
 
@@ -352,7 +262,7 @@ class ebmFCEsegments( object ):
 		y = np.array( [0] * n + [1] * n ) 
 
 		# define 
-		dat_fce = CustomFCEdatasetSegments( np.vstack(( self.data, self.noise_samples)).astype(np.float32), to_one_hot(y)[0].astype(np.float32), np.vstack( (self.segments, self.contrastSegments ) ), device=self.device  )
+		dat_fce = ContrastiveConditionalDataset(np.vstack((self.data, self.noise_samples)).astype(np.float32), to_one_hot(y)[0].astype(np.float32), np.vstack((self.segments, self.contrastSegments)), device=self.device)
 		fce_loader = DataLoader( dat_fce, shuffle=True, batch_size=128 )
 
 		# define log normalization constant
@@ -454,7 +364,7 @@ class ebmFCEsegments( object ):
 		optimizer = optim.Adam(self.flow_model.parameters(), lr=1e-4, weight_decay=1e-5) # todo tune WD
 		#print("number of params: ", sum(p.numel() for p in model_flow.parameters()))
 
-		dset = CustomSyntheticDatasetDensity(self.data.astype(np.float32), device=self.device ) 
+		dset = SimpleDataset(self.data.astype(np.float32), device=self.device)
 		train_loader = DataLoader( dset, shuffle=True, batch_size=128 )
 
 		# run optimization
@@ -514,7 +424,7 @@ class ebmFCEsegments( object ):
 		y = np.array( [0] * n + [1] * n ) 
 
 		# define 
-		dat_fce = CustomFCEdatasetSegments( np.vstack(( self.data, self.noise_samples)).astype(np.float32), to_one_hot(y)[0].astype(np.float32), np.vstack( (self.segments, self.segments ) ), device=self.device )
+		dat_fce = ContrastiveConditionalDataset(np.vstack((self.data, self.noise_samples)).astype(np.float32), to_one_hot(y)[0].astype(np.float32), np.vstack((self.segments, self.segments)), device=self.device)
 		fce_loader = DataLoader( dat_fce, shuffle=True, batch_size=128 )
 
 		# define optimizer 

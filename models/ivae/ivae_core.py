@@ -276,38 +276,3 @@ class iVAE(nn.Module):
         self._training_hyperparams[3] = max(1, a * .5 * (1 - it / thr))
         if it > thr:
             self.anneal_params = False
-
-
-
-import torch
-from torch.utils.data import Dataset
-
-
-class CustomSyntheticDataset(Dataset):
-    def __init__(self, X, U, device='cpu'):
-        self.device = device
-        self.x = torch.from_numpy(X)#.to(device)
-        self.u = torch.from_numpy(U)#.to(device)
-        self.len = self.x.shape[0]
-        self.aux_dim = self.u.shape[1]
-        self.data_dim = self.x.shape[1]
-        self.latent_dim = self.data_dim
-        self.nps = int(self.len / self.aux_dim)
-        #print('data loaded on {}'.format(self.x.device))
-
-    def get_dims(self):
-        return self.data_dim, self.latent_dim, self.aux_dim
-
-    def __len__(self):
-        return self.len
-
-    def __getitem__(self, index):
-        return self.x[index], self.u[index]
-
-    def get_metadata(self):
-        return {'nps': self.nps,
-                'ns': self.aux_dim,
-                'n': self.len,
-                'data_dim': self.data_dim,
-                'aux_dim': self.aux_dim,
-                }
