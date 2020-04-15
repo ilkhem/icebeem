@@ -194,6 +194,7 @@ def genTCLdataOrtho( Ncomp, Nlayer, Nsegment, NsegmentObs, source='Laplace', Non
   elif source=='Gaussian':
     dat = np.random.normal( 0, 1, (Nobs, Ncomp) )
     dat = scale( dat )
+    
   else:
     raise Exception("wrong source distribution")
 

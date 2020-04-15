@@ -19,7 +19,6 @@ data_dim = 5
 data_segments = 8
 n_layer = [2, 4]
 n_obs_seg = [100, 200, 500, 1000, 2000]
-n_sims = 10
 
 results = {l: {n: [] for n in n_obs_seg} for l in n_layer}
 
@@ -33,7 +32,7 @@ def runiVAEexp( nSims = 10, simulationMethod='TCL'):
             for _ in range(nSims):
                 # generate data
                 if simulationMethod=='TCL':
-                    dat_all = gen_TCL_data_ortho(Ncomp=data_dim, Nsegment=data_segments, Nlayer=l, source='Gaussian', NsegmentObs=n,
+                    dat_all = gen_TCL_data_ortho(Ncomp=data_dim, Nsegment=data_segments, Nlayer=l, source='Gaussian', NsegmentObs=n, varyMean=1,
                                                  NonLin='leaky', negSlope=.2, Niter4condThresh=1e4)
                     data = dat_all['obs']
                     ut = to_one_hot(dat_all['labels'])[0]

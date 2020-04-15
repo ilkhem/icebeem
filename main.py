@@ -7,7 +7,7 @@ usage:
 """
 
 import argparse 
-from runners import ivae_exp_runner, icebeem_exp_runner, tcl_exp_runner
+from runners import ivae_exp_runner, icebeem_exp_runner #, tcl_exp_runner
 
 import pickle 
 

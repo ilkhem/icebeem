@@ -25,14 +25,12 @@ data_dim = 5
 data_segments = 8
 n_layer = [2, 4]
 n_obs_seg = [100, 200, 500, 1000, 2000]
-n_sims = 10
 
 results = {l: {n: [] for n in n_obs_seg} for l in n_layer}
 
 n_layers_flow = 10
 n_layers_ebm = 5
 ebm_hidden_size = 32  # 16
-
 
 def runICEBeeMexp(nSims=10, simulationMethod='TCL'):
     """run ICE-BeeM simulations"""

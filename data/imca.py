@@ -290,7 +290,7 @@ def gen_IMCA_data(Ncomp, Nlayer, Nsegment, NsegmentObs, BaseCovariance, NonLin='
             'BaseCovariance': BaseCovariance}
 
 
-def gen_TCL_data_ortho(Ncomp, Nlayer, Nsegment, NsegmentObs, source='Laplace', NonLin='leaky', negSlope=.2,
+def gen_TCL_data_ortho(Ncomp, Nlayer, Nsegment, NsegmentObs, source='Laplace', NonLin='leaky', negSlope=.2, varyMean=False,
                        Niter4condThresh=1e4):
     """
     generate multivariate data based on the non-stationary non-linear ICA model of Hyvarinen & Morioka (2016)
@@ -335,7 +335,10 @@ def gen_TCL_data_ortho(Ncomp, Nlayer, Nsegment, NsegmentObs, source='Laplace', N
     modMat = np.random.uniform(0.01, 3, (Ncomp, Nsegment))
 
     # meanMat = np.random.uniform(0, 5, (Ncomp, Nsegment))
-    meanMat = np.zeros((Ncomp, Nsegment))
+    if varyMean:
+        meanMat = np.uniform(-1, 1, (Ncomp, Nsegment))
+    else:
+        meanMat = np.zeros((Ncomp, Nsegment))
     # now we adjust the variance within each segment in a non-stationary manner
     for seg in range(Nsegment):
         segID = range(NsegmentObs * seg, NsegmentObs * (seg + 1))
