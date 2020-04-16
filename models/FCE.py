@@ -39,7 +39,7 @@ class FCETrainer:
         return self.ebm.log_pdf(x, y, augment, positive)
 
     def sample_noise(self, n):
-        return self.flow.sample(n)[-1].detach().numpy()
+        return self.flow.sample(n)[-1].detach().cpu().numpy()
 
     def _pretrain_train_step(self, dataloader, optimizer, epoch, epochs, log_interval=100):
         for i, (x, y) in enumerate(dataloader):
