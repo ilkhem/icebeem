@@ -112,8 +112,6 @@ for epoch in range( eCount ):
 
 topScores  = []
 topReprs   = []
-topReprs_c = []
-trueLabels = []
 
 data_iter = iter(test_loader)
 #for i in range(20):
