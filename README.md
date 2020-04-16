@@ -42,3 +42,11 @@ followed by:
 to run baseline experiments (without transfer):
 
 `sh transfer_exp/run_DSMtransfer_baseline.sh `
+
+to run unconditional ebms (for classification comparison)
+
+`python3 main.py --dataset MNIST --config mnist.yaml --doc mnistUncondBaseline --unconditionalBaseline 1`
+
+followed by
+
+`python3 transfer_exp/semisupervised.py`

@@ -7,7 +7,7 @@ usage:
 """
 
 import argparse 
-from runners import ivae_exp_runner, icebeem_exp_runner, mnist_exp_runner #, tcl_exp_runner
+from runners import ivae_exp_runner, icebeem_exp_runner, mnist_exp_runner, mnist_unconditional_exp_runner #, tcl_exp_runner
 
 import os 
 import pickle
@@ -27,6 +27,8 @@ parser.add_argument('--nSegments', type=int, default=7)
 parser.add_argument('--SubsetSize', type=int, default=6000) # only relevant for transfer learning baseline, otherwise ignored
 parser.add_argument('--doc', type=str, default='0', help='A string for documentation purpose')
 parser.add_argument('--seed', type=int, default=0, help='Random seed')
+parser.add_argument('--unconditionalBaseline', type=int, default=0, help='should we run an unconditional baseline for EBMs - default no')
+
 
 args = parser.parse_args()
 
@@ -60,27 +62,55 @@ if __name__ == '__main__':
 
 
     if args.dataset == 'MNIST':
-        args.log = os.path.join(args.run, 'logs', args.doc)
+        if args.unconditionalBaseline == 0:
+            # train conditional EBM
+            args.log = os.path.join(args.run, 'logs', args.doc)
 
-        # prepare directory to save results
-        if os.path.exists(args.log):
-            shutil.rmtree(args.log)
-        print('saving in: ' + args.log )
-        os.makedirs(args.log)
+            # prepare directory to save results
+            if os.path.exists(args.log):
+                shutil.rmtree(args.log)
+            print('saving in: ' + args.log )
+            os.makedirs(args.log)
 
-        with open(os.path.join('configs', args.config), 'r') as f:
-            config = yaml.load(f)
-        new_config = dict2namespace(config)
-        new_config.device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+            with open(os.path.join('configs', args.config), 'r') as f:
+                config = yaml.load(f)
+            new_config = dict2namespace(config)
+            new_config.device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
-        #config_file = yaml.load( args.config )
-        print(new_config)
+            #config_file = yaml.load( args.config )
+            print(new_config)
 
-        torch.backends.cudnn.benchmark = True
+            torch.backends.cudnn.benchmark = True
 
-        runner = mnist_exp_runner.mnist_runner( args, new_config, nSeg = args.nSegments, subsetSize=args.SubsetSize, seed=args.seed )
-        if not args.test:
-            runner.train()
-        else:
-            runner.test()
+            runner = mnist_exp_runner.mnist_runner( args, new_config, nSeg = args.nSegments, subsetSize=args.SubsetSize, seed=args.seed )
+            if not args.test:
+                runner.train()
+            else:
+                runner.test()
+        if args.unconditionalBaseline == 1:
+            print('\n\n\n\n\nunconditional baseline')
+            # train an unconditional EBM using DSM
+            args.log = os.path.join(args.run, 'logs', args.doc)
+
+            # prepare directory to save results
+            if os.path.exists(args.log):
+                shutil.rmtree(args.log)
+            print('saving in: ' + args.log )
+            os.makedirs(args.log)
+
+            with open(os.path.join('configs', args.config), 'r') as f:
+                config = yaml.load(f)
+            new_config = dict2namespace(config)
+            new_config.device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+
+            #config_file = yaml.load( args.config )
+            print(new_config)
+
+            torch.backends.cudnn.benchmark = True
+
+            runner = mnist_unconditional_exp_runner.mnist_ucond_runner( args, new_config, nSeg = args.nSegments, subsetSize=args.SubsetSize, seed=args.seed )
+            if not args.test:
+                runner.train()
+            else:
+                runner.test()
 

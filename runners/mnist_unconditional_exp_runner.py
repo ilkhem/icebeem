@@ -1,5 +1,5 @@
-### run conditional denoising score matching experiments on MNIST
-#
+### run unconditional denoising score matching experiments on MNIST
+# this is a baseline
 #
 # much of this could it adapted from: https://github.com/ermongroup/ncsn/
 #
@@ -38,7 +38,7 @@ def my_collate_rev(batch):
             modified_batch.append(item)
     return default_collate(modified_batch)
 
-class mnist_runner():
+class mnist_ucond_runner():
     def __init__(self, args, config, nSeg=7, subsetSize=None, seed=0):
         self.args = args
         self.config = config
@@ -163,7 +163,7 @@ class mnist_runner():
 
                 # replace this with either dsm or dsm_conditional_score_estimation function !!
                 y -= y.min() # need to ensure its zero centered !
-                loss = conditional_dsm(enet, X, y, energy_net_finalLayer,  sigma=0.01)
+                loss = dsm(enet, X,  sigma=0.01)
 
                 optimizer.zero_grad()
                 loss.backward()

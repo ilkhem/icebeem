@@ -2,7 +2,7 @@
 
 training:
   batch_size: 63
-  n_epochs: 10
+  n_epochs: 5
   n_iters: 200001
   ngpu: 1
   snapshot_freq: 50
