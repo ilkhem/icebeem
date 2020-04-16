@@ -133,6 +133,7 @@ if __name__ == '__main__':
 
             #config_file = yaml.load( args.config )
             print(new_config)
+            pickle.dump( new_config, open('transfer_exp/config_file_cifar.p', 'wb'))
 
             torch.backends.cudnn.benchmark = True
 

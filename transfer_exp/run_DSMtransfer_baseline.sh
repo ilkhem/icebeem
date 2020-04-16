@@ -1,7 +1,7 @@
 #!/bin/bash
 echo "Bash ..."
 
-for n in 6000 500 1000 2000 3000 4000 5000
+for n in 500 1000 2000 3000 4000 5000 600
 do
 	for i in 10
 	do 

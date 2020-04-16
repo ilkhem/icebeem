@@ -153,9 +153,9 @@ if DATASET=='MNIST':
 
 if DATASET=='CIFAR10':
     # load config
-    config = pickle.load( open('transfer_exp/config_file.p', 'rb' ) )
+    config = pickle.load( open('transfer_exp/config_file_cifar.p', 'rb' ) )
 
-    expFolder = 'mnistPreTrain'
+    expFolder = 'cifarPreTrain'
     checkpoint = '' # '1000'
 
     check_path = expFolder + '/' +'checkpoint' + checkpoint + '_3000.pth'
@@ -199,7 +199,8 @@ if DATASET=='CIFAR10':
             transforms.ToTensor()
         ])
 
-    test_dataset = MNIST('datasets/mnist_test', train=False, download=True, transform=test_transform)
+    #test_dataset = MNIST('datasets/mnist_test', train=False, download=True, transform=test_transform)
+    test_dataset = CIFAR10('datasets/cifar10_test', train=False, download=True, transform=test_transform)
 
     # define the subset
 
@@ -263,14 +264,12 @@ if DATASET=='CIFAR10':
             #logging.info("step: {}, loss: {}, maxLabel: {}".format(step, loss.item(), y.max()))
             loss_track.append( loss.item() )
 
-
-
     # save loss_track somewhere! 
     generateLangevinSamples = False
 
     if generateLangevinSamples==False:
-        os.chdir('transfer_exp/transferRes')
-        pickle.dump( loss_track, open('TransferCDSM_Size' + str(SUBSET_SIZE) + "_Seed" + str(SEED) + '.p', 'wb' ))
+        os.chdir('transfer_exp/transferRes_cifar')
+        pickle.dump( loss_track, open('cifar_TransferCDSM_Size' + str(SUBSET_SIZE) + "_Seed" + str(SEED) + '.p', 'wb' ))
     else:
         pass
 
