@@ -22,8 +22,8 @@ torch.set_default_tensor_type('torch.cuda.FloatTensor')
 os.environ["CUDA_VISIBLE_DEVICES"] = '0'
 
 data_dim = 5
-data_segments = 8
-n_layer = [2, 4]
+data_segments = 40
+n_layer = [2]
 n_obs_seg = [100, 200, 500, 1000, 2000]
 
 results = {l: {n: [] for n in n_obs_seg} for l in n_layer}
