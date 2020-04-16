@@ -142,7 +142,7 @@ class mnist_runner():
 
         optimizer = self.get_optimizer( list(enet.parameters()) + [energy_net_finalLayer])
 
-        if self.args.resume_training:
+        if False: #self.args.resume_training:
             states = torch.load(os.path.join(self.args.log, 'checkpoint.pth'))
             enet.load_state_dict(states[0])
             optimizer.load_state_dict(states[1])

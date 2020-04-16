@@ -9,20 +9,34 @@ usage:
 import argparse 
 from runners import ivae_exp_runner, icebeem_exp_runner, mnist_exp_runner #, tcl_exp_runner
 
-import pickle 
+import os 
+import pickle
+import yaml 
+import torch 
 
 parser = argparse.ArgumentParser(description='')
 parser.add_argument('--dataset', type=str, help='dataset to run experiments. Should be TCL, IMCA or MNIST')
-parser.add_argument('--method', type=str, help='method to employ. Should be TCL, iVAE or ICE-BeeM')
-parser.add_argument('--nSims', type=int, help='number of simulations to run')
+parser.add_argument('--method', type=str, default='dsm', help='method to employ. Should be TCL, iVAE or ICE-BeeM')
+parser.add_argument('--nSims', type=int, default=5, help='number of simulations to run')
 # following two arguments are only relevant for mnist data experiments (will be ignored otherwise)
 parser.add_argument('--config', type=str, default='mnist.yml',  help='Path to the config file')
 parser.add_argument('--run', type=str, default='run', help='Path for saving running related data.')
 parser.add_argument('--test', action='store_true', help='Whether to test the model')
 parser.add_argument('--nSegments', type=int, default=7)
-parser.add_argument('--SubsetSize', type=int, default=1000) # only relevant for transfer learning baseline, otherwise ignored
+parser.add_argument('--SubsetSize', type=int, default=6000) # only relevant for transfer learning baseline, otherwise ignored
+parser.add_argument('--doc', type=str, default='0', help='A string for documentation purpose')
 
 args = parser.parse_args()
+
+def dict2namespace(config):
+    namespace = argparse.Namespace()
+    for key, value in config.items():
+        if isinstance(value, dict):
+            new_value = dict2namespace(value)
+        else:
+            new_value = value
+        setattr(namespace, key, new_value)
+    return namespace
 
 if __name__ == '__main__':
     print('Running {} experiments using {}'.format(args.dataset, args.method))
@@ -46,7 +60,15 @@ if __name__ == '__main__':
     if args.dataset == 'MNIST':
         args.log = os.path.join(args.run, 'logs', args.doc)
 
-        runner = eval(args.runner)( args, config, nSeg = args.nSegments, subsetSize=args.SubsetSize )
+        with open(os.path.join('configs', args.config), 'r') as f:
+            config = yaml.load(f)
+        new_config = dict2namespace(config)
+        new_config.device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+
+        #config_file = yaml.load( args.config )
+        print(new_config)
+
+        runner = mnist_exp_runner.mnist_runner( args, new_config, nSeg = args.nSegments, subsetSize=args.SubsetSize )
         if not args.test:
             runner.train()
         else:
