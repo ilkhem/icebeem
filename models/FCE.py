@@ -25,14 +25,11 @@ class FCETrainer:
         self.flow = flow.to(device)
         self.device = device
         self.input_size = self.ebm.input_size
-        self.condition_size = self.ebm.condition_size
+        self.cond_size = self.ebm.cond_size
         use_cuda = device == 'cuda' and torch.cuda.is_available()
         self._loader_params = {'num_workers': 4, 'pin_memory': True} if use_cuda else {}
         self.results_file = results_file
-        if use_cuda:
-            cudnn.benchmark = True
-            self.ebm = torch.nn.DataParallel(self.ebm, device_ids=range(torch.cuda.device_count()))
-            self.flow = torch.nn.DataParallel(self.flow, device_ids=range(torch.cuda.device_count()))
+
 
     def flow_log_pdf(self, x, y=None):
         _, prior_log_pdf, log_det = self.flow(x)
@@ -42,10 +39,7 @@ class FCETrainer:
         return self.ebm.log_pdf(x, y, augment, positive)
 
     def sample_noise(self, n):
-        if self.device == 'cuda':
-            return self.flow.module.sample(n)[-1].detach().cpu().numpy()
-        else:
-            return self.flow.sample(n)[-1].detach().numpy()
+        return self.flow.sample(n)[-1].detach().numpy()
 
     def _pretrain_train_step(self, dataloader, optimizer, epoch, epochs, log_interval=100):
         for i, (x, y) in enumerate(dataloader):
