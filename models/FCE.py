@@ -4,6 +4,7 @@ import time
 
 import numpy as np
 import torch
+import torch.backends.cudnn as cudnn
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
@@ -28,6 +29,10 @@ class FCETrainer:
         use_cuda = device == 'cuda' and torch.cuda.is_available()
         self._loader_params = {'num_workers': 4, 'pin_memory': True} if use_cuda else {}
         self.results_file = results_file
+        if use_cuda:
+            cudnn.benchmark = True
+            self.ebm = torch.nn.DataParallel(self.ebm, device_ids=range(torch.cuda.device_count()))
+            self.flow = torch.nn.DataParallel(self.flow, device_ids=range(torch.cuda.device_count()))
 
     def flow_log_pdf(self, x, y=None):
         _, prior_log_pdf, log_det = self.flow(x)
@@ -56,7 +61,7 @@ class FCETrainer:
             optimizer.step()
 
         log_output = 'epoch {:3d} / {};\tloss {:.4f}'.format(epoch, epochs, loss.item())
-        print(log_output)
+        # print(log_output)
         print(log_output, file=open(self.results_file, 'a'))
 
     def pretrain_flow(self, data, epochs=20, batch_size=100, lr=1e-4, wd=1e-5):
@@ -107,7 +112,7 @@ class FCETrainer:
         network = train_ebm * 'ebm' + (1 - train_ebm) * 'flow'
         log_output = '{}: epoch {}/{};\tloss: {:.4f};\taccuracy: {:.3f}'.format(network, epoch, epochs,
                                                                                 loss.item(), accuracy)
-        print(log_output)
+        # print(log_output)
         print(log_output, file=open(self.results_file, 'a'))
 
         bk = False
@@ -115,7 +120,7 @@ class FCETrainer:
             # stop training
             log_output = 'accuracy {:.3f}/{} cutoff value satisfied .. stopping training\n----------\n'.format(accuracy,
                                                                                                                cutoff)
-            print(log_output)
+            # print(log_output)
             print(log_output, file=open(self.results_file, 'a'))
             bk = True
         return bk
@@ -138,7 +143,7 @@ class FCETrainer:
         print('FCE step for the {}'.format(network))
 
         # generate noise data from flow, and setup contrastive dataset
-        print('Generating samples from flow ...')
+        # print('Generating samples from flow ...')
         st = time.time()
         n = x.shape[0]
         noise_x = self.sample_noise(n)
@@ -148,7 +153,7 @@ class FCETrainer:
                                                 np.vstack((y, contrastive_y)),
                                                 to_one_hot(labels)[0].astype(np.float32), device=self.device)
         fce_loader = DataLoader(dataset, batch_size=batch_size, shuffle=True, **self._loader_params)
-        print('... done in {}!'.format(time.time() - st))
+        # print('... done in {}!'.format(time.time() - st))
         # define optimizer
         if finalLayerOnly:
             if not train_ebm:

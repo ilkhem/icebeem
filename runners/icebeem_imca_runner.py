@@ -78,7 +78,7 @@ def runICEBeeMexp(nSims=10, simulationMethod='TCL'):
                 model_flow = NormalizingFlowModel(prior, flows)
 
                 # instantiate FCETrainer object
-                fce_ = FCETrainer(EBM=model_ebm, flow=model_flow, device='gpu')
+                fce_ = FCETrainer(EBM=model_ebm, flow=model_flow, device='cuda')
 
                 pretrain_flow = True
                 augment_ebm = True
@@ -91,7 +91,7 @@ def runICEBeeMexp(nSims=10, simulationMethod='TCL'):
                 fce_.train((x, y), network='ebm', epochs=15, augment=augment_ebm, finalLayerOnly=True, cutoff=.5)
 
                 # then train full EBM via NCE with flow contrastive noise:
-                fce_.train((x, y), network='fce', epochs=150, augment=augment_ebm, cutoff=.5, useVAT=False)
+                fce_.train((x, y), network='flow', epochs=150, augment=augment_ebm, cutoff=.5, useVAT=False)
 
                 # evaluate recovery of latents
                 recov = fce_.unmix_samples(x, network='ebm')
@@ -102,7 +102,7 @@ def runICEBeeMexp(nSims=10, simulationMethod='TCL'):
                 eps = .025
                 for iter_ in range(3):
                     # update flow model:
-                    fce_.train((x, y), network='fce', epochs=5, cutoff=.5 - eps, lr=.00001)
+                    fce_.train((x, y), network='flow', epochs=5, cutoff=.5 - eps, lr=.00001)
                     # update energy based model:
                     fce_.train((x, y), network='ebm', epochs=50, augment=augment_ebm, cutoff=.5 + eps, lr=0.0003,
                                useVAT=False)
