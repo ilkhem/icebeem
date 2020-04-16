@@ -145,7 +145,7 @@ class FCETrainer:
         labels = np.array([0] * n + [1] * n)
         dataset = ContrastiveConditionalDataset(np.vstack((x, noise_x)).astype(np.float32),
                                                 np.vstack((y, contrastive_y)),
-                                                to_one_hot(labels)[0].astype(np.float32), device=self.device)
+                                                to_one_hot(labels)[0].astype(np.float32))
         fce_loader = DataLoader(dataset, batch_size=batch_size, shuffle=True, **self._loader_params)
         # print('... done in {}!'.format(time.time() - st))
         # define optimizer
