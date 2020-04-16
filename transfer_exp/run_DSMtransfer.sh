@@ -6,7 +6,7 @@ do
 	for i in 1 2 3 4 5 
 	do 
 		echo $n $i 
-		CUDA_VISIBLE_DEVICES=0 ipython transfer_exp/transfer_nets.py $n $i 
+		CUDA_VISIBLE_DEVICES=0 python3 transfer_exp/transfer_nets.py $n $i 
 	done
 done
 

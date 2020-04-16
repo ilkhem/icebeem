@@ -32,4 +32,9 @@ TODO (ilyes):
 
 
 to run MNIST experiments:
+
 `python3 main.py --dataset MNIST --config mnist.yaml --doc mnistPreTrain`
+
+followed by:
+
+`sh transfer_exp/run_DSMtransfer.sh`
