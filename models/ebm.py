@@ -17,11 +17,7 @@ class UnnormalizedConditialEBM(nn.Module):
         self.n_hidden = n_hidden
         self.activation = activation
 
-        # self.f = CleanMLP(input_size, hidden_size, n_hidden, output_size, activation=activation)
-        self.f = MLP_general(input_size=input_size, hidden_size=[hidden_size] * n_hidden,
-                             n_layers=n_hidden, output_size=output_size, use_bn=True,
-                             activation_function=F.leaky_relu
-                             )
+        self.f = CleanMLP(input_size, hidden_size, n_hidden, output_size, activation=activation)
         self.g = nn.Linear(condition_size, output_size, bias=False)
 
     def log_pdf(self, x, y, augment=True, positive=False):
