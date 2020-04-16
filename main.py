@@ -13,6 +13,7 @@ import os
 import pickle
 import yaml 
 import torch 
+import shutil
 
 parser = argparse.ArgumentParser(description='')
 parser.add_argument('--dataset', type=str, help='dataset to run experiments. Should be TCL, IMCA or MNIST')
@@ -60,6 +61,12 @@ if __name__ == '__main__':
     if args.dataset == 'MNIST':
         args.log = os.path.join(args.run, 'logs', args.doc)
 
+        # prepare directory to save results
+        if os.path.exists(args.log):
+            shutil.rmtree(args.log)
+        print('saving in: ' + args.log )
+        os.makedirs(args.log)
+
         with open(os.path.join('configs', args.config), 'r') as f:
             config = yaml.load(f)
         new_config = dict2namespace(config)
@@ -67,6 +74,8 @@ if __name__ == '__main__':
 
         #config_file = yaml.load( args.config )
         print(new_config)
+
+        torch.backends.cudnn.benchmark = True
 
         runner = mnist_exp_runner.mnist_runner( args, new_config, nSeg = args.nSegments, subsetSize=args.SubsetSize )
         if not args.test:

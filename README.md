@@ -29,3 +29,7 @@ TODO (ilyes):
 - [ ] work on FCE implementation and compare perf to Ricardo's
 - [ ] add plotting option to `main.py`
 - [ ] add weight checkpoints for easy plotting of Figures without training
+
+
+to run MNIST experiments:
+`python3 main.py --dataset MNIST --config mnist.yaml --doc mnistPreTrain`

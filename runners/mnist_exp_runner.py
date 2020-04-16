@@ -105,11 +105,12 @@ class mnist_runner():
         # apply collation for all datasets ! (we only consider MNIST and CIFAR10 anyway!)
         if self.config.data.dataset in ['MNIST', 'CIFAR10']:
             collate_helper = lambda batch: my_collate( batch, nSeg = self.nSeg) 
-            dataloader = DataLoader(dataset, batch_size=self.config.training.batch_size, shuffle=True, num_workers=1, collate_fn = collate_helper)
+            dataloader = DataLoader(dataset, batch_size=self.config.training.batch_size, shuffle=True, num_workers=0, collate_fn = collate_helper)
             test_loader = DataLoader(test_dataset, batch_size=self.config.training.batch_size, shuffle=True,
                                  num_workers=1, drop_last=True,  collate_fn = collate_helper)
         elif self.config.data.dataset == 'MNIST_transferBaseline':
-            dataloader = DataLoader(testset_1, batch_size=self.config.training.batch_size, shuffle=True, num_workers=1, drop_last=True, collate_fn = my_collate_rev )
+            # trains a model on only digits 8,9 from scratch
+            dataloader = DataLoader(testset_1, batch_size=self.config.training.batch_size, shuffle=True, num_workers=0, drop_last=True, collate_fn = my_collate_rev )
             print('loaded mnist reduced subset')
             # SUBSET_SIZE = 500
             # id_range = list(range(SUBSET_SIZE))

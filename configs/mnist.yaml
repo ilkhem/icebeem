@@ -5,7 +5,7 @@ training:
   n_epochs: 500000
   n_iters: 200001
   ngpu: 1
-  snapshot_freq: 500
+  snapshot_freq: 250
   algo: 'dsm'
   anneal_power: 2.0
 
