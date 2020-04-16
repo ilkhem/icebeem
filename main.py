@@ -26,6 +26,7 @@ parser.add_argument('--test', action='store_true', help='Whether to test the mod
 parser.add_argument('--nSegments', type=int, default=7)
 parser.add_argument('--SubsetSize', type=int, default=6000) # only relevant for transfer learning baseline, otherwise ignored
 parser.add_argument('--doc', type=str, default='0', help='A string for documentation purpose')
+parser.add_argument('--seed', type=int, default=0, help='Random seed')
 
 args = parser.parse_args()
 
@@ -77,7 +78,7 @@ if __name__ == '__main__':
 
         torch.backends.cudnn.benchmark = True
 
-        runner = mnist_exp_runner.mnist_runner( args, new_config, nSeg = args.nSegments, subsetSize=args.SubsetSize )
+        runner = mnist_exp_runner.mnist_runner( args, new_config, nSeg = args.nSegments, subsetSize=args.SubsetSize, seed=args.seed )
         if not args.test:
             runner.train()
         else:

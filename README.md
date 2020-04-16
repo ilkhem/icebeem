@@ -38,3 +38,7 @@ to run MNIST experiments:
 followed by:
 
 `sh transfer_exp/run_DSMtransfer.sh`
+
+to run baseline experiments (without transfer):
+
+`sh transfer_exp/run_DSMtransfer_baseline.sh `

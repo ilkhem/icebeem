@@ -196,10 +196,13 @@ class mnist_runner():
                 if step % self.config.training.snapshot_freq == 0:
                     if self.config.data.dataset == 'MNIST_transferBaseline':
                         # just save the losses, thats all we care about
-                        if False:
+                        if self.config.data.store_loss:
+                            print('only storing losses')
                             import pickle 
-                            pickle.dump( loss_vals, open('Baseline_Size' + str(self.subsetSize) + "_Seed" + str(self.seed) + '.p', 'wb'))
+                            pickle.dump( loss_vals, open('transfer_exp/transferRes/Baseline_Size' + str(self.subsetSize) + "_Seed" + str(self.seed) + '.p', 'wb'))
                         else:
+                            pass
+                        if True:
                             # save this one time for transfer learning!
                             states = [
                                 enet.state_dict(),
@@ -208,9 +211,9 @@ class mnist_runner():
                             torch.save(states, os.path.join(self.args.log, 'checkpoint_{}.pth'.format(step)))
                             torch.save(states, os.path.join(self.args.log, 'checkpoint.pth'))
                             # and the final layer weights !
-                            import pickle
-                            torch.save( [energy_net_finalLayer], 'finalLayerweights_.pth')
-                            pickle.dump( energy_net_finalLayer, open('finalLayerweights.p', 'wb') )
+                            #import pickle
+                            #torch.save( [energy_net_finalLayer], 'finalLayerweights_.pth')
+                            #pickle.dump( energy_net_finalLayer, open('finalLayerweights.p', 'wb') )
                     else:
                         states = [
                             enet.state_dict(),

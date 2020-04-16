@@ -27,7 +27,7 @@ config = pickle.load( open('transfer_exp/config_file.p', 'rb' ) )
 expFolder = 'mnistPreTrain'
 checkpoint = '' # '1000'
 
-check_path = expFolder + '/' +'checkpoint' + checkpoint + '.pth'
+check_path = expFolder + '/' +'checkpoint' + checkpoint + '_3000.pth'
 
 # load in states
 onCluster = True 

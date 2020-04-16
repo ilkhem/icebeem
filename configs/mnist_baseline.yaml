@@ -2,10 +2,10 @@
 
 training:
   batch_size: 63
-  n_epochs: 500000
+  n_epochs: 10
   n_iters: 200001
   ngpu: 1
-  snapshot_freq: 500
+  snapshot_freq: 50
   algo: 'dsm'
   anneal_power: 2.0
 
@@ -16,6 +16,7 @@ data:
   channels: 1
   logit_transform: false
   random_flip: false
+  store_loss: true 
   ## celeba
 #  dataset: "CELEBA"
 #  image_size: 32
