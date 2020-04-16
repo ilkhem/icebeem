@@ -15,7 +15,7 @@ sns.set_palette('deep')
 os.chdir('transfer_exp/transferRes')
 
 # collect results for transfer learning
-samplesSizes = [500, 1000, 2000, 3000, 5000, 6000] # + [x*1000 for x in range(1,4)]
+samplesSizes = [500, 1000, 2000, 3000, 5000, 6000]
 
 resTransfer = {x: [] for x in samplesSizes}
 resBaseline = {x: [] for x in samplesSizes}

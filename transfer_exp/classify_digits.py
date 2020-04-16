@@ -82,7 +82,7 @@ optimizer = optim.Adam(parameters, lr=config.optim.lr, weight_decay=config.optim
 
 # start optimizing!
 step = 0
-eCount = 100 
+eCount = 500 
 for epoch in range( eCount ):
     print('epoch: ' + str(epoch))
     counter = 0
@@ -116,27 +116,18 @@ topReprs_c = []
 trueLabels = []
 
 data_iter = iter(test_loader)
-for i, (X, y) in enumerate(test_loader):
 #for i in range(20):
-    X,y = next(data_iter)
-
-    scores = torch.mm( score(X).view(-1, 28*28), energy_net_finalLayer )
+for i, (X, y) in enumerate(test_loader):
+    #X,y = next(data_iter)
+    scores = torch.mm( score(X).view(-1, 28*28), energy_net_finalLayer )[:,0]
     scores = scores.view(-1)
-
     # keep scores
     topScores  += list(scores.cpu().detach().numpy()) #scores.item() )
-    topReprs   += [ X[i,0,:,:].numpy() for i in range(len(y)) ]
-    topReprs_c += [ X[i,0,:,:] for i in range(len(y)) ]
     trueLabels += list( y.numpy() )
-
-    # just keep the highest 
-    # topScores.append( scores.max().item() )
-    # topReprs.append(  X[ scores.argmax() ][0,:,:].numpy()   )
-    # trueLabels.append( y[ scores.argmax() ].item() )
 
 topScores = np.array(topScores)
 trueLabels = np.array( trueLabels )
-print( trueLabels[ topScores.argsort()[::-1]][:10])
+print( trueLabels[ topScores.argsort()[::-1]][:20])
 
 
 
