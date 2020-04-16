@@ -114,3 +114,62 @@ if __name__ == '__main__':
             else:
                 runner.test()
 
+
+    if args.dataset == 'CIFAR10':
+        if args.unconditionalBaseline == 0:
+            # train conditional EBM
+            args.log = os.path.join(args.run, 'logs', args.doc)
+
+            # prepare directory to save results
+            if os.path.exists(args.log):
+                shutil.rmtree(args.log)
+            print('saving in: ' + args.log )
+            os.makedirs(args.log)
+
+            with open(os.path.join('configs', args.config), 'r') as f:
+                config = yaml.load(f)
+            new_config = dict2namespace(config)
+            new_config.device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+
+            #config_file = yaml.load( args.config )
+            print(new_config)
+
+            torch.backends.cudnn.benchmark = True
+
+            runner = mnist_exp_runner.mnist_runner( args, new_config, nSeg = args.nSegments, subsetSize=args.SubsetSize, seed=args.seed )
+            if not args.test:
+                runner.train()
+            else:
+                runner.test()
+        if args.unconditionalBaseline == 1:
+            print('\n\n\n\n\nunconditional baseline')
+            # train an unconditional EBM using DSM
+            args.log = os.path.join(args.run, 'logs', args.doc)
+
+            # prepare directory to save results
+            if os.path.exists(args.log):
+                shutil.rmtree(args.log)
+            print('saving in: ' + args.log )
+            os.makedirs(args.log)
+
+            with open(os.path.join('configs', args.config), 'r') as f:
+                config = yaml.load(f)
+            new_config = dict2namespace(config)
+            new_config.device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+
+            #config_file = yaml.load( args.config )
+            print(new_config)
+
+            torch.backends.cudnn.benchmark = True
+
+            runner = mnist_unconditional_exp_runner.mnist_ucond_runner( args, new_config, nSeg = args.nSegments, subsetSize=args.SubsetSize, seed=args.seed )
+            if not args.test:
+                runner.train()
+            else:
+                runner.test()
+
+# runner for cifar:
+# python3 main.py --dataset CIFAR10 --config cifar.yaml --doc cifarPreTrain
+
+
+

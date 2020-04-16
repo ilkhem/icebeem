@@ -81,7 +81,8 @@ class mnist_ucond_runner():
             ])
 
         if self.config.data.dataset == 'CIFAR10':
-            pass 
+            dataset = CIFAR10(os.path.join(self.args.run, 'datasets', 'cifar10'), train=True, download=True, transform=tran_transform)
+            test_dataset = CIFAR10(os.path.join(self.args.run, 'datasets', 'cifar10_test'), train=False, download=True, transform=test_transform)
 
         elif self.config.data.dataset == 'MNIST':
             print('RUNNING REDUCED MNIST')
@@ -97,10 +98,11 @@ class mnist_ucond_runner():
             id_range = list(range(self.subsetSize))
             testset_1 = torch.utils.data.Subset(test_dataset, id_range)
 
-            # dataset = MNIST('/nfs/ghome/live/ricardom/IMCA/ncsn-master/datasets', train=True, download=True,
-            #                 transform=tran_transform)
-            # test_dataset = MNIST('/nfs/ghome/live/ricardom/IMCA/ncsn-master/datasets_test', train=False, download=True,
-            #                      transform=test_transform)
+        elif self.config.data.dataset == 'CIFAR10_transferBaseline':
+            test_dataset = CIFAR10('datasets/cifar10_test', train=False, download=True, transform=test_transform)
+            print('TRANSFER BASELINES !! Subset size: ' + str(self.subsetSize))
+            id_range = list(range(self.subsetSize))
+            testset_1 = torch.utils.data.Subset(test_dataset, id_range)
 
         # apply collation for all datasets ! (we only consider MNIST and CIFAR10 anyway!)
         if self.config.data.dataset in ['MNIST', 'CIFAR10']:
@@ -108,7 +110,7 @@ class mnist_ucond_runner():
             dataloader = DataLoader(dataset, batch_size=self.config.training.batch_size, shuffle=True, num_workers=0, collate_fn = collate_helper)
             test_loader = DataLoader(test_dataset, batch_size=self.config.training.batch_size, shuffle=True,
                                  num_workers=1, drop_last=True,  collate_fn = collate_helper)
-        elif self.config.data.dataset == 'MNIST_transferBaseline':
+        elif self.config.data.dataset in ['MNIST_transferBaseline', 'CIFAR10_transferBaseline']:
             # trains a model on only digits 8,9 from scratch
             dataloader = DataLoader(testset_1, batch_size=self.config.training.batch_size, shuffle=True, num_workers=0, drop_last=True, collate_fn = my_collate_rev )
             print('loaded mnist reduced subset')

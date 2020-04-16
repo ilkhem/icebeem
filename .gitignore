@@ -139,4 +139,5 @@ datasets_test/*
 *.gz 
 *.p
 *.pth 
-log/* 
+log/*
+run/*  
