@@ -7,7 +7,8 @@ usage:
 """
 
 import argparse 
-from runners import ivae_exp_runner, icebeem_exp_runner, mnist_exp_runner #, tcl_exp_runner
+from runners import ivae_exp_runner, icebeem_exp_runner, mnist_exp_runner, icebeem_imca_runner #, tcl_exp_runner,
+
 
 import os 
 import pickle
@@ -47,14 +48,16 @@ if __name__ == '__main__':
     print(fname)
 
     if args.dataset in ['TCL', 'IMCA']:
-        if args.method.lower() == 'tcl':
-            r = tcl_exp_runner.runTCLexp( nSims=args.nSims, simulationMethod=args.method )
+        # if args.method.lower() == 'tcl':
+        #     r = tcl_exp_runner.runTCLexp( nSims=args.nSims, simulationMethod=args.method )
         if args.method.lower() == 'ivae':
             r = ivae_exp_runner.runiVAEexp( nSims=args.nSims , simulationMethod=args.method )
         if args.method.lower() in ['ice-beem', 'icebeem']:
-            r = icebeem_exp_runner.runICEBeeMexp( nSims=args.nSims , simulationMethod=args.method) 
+            r = icebeem_exp_runner.runICEBeeMexp( nSims=args.nSims , simulationMethod=args.method)
+        if args.method.lower() in ['ice-beem2', 'icebeem2']:
+            r = icebeem_imca_runner.runICEBeeMexp(nSims=args.nSims, simulationMethod=args.method)
 
-        # save results
+                # save results
         fname = 'results/' + args.method + 'res_' + args.dataset + 'exp_' + str(args.nSims) + '.p'
         pickle.dump( r, open( fname, "wb" ))
 
