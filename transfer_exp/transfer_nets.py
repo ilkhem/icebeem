@@ -246,6 +246,7 @@ if DATASET=='CIFAR10':
         loss_track = []
         for i, (X, y) in enumerate(test_loader):
             #print(step)
+            #print(y.min())
             step += 1
 
             X = X.to(config.device)

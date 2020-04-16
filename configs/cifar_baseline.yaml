@@ -2,7 +2,7 @@
 
 training:
   batch_size: 63
-  n_epochs: 5
+  n_epochs: 15
   n_iters: 200001
   ngpu: 1
   snapshot_freq: 50
@@ -30,6 +30,7 @@ data:
  channels: 3
  logit_transform: false
  random_flip: true
+ store_loss: true 
 
 model:
   sigma_begin: 1

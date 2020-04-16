@@ -113,7 +113,7 @@ class mnist_ucond_runner():
         elif self.config.data.dataset in ['MNIST_transferBaseline', 'CIFAR10_transferBaseline']:
             # trains a model on only digits 8,9 from scratch
             dataloader = DataLoader(testset_1, batch_size=self.config.training.batch_size, shuffle=True, num_workers=0, drop_last=True, collate_fn = my_collate_rev )
-            print('loaded mnist reduced subset')
+            print('loaded reduced subset')
             # SUBSET_SIZE = 500
             # id_range = list(range(SUBSET_SIZE))
             # testset_1 = torch.utils.data.Subset(test_dataset, id_range)
@@ -196,12 +196,15 @@ class mnist_ucond_runner():
                     #tb_logger.add_scalar('test_dsm_loss', test_dsm_loss, global_step=step)
 
                 if step % self.config.training.snapshot_freq == 0:
-                    if self.config.data.dataset == 'MNIST_transferBaseline':
+                    if self.config.data.dataset in  ['MNIST_transferBaseline', 'CIFAR10_transferBaseline']:
                         # just save the losses, thats all we care about
                         if self.config.data.store_loss:
                             #print('only storing losses')
                             import pickle 
-                            pickle.dump( loss_vals, open('transfer_exp/transferRes/Baseline_Size' + str(self.subsetSize) + "_Seed" + str(self.seed) + '.p', 'wb'))
+                            if self.config.data.dataset == 'MNIST_transferBaseline':
+                                pickle.dump( loss_vals, open('transfer_exp/transferRes/Baseline_Size' + str(self.subsetSize) + "_Seed" + str(self.seed) + '.p', 'wb'))
+                            else:
+                                pickle.dump( loss_vals, open('transfer_exp/transferRes_cifar/cifar_Baseline_Size' + str(self.subsetSize) + "_Seed" + str(self.seed) + '.p', 'wb'))
                         else:
                             pass
                         if True:
@@ -226,6 +229,7 @@ class mnist_ucond_runner():
                         import pickle
                         torch.save( [energy_net_finalLayer],  os.path.join(self.args.log,'finalLayerweights_.pth') )
                         pickle.dump( energy_net_finalLayer, open(  os.path.join(self.args.log,'finalLayerweights.p'), 'wb') )
+
 
     def Langevin_dynamics(self, x_mod, scorenet, n_steps=1000, step_lr=0.00002):
         images = []

@@ -25,14 +25,13 @@ os.environ["CUDA_VISIBLE_DEVICES"] = '0'
 
 data_dim = 5
 data_segments = 10
-n_layer = [2, 4]
-n_obs_seg = [100, 200, 500, 1000, 2000]
+n_layer = [2]
+n_obs_seg = [2000]
 
 results = {l: {n: [] for n in n_obs_seg} for l in n_layer}
 
 n_layers_flow = 5
 ebm_hidden_size = 32 
-
 
 def runICEBeeMexp(nSims=10, simulationMethod='TCL'):
     """run ICE-BeeM simulations"""
