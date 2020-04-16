@@ -12,7 +12,6 @@ import pickle
 from torch.utils.data.dataloader import default_collate
 
 # load in the required modules
-from models.cond_refinenet_dilated import CondRefineNetDilated
 from models.refinenet_dilated_baseline import RefineNetDilated
 
 import sys
@@ -23,9 +22,9 @@ SEED        = int(args[2])
 print('SUBSET SIZE: ' + str(SUBSET_SIZE) +'\tSEED: ' + str(SEED))
 
 # load config
-config = pickle.load( open('config_file_mnist.p', 'rb' ) )
+config = pickle.load( open('transfer_exp/config_file.p', 'rb' ) )
 
-expFolder = 'CDSM_8class_v1'
+expFolder = 'mnistPreTrain'
 checkpoint = '' # '1000'
 
 check_path = expFolder + '/' +'checkpoint' + checkpoint + '.pth'
@@ -33,7 +32,7 @@ check_path = expFolder + '/' +'checkpoint' + checkpoint + '.pth'
 # load in states
 onCluster = True 
 if onCluster:
-	ckp_path = '/nfs/ghome/live/ricardom/IMCA/ncsn-master/run/logs/' + check_path
+	ckp_path = 'run/logs/' + check_path
 	states = torch.load( ckp_path, map_location='cuda:0')
 
 	# define score
@@ -97,7 +96,7 @@ if onCluster == False:
 energy_net_finalLayer = torch.ones((  config.data.image_size * config.data.image_size, 2 )).to(config.device)
 energy_net_finalLayer.requires_grad_()
 
-from losses.dsm import dsm_score_estimation, conditional_dsm
+from losses.dsm import  conditional_dsm # dsm_score_estimation
 import torch.optim as optim
 import logging
 
@@ -139,53 +138,11 @@ for epoch in range( eCount ):
 generateLangevinSamples = False
 
 if generateLangevinSamples==False:
-    os.chdir('/nfs/ghome/live/ricardom/IMCA/ncsn-master/transferExperiments/transferRes')
+    os.chdir('transfer_exp/transferRes')
     pickle.dump( loss_track, open('TransferCDSM_Size' + str(SUBSET_SIZE) + "_Seed" + str(SEED) + '.p', 'wb' ))
 else:
-    print('dumping weights')
-    import pickle
-    torch.save( [energy_net_finalLayer], 'finalLayerweights_'+ str(eCount)+'.pth')
-    pickle.dump( energy_net_finalLayer, open('finalLayerweights.p', 'wb') )
-    print('RUNNING LANGEVIN SAMPLING')
-    energy_net_finalLayer_1class = energy_net_finalLayer[:,0].view(784,1)
-    energy_net_finalLayer_1class.requires_grad_()
+    pass
 
-    import torch.autograd as autograd
-
-    def Langevin_dynamics(x_mod, scorenet, energy_net_finalLayer_1class, n_steps=1000, step_lr=0.00002):
-        #images = []
-        print(n_steps)
-
-        #with torch.no_grad():
-        for i in range(n_steps):
-            #images.append(torch.clamp(x_mod, 0.0, 1.0).to('cpu'))
-            x_mod.requires_grad_()
-            noise = torch.randn_like(x_mod) * np.sqrt(step_lr * 2)
-            noise.requires_grad_()
-
-            d = x_mod.shape[-1]
-            logp = -scorenet(x_mod).view(-1, d*d)
-            logp = torch.mm( logp, energy_net_finalLayer_1class )
-            grad = autograd.grad(logp.sum(), x_mod, create_graph=False)[0]
-
-            #grad = scorenet(x_mod)
-            x_mod = x_mod + step_lr * grad + noise
-            print("modulus of grad components: mean {}, max {}".format(grad.abs().mean(), grad.abs().max()))
-
-            if i % 50 == 0:
-                # periodically save results
-                os.chdir('/nfs/ghome/live/ricardom/IMCA/ncsn-master/transferExperiments/transferRes')
-                pickle.dump({'samples': torch.clamp( x_mod, 0.0, 1.0 ).detach().numpy() }, open('SamplesIter' + str(i)  + 'seed' + str(SEED) +'.p', 'wb'))
-                #pickle.dump({'samples': torch.sigmoid( x_mod ).detach().numpy() }, open('SamplesIter' + str(i) + 'seed' + str(SEED) +'.p', 'wb'))
-
-        return None
-
-    data_iter = iter(test_loader)
-    samples, _ = next(data_iter)
-    samples = torch.rand_like(samples)
-    samples.to( config.device )
-    print( samples[:3,:,:,:].shape )
-    all_samples = Langevin_dynamics( samples[:,:,:,:], score, energy_net_finalLayer_1class, 10000, 0.00002 )
 
 
 

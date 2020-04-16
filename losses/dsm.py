@@ -39,3 +39,13 @@ def conditional_dsm(energy_net, samples, segLabels, energy_net_final_layer, sigm
     loss = loss.mean() / 2.
 
     return loss
+
+def dsm_score_estimation(scorenet, samples, sigma=0.01):
+    perturbed_samples = samples + torch.randn_like(samples) * sigma
+    target = - 1 / (sigma ** 2) * (perturbed_samples - samples)
+    scores = scorenet(perturbed_samples)
+    target = target.view(target.shape[0], -1)
+    scores = scores.view(scores.shape[0], -1)
+    loss = 1 / 2. * ((scores - target) ** 2).sum(dim=-1).mean(dim=0)
+
+    return loss
