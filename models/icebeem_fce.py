@@ -430,8 +430,7 @@ class ebmFCEsegments(object):
                     label = label.to(self.device)
 
                 # noise model probs:
-                noise_logpdf = self.noise_logpdf(dat).view(-1,
-                                                           1)  # torch.tensor( self.noise_dist.logpdf( dat ).astype(np.float32) ).view(-1,1)
+                noise_logpdf = self.noise_logpdf(dat).view(-1,1)  # torch.tensor( self.noise_dist.logpdf( dat ).astype(np.float32) ).view(-1,1)
 
                 # get ebm model probs:
                 ebm_logpdf = self.compute_ebm_logpdf(dat, seg, self.ebm_norm).view(-1, 1)
@@ -445,7 +444,8 @@ class ebmFCEsegments(object):
 
                 # define loss
                 loss = loss_criterion(torch.sigmoid(logits), label)
-                loss_val += loss.item()
+                loss_mle = - torch.sum( noise_logpdf ) # mle objective for training data 
+                loss_val += ( loss.item() + loss_mle.item() ) # this is the jensen shannon 
 
                 # take gradient step
                 self.flow_model.zero_grad()

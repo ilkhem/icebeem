@@ -18,25 +18,27 @@ from models.nets import MLP_general
 from models.nflib.flows import NormalizingFlowModel, Invertible1x1Conv, ActNorm
 from models.nflib.spline_flows import NSF_AR
 
+from sklearn.decomposition import PCA, FastICA
+
 torch.set_default_tensor_type('torch.cuda.FloatTensor')
 os.environ["CUDA_VISIBLE_DEVICES"] = '0'
 
 data_dim = 5
-data_segments = 40
-n_layer = [2]
+data_segments = 10
+n_layer = [2, 4]
 n_obs_seg = [100, 200, 500, 1000, 2000]
 
 results = {l: {n: [] for n in n_obs_seg} for l in n_layer}
 
-n_layers_flow = 10
-n_layers_ebm = 5
-ebm_hidden_size = 32  # 16
+n_layers_flow = 5
+ebm_hidden_size = 32 
 
 
 def runICEBeeMexp(nSims=10, simulationMethod='TCL'):
     """run ICE-BeeM simulations"""
 
     for l in n_layer:
+        n_layers_ebm = l + 1
         for n in n_obs_seg:
             print('Running exp with L={} and n={}'.format(l, n))
 
@@ -44,10 +46,10 @@ def runICEBeeMexp(nSims=10, simulationMethod='TCL'):
                 # generate data
                 if simulationMethod == 'TCL':
                     dat_all = gen_TCL_data_ortho(Ncomp=data_dim, Nsegment=data_segments, Nlayer=l, source='Gaussian',
-                                                 varyMean=1,
+                                                 varyMean=0,
                                                  NsegmentObs=n,
                                                  NonLin='leaky', negSlope=.2, Niter4condThresh=1e4)
-                    data = dat_all['obs']
+                    data = PCA().fit_transform( dat_all['obs'] ) # whiten as in Hiroshi TCL code
                     ut = to_one_hot(dat_all['labels'])[0]
                     st = dat_all['source']
                 else:
@@ -59,7 +61,7 @@ def runICEBeeMexp(nSims=10, simulationMethod='TCL'):
                                             NsegmentObs=n, NonLin='leaky',
                                             negSlope=.2, Niter4condThresh=1e4,
                                             BaseCovariance=baseCov)
-                    data = dat_all['obs']
+                    data = PCA().fit_transform( dat_all['obs'] ) # whiten as in Hiroshi TCL code
                     ut = to_one_hot(dat_all['labels'])[0]
                     st = dat_all['source']
 
@@ -92,13 +94,12 @@ def runICEBeeMexp(nSims=10, simulationMethod='TCL'):
                     # print('pretraining done.')
 
                 # first we pretrain the final layer of EBM model (this is g(y) as it depends on segments)
-                fce_.train_ebm_fce(epochs=15, augment=augment_ebm, cutoff=.625)
+                fce_.train_ebm_fce(epochs=15, augment=augment_ebm, finalLayerOnly=True, cutoff=.5)
 
                 # then train full EBM via NCE with flow contrastive noise:
-                fce_.train_ebm_fce(epochs=150, augment=augment_ebm, cutoff=.625, useVAT=False)
+                fce_.train_ebm_fce(epochs=150, augment=augment_ebm, cutoff=.5, useVAT=False)
 
                 # evaluate recovery of latents
-                from sklearn.decomposition import FastICA
                 recov = fce_.unmixSamples(data, modelChoice='ebm')
                 source_est_ica = FastICA().fit_transform((recov))
                 recov_sources = [source_est_ica]
@@ -118,6 +119,8 @@ def runICEBeeMexp(nSims=10, simulationMethod='TCL'):
 
                 # store results
                 results[l][n].append(np.max([mean_corr_coef(x, st) for x in recov_sources]))
+
+                print(np.max([mean_corr_coef(x, st) for x in recov_sources]))
 
     # prepare output
     Results = {
