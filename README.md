@@ -39,5 +39,15 @@ to run MNIST experiments:
  - `python3 main.py --dataset MNIST --config mnist.yaml --doc mnistUncondBaseline --unconditionalBaseline 1`
 
 then run semi-supervised/transfer learning
- - `python3 main.py --dataset MNIST --run_semisupervised 1 ` or 
+ - `python3 main.py --dataset MNIST --run_semisupervised 1 `   or 
  - `python3 main.py --dataset MNIST --run_transfer 1 `
+
+
+to run CIFAR10 experiemnts:
+
+ - `python3 main.py --dataset CIFAR10 --config cifar.yaml --doc cifarPreTrain `
+ - `python3 main.py --dataset CIFAR10 --config cifar.yaml --doc cifarUncondBaseline --unconditionalBaseline 1`
+
+then run semi-supervised/transfer learning
+ - `python3 main.py --dataset CIFAR10 --run_semisupervised 1 `   or
+ - `python3 main.py --dataset CIFAR10 --run_transfer 1 `
