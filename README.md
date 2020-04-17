@@ -39,7 +39,7 @@ To run transfer learning experiments, we first we need to train both a condition
 
 ```
 python run_transfer.py --dataset MNIST --config mnist.yaml --doc mnistPreTrain
-python run_transfer.py --dataset MNIST --config mnist.yaml --doc mnistPreTrain --baseline
+python run_transfer.py --dataset MNIST --config mnist.yaml --doc mnistUncondBaseline --baseline
 ```
 Then, we fix the representation learnt by the feature extractor **f**, and train the secondary feature extractor **g** on
 the unseen classes 8-9. We compare this to the baseline where we don't fix the feature extractor **f**. This is done by 
