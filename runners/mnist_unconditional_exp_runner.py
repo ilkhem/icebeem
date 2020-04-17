@@ -4,25 +4,26 @@
 # much of this could it adapted from: https://github.com/ermongroup/ncsn/
 #
 
-import numpy as np
-import tqdm
-from losses.dsm import conditional_dsm, dsm
-import torch.nn.functional as F
 import logging
-import torch
 import os
 import shutil
+
+import numpy as np
+import torch
 import torch.optim as optim
-from torchvision.datasets import MNIST, CIFAR10, FashionMNIST
 import torchvision.transforms as transforms
-from torch.utils.data import DataLoader, Subset
-from models.refinenet_dilated_baseline import RefineNetDilated
+import tqdm
+from torch.utils.data import DataLoader
 from torch.utils.data.dataloader import default_collate
-import pickle 
+from torchvision.datasets import MNIST, CIFAR10, FashionMNIST
 
-__all__ = ['mnist_runner']
+from losses.dsm import dsm
+from models.refinenet_dilated_baseline import RefineNetDilated
 
-def my_collate(batch, nSeg=7):
+__all__ = ['mnist_uncond_runner']
+
+
+def my_collate(batch, nSeg=8):
     modified_batch = []
     for item in batch:
         image, label = item
@@ -30,21 +31,23 @@ def my_collate(batch, nSeg=7):
             modified_batch.append(item)
     return default_collate(modified_batch)
 
-def my_collate_rev(batch):
+
+def my_collate_rev(batch, nSeg=8):
     modified_batch = []
     for item in batch:
         image, label = item
-        if label in range(8,10):
+        if label in range(nSeg, 10):
             modified_batch.append(item)
     return default_collate(modified_batch)
 
-class mnist_ucond_runner():
-    def __init__(self, args, config, nSeg=7, subsetSize=None, seed=0):
+
+class mnist_uncond_runner():
+    def __init__(self, args, config):
         self.args = args
         self.config = config
-        self.nSeg = nSeg # number of segments provided 
-        self.subsetSize = subsetSize # subset size, only for baseline transfer learning, otherwise ignored!
-        self.seed = seed # subset size, only for baseline transfer learning, otherwise ignored!
+        self.nSeg = config.n_labels
+        self.seed = args.seed
+        self.subsetSize = args.SubsetSize  # subset size, only for baseline transfer learning, otherwise ignored!
         print('USING CONDITIONING DSM')
         print('Number of segments: ' + str(self.nSeg))
 
@@ -81,8 +84,10 @@ class mnist_ucond_runner():
             ])
 
         if self.config.data.dataset == 'CIFAR10':
-            dataset = CIFAR10(os.path.join(self.args.run, 'datasets', 'cifar10'), train=True, download=True, transform=tran_transform)
-            test_dataset = CIFAR10(os.path.join(self.args.run, 'datasets', 'cifar10_test'), train=False, download=True, transform=test_transform)
+            dataset = CIFAR10(os.path.join(self.args.run, 'datasets', 'cifar10'), train=True, download=True,
+                              transform=tran_transform)
+            test_dataset = CIFAR10(os.path.join(self.args.run, 'datasets', 'cifar10_test'), train=False, download=True,
+                                   transform=test_transform)
 
         elif self.config.data.dataset == 'MNIST':
             print('RUNNING REDUCED MNIST')
@@ -92,8 +97,10 @@ class mnist_ucond_runner():
                                  transform=test_transform)
 
         elif self.config.data.dataset == 'FashionMNIST':
-            dataset = FashionMNIST(os.path.join(self.args.run, 'datasets', 'FashionMNIST'), train=True, download=True, transform=tran_transform )
-            test_dataset = FashionMNIST(os.path.join(self.args.run, 'datasets', 'FashionMNIST_test'), train=False, download=True, transform=tran_transform )
+            dataset = FashionMNIST(os.path.join(self.args.run, 'datasets', 'FashionMNIST'), train=True, download=True,
+                                   transform=tran_transform)
+            test_dataset = FashionMNIST(os.path.join(self.args.run, 'datasets', 'FashionMNIST_test'), train=False,
+                                        download=True, transform=tran_transform)
 
         elif self.config.data.dataset == 'MNIST_transferBaseline':
             # use same dataset as transfer_nets.py
@@ -110,26 +117,29 @@ class mnist_ucond_runner():
 
         # apply collation for all datasets ! (we only consider MNIST and CIFAR10 anyway!)
         if self.config.data.dataset in ['MNIST', 'CIFAR10', 'FashionMNIST']:
-            collate_helper = lambda batch: my_collate( batch, nSeg = self.nSeg) 
-            dataloader = DataLoader(dataset, batch_size=self.config.training.batch_size, shuffle=True, num_workers=0, collate_fn = collate_helper)
+            collate_helper = lambda batch: my_collate(batch, nSeg=self.nSeg)
+            dataloader = DataLoader(dataset, batch_size=self.config.training.batch_size, shuffle=True, num_workers=0,
+                                    collate_fn=collate_helper)
             test_loader = DataLoader(test_dataset, batch_size=self.config.training.batch_size, shuffle=True,
-                                 num_workers=1, drop_last=True,  collate_fn = collate_helper)
-            
-        elif self.config.data.dataset in ['MNIST_transferBaseline', 'CIFAR10_transferBaseline', 'FashionMNIST_transferBaseline']:
+                                     num_workers=1, drop_last=True, collate_fn=collate_helper)
+
+        elif self.config.data.dataset in ['MNIST_transferBaseline', 'CIFAR10_transferBaseline',
+                                          'FashionMNIST_transferBaseline']:
             # trains a model on only digits 8,9 from scratch
-            dataloader = DataLoader(testset_1, batch_size=self.config.training.batch_size, shuffle=True, num_workers=0, drop_last=True, collate_fn = my_collate_rev )
+            dataloader = DataLoader(testset_1, batch_size=self.config.training.batch_size, shuffle=True, num_workers=0,
+                                    drop_last=True, collate_fn=my_collate_rev)
             print('loaded reduced subset')
             # SUBSET_SIZE = 500
             # id_range = list(range(SUBSET_SIZE))
             # testset_1 = torch.utils.data.Subset(test_dataset, id_range)
             # dataloader = DataLoader(testset_1, batch_size=self.config.training.batch_size, shuffle=True, num_workers=1, collate_fn = collate_helper)
             # test_loader = DataLoader(testset_1, batch_size=self.config.training.batch_size, shuffle=True,
-                                 # num_workers=1, drop_last=True,  collate_fn = my_collate_rev)
+            # num_workers=1, drop_last=True,  collate_fn = my_collate_rev)
 
         else:
             dataloader = DataLoader(dataset, batch_size=self.config.training.batch_size, shuffle=True, num_workers=1)
             test_loader = DataLoader(test_dataset, batch_size=self.config.training.batch_size, shuffle=True,
-                                 num_workers=1, drop_last=True)
+                                     num_workers=1, drop_last=True)
 
         if False:
             test_iter = iter(test_loader)
@@ -140,20 +150,16 @@ class mnist_ucond_runner():
             shutil.rmtree(tb_path)
 
         # define the final linear layer weights
-        energy_net_finalLayer = torch.ones((  self.config.data.image_size * self.config.data.image_size, self.nSeg )).to(self.config.device)
+        energy_net_finalLayer = torch.ones((self.config.data.image_size * self.config.data.image_size, self.nSeg)).to(
+            self.config.device)
         energy_net_finalLayer.requires_grad_()
 
-        #tb_logger = tensorboardX.SummaryWriter(log_dir=tb_path)
+        # tb_logger = tensorboardX.SummaryWriter(log_dir=tb_path)
         enet = RefineNetDilated(self.config).to(self.config.device)
 
         enet = torch.nn.DataParallel(enet)
 
-        optimizer = self.get_optimizer( list(enet.parameters()) + [energy_net_finalLayer])
-
-        if False: #self.args.resume_training:
-            states = torch.load(os.path.join(self.args.log, 'checkpoint.pth'))
-            enet.load_state_dict(states[0])
-            optimizer.load_state_dict(states[1])
+        optimizer = self.get_optimizer(list(enet.parameters()) + [energy_net_finalLayer])
 
         step = 0
 
@@ -169,47 +175,32 @@ class mnist_ucond_runner():
                     X = self.logit_transform(X)
 
                 # replace this with either dsm or dsm_conditional_score_estimation function !!
-                y -= y.min() # need to ensure its zero centered !
-                loss = dsm(enet, X,  sigma=0.01)
+                y -= y.min()  # need to ensure its zero centered !
+                loss = dsm(enet, X, sigma=0.01)
 
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
 
-                #tb_logger.add_scalar('loss', loss, global_step=step)
+                # tb_logger.add_scalar('loss', loss, global_step=step)
                 logging.info("step: {}, loss: {}, maxLabel: {}".format(step, loss.item(), y.max()))
-                loss_vals.append( loss.item() )
+                loss_vals.append(loss.item())
                 if step >= self.config.training.n_iters:
                     return 0
 
-                if False: #step % 100 == 0:
-                    enet.eval()
-                    try: 
-                        test_X, test_y = next(test_iter)
-                    except StopIteration:
-                        test_iter = iter(test_loader)
-                        test_X, test_y = next(test_iter)
-
-                    test_X = test_X.to(self.config.device)
-                    test_X = test_X / 256. * 255. + torch.rand_like(test_X) / 256.
-                    if self.config.data.logit_transform:
-                        test_X = self.logit_transform(test_X)
-
-                    with torch.no_grad():
-                        test_dsm_loss = conditional_dsm(enet, test_X, test_y, energy_net_finalLayer,  sigma=0.01)
-
-                    #tb_logger.add_scalar('test_dsm_loss', test_dsm_loss, global_step=step)
-
                 if step % self.config.training.snapshot_freq == 0:
-                    if self.config.data.dataset in  ['MNIST_transferBaseline', 'CIFAR10_transferBaseline']:
+                    if self.config.data.dataset in ['MNIST_transferBaseline', 'CIFAR10_transferBaseline']:
                         # just save the losses, thats all we care about
                         if self.config.data.store_loss:
-                            #print('only storing losses')
-                            import pickle 
+                            # print('only storing losses')
+                            import pickle
                             if self.config.data.dataset == 'MNIST_transferBaseline':
-                                pickle.dump( loss_vals, open('transfer_exp/transferRes/Baseline_Size' + str(self.subsetSize) + "_Seed" + str(self.seed) + '.p', 'wb'))
+                                pickle.dump(loss_vals, open(
+                                    'transfer_exp/transferRes/Baseline_Size' + str(self.subsetSize) + "_Seed" + str(
+                                        self.seed) + '.p', 'wb'))
                             else:
-                                pickle.dump( loss_vals, open('transfer_exp/transferRes_cifar/cifar_Baseline_Size' + str(self.subsetSize) + "_Seed" + str(self.seed) + '.p', 'wb'))
+                                pickle.dump(loss_vals, open('transfer_exp/transferRes_cifar/cifar_Baseline_Size' + str(
+                                    self.subsetSize) + "_Seed" + str(self.seed) + '.p', 'wb'))
                         else:
                             pass
                         if True:
@@ -221,9 +212,9 @@ class mnist_ucond_runner():
                             torch.save(states, os.path.join(self.args.log, 'checkpoint_{}.pth'.format(step)))
                             torch.save(states, os.path.join(self.args.log, 'checkpoint.pth'))
                             # and the final layer weights !
-                            #import pickle
-                            #torch.save( [energy_net_finalLayer], 'finalLayerweights_.pth')
-                            #pickle.dump( energy_net_finalLayer, open('finalLayerweights.p', 'wb') )
+                            # import pickle
+                            # torch.save( [energy_net_finalLayer], 'finalLayerweights_.pth')
+                            # pickle.dump( energy_net_finalLayer, open('finalLayerweights.p', 'wb') )
                     else:
                         states = [
                             enet.state_dict(),
@@ -232,9 +223,9 @@ class mnist_ucond_runner():
                         torch.save(states, os.path.join(self.args.log, 'checkpoint_{}.pth'.format(step)))
                         torch.save(states, os.path.join(self.args.log, 'checkpoint.pth'))
                         import pickle
-                        torch.save( [energy_net_finalLayer],  os.path.join(self.args.log,'finalLayerweights_.pth') )
-                        pickle.dump( energy_net_finalLayer, open(  os.path.join(self.args.log,'finalLayerweights.p'), 'wb') )
-
+                        torch.save([energy_net_finalLayer], os.path.join(self.args.log, 'finalLayerweights_.pth'))
+                        pickle.dump(energy_net_finalLayer,
+                                    open(os.path.join(self.args.log, 'finalLayerweights.p'), 'wb'))
 
     def Langevin_dynamics(self, x_mod, scorenet, n_steps=1000, step_lr=0.00002):
         images = []
@@ -291,30 +282,6 @@ class mnist_ucond_runner():
 
                 torch.save(sample, os.path.join(self.args.image_folder, 'samples_{}.pth'.format(i)))
 
-        elif self.config.data.dataset == 'CELEBA':
-            dataset = CelebA(root=os.path.join(self.args.run, 'datasets', 'celeba'), split='test',
-                             transform=transforms.Compose([
-                                 transforms.CenterCrop(140),
-                                 transforms.Resize(self.config.data.image_size),
-                                 transforms.ToTensor(),
-                             ]), download=True)
-
-            dataloader = DataLoader(dataset, batch_size=64, shuffle=True, num_workers=4)
-            samples, _ = next(iter(dataloader))
-
-            samples = torch.rand(100, 3, self.config.data.image_size, self.config.data.image_size,
-                                 device=self.config.device)
-
-            all_samples = self.Langevin_dynamics(samples, score, 1000, 0.00002)
-
-            for i, sample in enumerate(tqdm.tqdm(all_samples)):
-                sample = sample.view(100, self.config.data.channels, self.config.data.image_size,
-                                     self.config.data.image_size)
-
-                if self.config.data.logit_transform:
-                    sample = torch.sigmoid(sample)
-
-                torch.save(sample, os.path.join(self.args.image_folder, 'samples_{}.pth'.format(i)))
 
         else:
             transform = transforms.Compose([
