@@ -36,7 +36,7 @@ def IVAE_wrapper(X, U, batch_size=256, max_iter=7e4, seed=0, n_layers=3, hidden_
     model = iVAE(latent_dim, data_dim, aux_dim, activation='lrelu', device=device,
                  n_layers=n_layers, hidden_dim=hidden_dim)
     optimizer = optim.Adam(model.parameters(), lr=lr)
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.1, patience=3, verbose=True)
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.1, patience=20, verbose=True)
 
     # training loop
     if not test:
