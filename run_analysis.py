@@ -11,6 +11,8 @@ import torch
 import shutil
 
 from transfer_exp.semisupervised import  semisupervised
+from transfer_exp.semisupervised_cifar import semisupervised_cifar
+from transfer_exp.semisupervised_fashionmnist import semisupervised_fmnist
 
 parser = argparse.ArgumentParser(description='')
 parser.add_argument('--dataset', type=str, help='dataset - should MNIST, CIFAR10 or FashionMNIST')
@@ -37,13 +39,15 @@ if __name__=='__main__':
     if args.dataset=='CIFAR10':
         print('\n\nrunning semi-supervised learning\n\n')
         if args.run_semisupervised==1:
-            os.system( 'python3 transfer_exp/semisupervised_cifar.py' )
-        if args.run_transfer==1:
-            print('\n\nrunning transfer learning\n\n')
+            semisupervised_cifar()
+            # os.system( 'python3 transfer_exp/semisupervised_cifar.py' )
+        # if args.run_transfer==1:
+        #     print('\n\nrunning transfer learning\n\n')
 
     if args.dataset=='FashionMNIST':
         print('\n\nrunning semi-supervised learning\n\n')
         if args.run_semisupervised==1:
-            os.system( 'python3 transfer_exp/semisupervised_fashionmnist.py' )
-        if args.run_transfer==1:
-            pass 
+            semisupervised_fmnist()
+            # os.system( 'python3 transfer_exp/semisupervised_fashionmnist.py' )
+        # if args.run_transfer==1:
+        #     pass
