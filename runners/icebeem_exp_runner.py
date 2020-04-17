@@ -21,14 +21,14 @@ from models.nflib.spline_flows import NSF_AR
 from sklearn.decomposition import PCA, FastICA
 
 torch.set_default_tensor_type('torch.cuda.FloatTensor')
-os.environ["CUDA_VISIBLE_DEVICES"] = '0'
+#os.environ["CUDA_VISIBLE_DEVICES"] = '0'
 
 # message for me to check everything is ok !
 
-data_dim = 3
-data_segments = 10 
+data_dim = 5
+data_segments = 20 
 n_layer = [4]
-n_obs_seg = [2000]
+n_obs_seg = [500]
 
 results = {l: {n: [] for n in n_obs_seg} for l in n_layer}
 

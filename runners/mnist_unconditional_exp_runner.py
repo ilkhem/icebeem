@@ -91,6 +91,10 @@ class mnist_ucond_runner():
             test_dataset = MNIST('datasets_test/', train=False, download=True,
                                  transform=test_transform)
 
+        elif self.config.data.dataset == 'FashionMNIST':
+            dataset = FashionMNIST(os.path.join(self.args.run, 'datasets', 'FashionMNIST'), train=True, download=True, transform=tran_transform )
+            test_dataset = FashionMNIST(os.path.join(self.args.run, 'datasets', 'FashionMNIST_test'), train=False, download=True, transform=tran_transform )
+
         elif self.config.data.dataset == 'MNIST_transferBaseline':
             # use same dataset as transfer_nets.py
             test_dataset = MNIST('datasets/mnist_test', train=False, download=True, transform=test_transform)
@@ -105,12 +109,13 @@ class mnist_ucond_runner():
             testset_1 = torch.utils.data.Subset(test_dataset, id_range)
 
         # apply collation for all datasets ! (we only consider MNIST and CIFAR10 anyway!)
-        if self.config.data.dataset in ['MNIST', 'CIFAR10']:
+        if self.config.data.dataset in ['MNIST', 'CIFAR10', 'FashionMNIST']:
             collate_helper = lambda batch: my_collate( batch, nSeg = self.nSeg) 
             dataloader = DataLoader(dataset, batch_size=self.config.training.batch_size, shuffle=True, num_workers=0, collate_fn = collate_helper)
             test_loader = DataLoader(test_dataset, batch_size=self.config.training.batch_size, shuffle=True,
                                  num_workers=1, drop_last=True,  collate_fn = collate_helper)
-        elif self.config.data.dataset in ['MNIST_transferBaseline', 'CIFAR10_transferBaseline']:
+            
+        elif self.config.data.dataset in ['MNIST_transferBaseline', 'CIFAR10_transferBaseline', 'FashionMNIST_transferBaseline']:
             # trains a model on only digits 8,9 from scratch
             dataloader = DataLoader(testset_1, batch_size=self.config.training.batch_size, shuffle=True, num_workers=0, drop_last=True, collate_fn = my_collate_rev )
             print('loaded reduced subset')
