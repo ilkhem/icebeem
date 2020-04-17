@@ -390,21 +390,19 @@ def gen_TCL_data_ortho(Ncomp, Nlayer, Nsegment, NsegmentObs, source='Laplace', N
     return {'source': dat, 'obs': mixedDat, 'labels': labels, 'mixing': mixingList, 'var': modMat}
 
 
-def generate_synthetic_data(data_dim, data_segments, n_layer, n_obs_seg, n, l, simulationMethod='TCL', seed=1,
+def generate_synthetic_data(data_dim, data_segments, n_obs_seg, n_layer, simulationMethod='TCL', seed=1,
                             one_hot_labels=False):
     np.random.seed(seed)
     if simulationMethod == 'TCL':
-        dat_all = gen_TCL_data_ortho(Ncomp=data_dim, Nsegment=data_segments, Nlayer=l, source='Gaussian', NsegmentObs=n,
-                                     NonLin='leaky', negSlope=.2, Niter4condThresh=1e4)
+        dat_all = gen_TCL_data_ortho(Ncomp=data_dim, Nsegment=data_segments, Nlayer=n_layer, NsegmentObs=n_obs_seg,
+                                     source='Gaussian', NonLin='leaky', negSlope=.2, Niter4condThresh=1e4)
     else:
         baseEvals = np.random.rand(data_dim)
         baseEvals /= (.5 * baseEvals.sum())
         baseCov = random_correlation.rvs(baseEvals)
 
-        dat_all = gen_IMCA_data(Ncomp=data_dim, Nsegment=data_segments, Nlayer=n_layer,
-                                NsegmentObs=n_obs_seg, NonLin='leaky',
-                                negSlope=.2, Niter4condThresh=1e4,
-                                BaseCovariance=baseCov)
+        dat_all = gen_IMCA_data(Ncomp=data_dim, Nsegment=data_segments, Nlayer=n_layer, NsegmentObs=n_obs_seg,
+                                NonLin='leaky', negSlope=.2, Niter4condThresh=1e4, BaseCovariance=baseCov)
     x = dat_all['obs']
     if one_hot_labels:
         y = to_one_hot(dat_all['labels'])[0]
