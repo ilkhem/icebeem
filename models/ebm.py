@@ -3,7 +3,7 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 
-from .nets import CleanMLP
+from .nets import CleanMLP, MLP_general
 
 
 class UnnormalizedConditialEBM(nn.Module):
