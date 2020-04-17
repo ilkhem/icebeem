@@ -18,7 +18,7 @@ from runners import ivae_exp_runner, icebeem_exp_runner, tcl_exp_runner
 parser = argparse.ArgumentParser(description='')
 parser.add_argument('--dataset', type=str, default='TCL', help='dataset to run experiments. Should be TCL or IMCA')
 parser.add_argument('--method', type=str, default='icebeem', help='method to employ. Should be TCL, iVAE or ICE-BeeM')
-parser.add_argument('--nSims', type=int, default=5, help='number of simulations to run')
+parser.add_argument('--nSims', type=int, default=10, help='number of simulations to run')
 parser.add_argument('--config', type=str, default='imca.yaml', help='Path to the config file')
 parser.add_argument('--run', type=str, default='run/', help='Path for saving running related data.')
 parser.add_argument('--test', action='store_true', help='Whether to test the model')
