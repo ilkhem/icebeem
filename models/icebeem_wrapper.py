@@ -18,8 +18,10 @@ CKPT_FOLDER = 'run/checkpoints/ivae/'
 os.makedirs(CKPT_FOLDER, exist_ok=True)
 
 
-def ICEBEEM_wrapper(X, Y, ebm_hidden_size, n_layers_ebm, n_layers_flow, lr_flow, lr_ebm,
+def ICEBEEM_wrapper(X, Y, ebm_hidden_size, n_layers_ebm, n_layers_flow, lr_flow, lr_ebm, seed,
                     ckpt_file='icebeem.pt', test=False):
+    np.random.seed(seed)
+    torch.manual_seed(seed)
     data_dim = X.shape[1]
 
     model_ebm = MLP_general(input_size=data_dim, hidden_size=[ebm_hidden_size] * n_layers_ebm,

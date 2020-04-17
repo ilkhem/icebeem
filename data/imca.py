@@ -160,7 +160,7 @@ def generateUniformMat_minMax(Ncomp, condT, minVal=.5, maxVal=1.5):
 
 
 def gen_nonstationary_data(Ncomp, Nlayer, Nsegment, NsegmentObs, source='Laplace', NonLin='leaky', negSlope=.2,
-                           Niter4condThresh=1e4):
+                           Niter4condThresh=1e4, seed=1):
     """
 
     generate multivariate data based on the non-stationary non-linear ICA model of Hyvarinen & Morioka (2016)
@@ -183,7 +183,7 @@ def gen_nonstationary_data(Ncomp, Nlayer, Nsegment, NsegmentObs, source='Laplace
 
 
     """
-
+    np.random.seed(seed)
     # check input is correct
     assert NonLin in ['leaky', 'sigmoid']
 
@@ -245,7 +245,7 @@ def gen_nonstationary_data(Ncomp, Nlayer, Nsegment, NsegmentObs, source='Laplace
 
 
 def gen_IMCA_data(Ncomp, Nlayer, Nsegment, NsegmentObs, BaseCovariance, NonLin='leaky', negSlope=.2,
-                  Niter4condThresh=1e4):
+                  Niter4condThresh=1e4, seed=1):
     """
     generate data from an IMCA model where latent sources follow a
     MoG distribution conditional on each segment
@@ -269,7 +269,7 @@ def gen_IMCA_data(Ncomp, Nlayer, Nsegment, NsegmentObs, BaseCovariance, NonLin='
         - obs: mixed sources
         - labels: segment labels (indicating the non stationarity in the data)
     """
-
+    np.random.seed(seed)
     # define some params
     Nobs = NsegmentObs * Nsegment  # total number of observations
     labels = np.array([0] * Nobs)  # labels for each observation (populate below)
@@ -311,8 +311,7 @@ def gen_IMCA_data(Ncomp, Nlayer, Nsegment, NsegmentObs, BaseCovariance, NonLin='
 
 
 def gen_TCL_data_ortho(Ncomp, Nlayer, Nsegment, NsegmentObs, source='Laplace', NonLin='leaky', negSlope=.2,
-                       varyMean=False,
-                       Niter4condThresh=1e4):
+                       varyMean=False, Niter4condThresh=1e4, seed=1):
     """
     generate multivariate data based on the non-stationary non-linear ICA model of Hyvarinen & Morioka (2016)
 
@@ -334,7 +333,7 @@ def gen_TCL_data_ortho(Ncomp, Nlayer, Nsegment, NsegmentObs, source='Laplace', N
         - obs: mixed sources
         - labels: segment labels (indicating the non stationarity in the data)
     """
-
+    np.random.seed(seed)
     # check input is correct
     assert NonLin in ['leaky', 'sigmoid']
 
@@ -395,14 +394,14 @@ def generate_synthetic_data(data_dim, data_segments, n_obs_seg, n_layer, simulat
     np.random.seed(seed)
     if simulationMethod.lower() == 'tcl':
         dat_all = gen_TCL_data_ortho(Ncomp=data_dim, Nsegment=data_segments, Nlayer=n_layer, NsegmentObs=n_obs_seg,
-                                     source='Gaussian', NonLin='leaky', negSlope=.2, Niter4condThresh=1e4)
+                                     source='Gaussian', NonLin='leaky', negSlope=.2, seed=seed)
     elif simulationMethod.lower() == 'imca':
         baseEvals = np.random.rand(data_dim)
         baseEvals /= (.5 * baseEvals.sum())
         baseCov = random_correlation.rvs(baseEvals)
 
         dat_all = gen_IMCA_data(Ncomp=data_dim, Nsegment=data_segments, Nlayer=n_layer, NsegmentObs=n_obs_seg,
-                                NonLin='leaky', negSlope=.2, Niter4condThresh=1e4, BaseCovariance=baseCov)
+                                NonLin='leaky', negSlope=.2, BaseCovariance=baseCov, seed=seed)
     else:
         raise ValueError('invalid simulation method: {}'.format(simulationMethod))
     x = dat_all['obs']

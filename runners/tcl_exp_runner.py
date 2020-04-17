@@ -16,6 +16,8 @@ def runTCLexp(args, config):
     n_segments = config.n_segments
     n_layers = config.n_layers
     n_obs_per_seg = config.n_obs_per_seg
+    data_seed = config.data_seed
+
 
     results = {l: {n: [] for n in n_obs_per_seg} for l in n_layers}
 
@@ -27,13 +29,13 @@ def runTCLexp(args, config):
 
     for l in n_layers:
         for n in n_obs_per_seg:
+            x, y, s = generate_synthetic_data(data_dim, n_segments, n, l, seed=data_seed,
+                                              simulationMethod=simulationMethod, one_hot_labels=False)
             for seed in range(nSims):
                 print('Running exp with L={} and n={}; seed={}'.format(l, n, seed))
                 # generate data
-                x, y, s = generate_synthetic_data(data_dim, n_segments, n, l, seed=seed,
-                                                  simulationMethod=simulationMethod, one_hot_labels=False)
                 # run TCL
-                res_TCL = TCL_wrapper(sensor=x.T, label=y,
+                res_TCL = TCL_wrapper(sensor=x.T, label=y, random_seed=seed,
                                       list_hidden_nodes=[num_comp * 2] * (l - 1) + [num_comp],
                                       max_steps=stepDict[l][0] * 2, max_steps_init=stepDict[l][1])
 
