@@ -17,6 +17,9 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
 
+from warnings import filterwarnings
+filterwarnings('ignore')
+
 # load in the required modules
 from models.refinenet_dilated_baseline import RefineNetDilated
 
@@ -100,6 +103,7 @@ print('loaded representations')
 labels -= 8
 rep_train, rep_test, lab_train , lab_test = train_test_split( (representations), labels, test_size=test_size, random_state=42)
 
+print('training linear SVM')
 clf = class_model(random_state=0, max_iter=10000).fit( rep_train, lab_train )
 acc = accuracy_score( lab_test, clf.predict( rep_test )) *100
 
@@ -141,6 +145,7 @@ print('loaded representations')
 labels_base -= 8
 rep_train_b, rep_test_b, lab_train_b , lab_test_b = train_test_split( (representations_base), labels_base, test_size=test_size, random_state=42)
 
+print('training linear SVM')
 clf_b = class_model(random_state=0, max_iter=10000).fit( rep_train_b, lab_train_b )
 acc_b = accuracy_score( lab_test_b, clf_b.predict( rep_test_b )) *100
 

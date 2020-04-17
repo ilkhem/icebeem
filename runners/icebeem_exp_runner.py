@@ -26,7 +26,7 @@ torch.set_default_tensor_type('torch.cuda.FloatTensor')
 # message for me to check everything is ok !
 
 data_dim = 5
-data_segments = 20 
+data_segments = 40 
 n_layer = [4]
 n_obs_seg = [500]
 

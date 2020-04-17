@@ -140,5 +140,5 @@ datasets_test/*
 *.p
 *.pth 
 log/*
-# run/*
+run/*
 run/datasets/*  
