@@ -20,6 +20,8 @@ os.makedirs(CKPT_FOLDER, exist_ok=True)
 
 def ICEBEEM_wrapper(X, Y, ebm_hidden_size, n_layers_ebm, n_layers_flow, lr_flow, lr_ebm, seed,
                     ckpt_file='icebeem.pt', test=False):
+    ckpt_path = os.path.join(CKPT_FOLDER, ckpt_file)
+
     np.random.seed(seed)
     torch.manual_seed(seed)
     data_dim = X.shape[1]
@@ -73,5 +75,9 @@ def ICEBEEM_wrapper(X, Y, ebm_hidden_size, n_layers_ebm, n_layers_flow, lr_flow,
         recov = fce_.unmixSamples(X, modelChoice='ebm')
         source_est_ica = FastICA().fit_transform((recov))
         recov_sources.append(source_est_ica)
+
+    torch.save({'ebm_mlp': fce_.energy_MLP.state_dict(),
+                'ebm_finalLayer': fce_.ebm_finalLayer,
+                'flow': fce_.flow_model.state_dict()}, ckpt_path)
 
     return recov_sources

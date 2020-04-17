@@ -44,9 +44,10 @@ def runICEBeeMexp(args, config):
                 # generate data
 
                 n_layers_ebm = l + 1
+                ckpt_file = 'icebeem_l{}_n{}_s{}.pt'.format(l, n, seed)
                 recov_sources = ICEBEEM_wrapper(X=x, Y=y, ebm_hidden_size=ebm_hidden_size,
                                                 n_layers_ebm=n_layers_ebm, n_layers_flow=n_layers_flow,
-                                                lr_flow=lr_flow, lr_ebm=lr_ebm, seed=seed)
+                                                lr_flow=lr_flow, lr_ebm=lr_ebm, seed=seed, ckpt_file=ckpt_file)
 
                 # store results
                 results[l][n].append(np.max([mean_corr_coef(z, s) for z in recov_sources]))
