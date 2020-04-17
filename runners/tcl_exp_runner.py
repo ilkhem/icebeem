@@ -6,27 +6,31 @@ from data.imca import generate_synthetic_data
 from metrics.mcc import mean_corr_coef
 from models.tcl.tcl_wrapper_gpu import TCL_wrapper
 
-data_dim = 5
-data_segments = 8
-n_layer = [2, 4]
-n_obs_seg = [100, 200, 500, 1000, 2000]
 
-stepDict = {1: [int(5e3), int(5e3)], 2: [int(1e4), int(1e4)], 3: [int(1e4), int(1e4)], 4: [int(1e4), int(1e4)],
-            5: [int(1e4), int(1e4)]}
-
-
-def runTCLexp(nSims=10, simulationMethod='TCL'):
+def runTCLexp(args, config):
     """run TCL simulations"""
+    stepDict = {1: [int(5e3), int(5e3)], 2: [int(1e4), int(1e4)], 3: [int(1e4), int(1e4)], 4: [int(1e4), int(1e4)],
+                5: [int(1e4), int(1e4)]}
 
-    results = {l: {n: [] for n in n_obs_seg} for l in n_layer}
+    data_dim = config.data_dim
+    n_segments = config.n_segments
+    n_layers = config.n_layers
+    n_obs_per_seg = config.n_obs_per_seg
+
+    results = {l: {n: [] for n in n_obs_per_seg} for l in n_layers}
+
     num_comp = data_dim
 
-    for l in n_layer:
-        for n in n_obs_seg:
+    nSims = args.nSims
+    simulationMethod = args.method
+    test = args.test
+
+    for l in n_layers:
+        for n in n_obs_per_seg:
             print('Running exp with L={} and n={}'.format(l, n))
             # generate some TCL data
             for seed in range(nSims):
-                x, y, s = generate_synthetic_data(data_dim, data_segments, n, l, seed=seed,
+                x, y, s = generate_synthetic_data(data_dim, n_segments, n, l, seed=seed,
                                                   simulationMethod=simulationMethod, one_hot_labels=False)
                 # run iVAE
                 res_TCL = TCL_wrapper(sensor=x.T, label=y,
@@ -40,7 +44,7 @@ def runTCLexp(nSims=10, simulationMethod='TCL'):
     # prepare output
     Results = {
         'data_dim': data_dim,
-        'data_segments': data_segments,
+        'data_segments': n_segments,
         'CorrelationCoef': results
     }
 

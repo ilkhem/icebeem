@@ -52,10 +52,16 @@ if __name__ == '__main__':
     print(fname)
 
     if args.dataset in ['TCL', 'IMCA']:
+        with open(os.path.join('configs', 'imca.yaml'), 'r') as f:
+            config = yaml.load(f)
+        new_config = dict2namespace(config)
+        new_config.device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+
         if args.method.lower() == 'tcl':
-            r = tcl_exp_runner.runTCLexp( nSims=args.nSims, simulationMethod=args.method )
+            pass
+            # r = tcl_exp_runner.runTCLexp(args, new_config)
         if args.method.lower() == 'ivae':
-            r = ivae_exp_runner.runiVAEexp(args)
+            r = ivae_exp_runner.runiVAEexp(args, new_config)
         if args.method.lower() in ['ice-beem', 'icebeem']:
             r = icebeem_exp_runner.runICEBeeMexp( nSims=args.nSims , simulationMethod=args.method, lr_flow=args.lr_flow, lr_ebm=args.lr_ebm, n_layers_flow=args.n_layer_flow ) 
 
