@@ -30,7 +30,7 @@ config = pickle.load( open('transfer_exp/config_file_cifar.p', 'rb' ) )
 expFolder = 'cifarPreTrain'
 checkpoint = '' # '1000'
 
-check_path = expFolder + '/' +'checkpoint' + checkpoint + '_2500.pth'
+check_path = expFolder + '/' +'checkpoint' + checkpoint + '_5000.pth'
 
 # load in states
 ckp_path = 'run/logs/' + check_path
@@ -112,7 +112,7 @@ print('Accuracy of transfer representation: acc={}'.format( np.round(acc,2)))
 expFolder = 'cifarUncondBaseline' #'mnistBaseline' + str(ns)
 checkpoint = '' # '1000'
 
-check_path = expFolder + '/' +'checkpoint' + checkpoint + '_2500.pth'
+check_path = expFolder + '/' +'checkpoint' + checkpoint + '_5000.pth'
 
 # load in states
 ckp_path = 'run/logs/' + check_path

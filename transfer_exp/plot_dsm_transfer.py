@@ -51,3 +51,8 @@ f.tight_layout()
 #plt.savefig('DSMtransferObjective_.pdf', dpi=300)
 
 
+
+# plot same results for CIFAR10
+
+os.chdir('transfer_exp/transferRes_cifar')
+
