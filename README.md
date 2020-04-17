@@ -21,7 +21,9 @@ Tests:
 - [x] TCL simulations (need to be tidied up and run through main.py)
 - [x] iVAE simulations (need to be tidied up and run through main.py)
 - [ ] ICE-BeeM simulations (in progress)
-- [ ] MNIST experiments 
+- [x] MNIST experiments 
+- [x] add CIFAR10
+- [ ] add fashionMNIST
 
 TODO (ilyes):
 - [x] move all Datase objects to `data/`

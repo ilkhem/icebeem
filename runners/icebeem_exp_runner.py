@@ -23,17 +23,14 @@ from sklearn.decomposition import PCA, FastICA
 torch.set_default_tensor_type('torch.cuda.FloatTensor')
 os.environ["CUDA_VISIBLE_DEVICES"] = '0'
 
-data_dim = 5
+data_dim = 3
 data_segments = 10
-n_layer = [2]
+n_layer = [4]
 n_obs_seg = [2000]
 
 results = {l: {n: [] for n in n_obs_seg} for l in n_layer}
 
-n_layers_flow = 5
-ebm_hidden_size = 32 
-
-def runICEBeeMexp(nSims=10, simulationMethod='TCL'):
+def runICEBeeMexp(nSims=10, simulationMethod='TCL', lr_flow=1e-5, lr_ebm=1e-4, n_layers_flow=10, ebm_hidden_size=32 ):
     """run ICE-BeeM simulations"""
 
     for l in n_layer:
@@ -45,7 +42,7 @@ def runICEBeeMexp(nSims=10, simulationMethod='TCL'):
                 # generate data
                 if simulationMethod == 'TCL':
                     dat_all = gen_TCL_data_ortho(Ncomp=data_dim, Nsegment=data_segments, Nlayer=l, source='Gaussian',
-                                                 varyMean=0,
+                                                 varyMean=1,
                                                  NsegmentObs=n,
                                                  NonLin='leaky', negSlope=.2, Niter4condThresh=1e4)
                     data = PCA().fit_transform( dat_all['obs'] ) # whiten as in Hiroshi TCL code
@@ -96,7 +93,7 @@ def runICEBeeMexp(nSims=10, simulationMethod='TCL'):
                 fce_.train_ebm_fce(epochs=15, augment=augment_ebm, finalLayerOnly=True, cutoff=.5)
 
                 # then train full EBM via NCE with flow contrastive noise:
-                fce_.train_ebm_fce(epochs=150, augment=augment_ebm, cutoff=.5, useVAT=False)
+                fce_.train_ebm_fce(epochs=50, augment=augment_ebm, cutoff=.5, useVAT=False)
 
                 # evaluate recovery of latents
                 recov = fce_.unmixSamples(data, modelChoice='ebm')
@@ -107,9 +104,9 @@ def runICEBeeMexp(nSims=10, simulationMethod='TCL'):
                 eps = .025
                 for iter_ in range(3):
                     # update flow model:
-                    fce_.train_flow_fce(epochs=5, objConstant=-1., cutoff=.5 - eps, lr=.00001)
+                    fce_.train_flow_fce(epochs=5, objConstant=-1., cutoff=.5 - eps, lr=lr_flow)
                     # update energy based model:
-                    fce_.train_ebm_fce(epochs=50, augment=augment_ebm, cutoff=.5 + eps, lr=0.0003, useVAT=False)
+                    fce_.train_ebm_fce(epochs=50, augment=augment_ebm, cutoff=.5 + eps, lr=lr_ebm, useVAT=False)
 
                     # evaluate recovery of latents
                     recov = fce_.unmixSamples(data, modelChoice='ebm')

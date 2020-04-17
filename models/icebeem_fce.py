@@ -444,7 +444,7 @@ class ebmFCEsegments(object):
 
                 # define loss
                 loss = loss_criterion(torch.sigmoid(logits), label)
-                loss_mle = - torch.sum( noise_logpdf ) # mle objective for training data 
+                loss_mle = - torch.mean( noise_logpdf ) # mle objective for training data 
                 loss_val += ( loss.item() + loss_mle.item() ) # this is the jensen shannon 
 
                 # take gradient step

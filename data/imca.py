@@ -351,7 +351,7 @@ def gen_TCL_data_ortho(Ncomp, Nlayer, Nsegment, NsegmentObs, source='Laplace', N
 
     # meanMat = np.random.uniform(0, 5, (Ncomp, Nsegment))
     if varyMean:
-        meanMat = np.random.uniform(0, 3, (Ncomp, Nsegment))
+        meanMat = np.random.uniform(-3, 3, (Ncomp, Nsegment))
     else:
         meanMat = np.zeros((Ncomp, Nsegment))
     # now we adjust the variance within each segment in a non-stationary manner

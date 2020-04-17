@@ -19,6 +19,9 @@ parser = argparse.ArgumentParser(description='')
 parser.add_argument('--dataset', type=str, help='dataset to run experiments. Should be TCL, IMCA or MNIST')
 parser.add_argument('--method', type=str, default='dsm', help='method to employ. Should be TCL, iVAE or ICE-BeeM')
 parser.add_argument('--nSims', type=int, default=5, help='number of simulations to run')
+parser.add_argument('--lr_flow', type=float, default=1e-5, help='learning rate for flow in FCE (should be smaller than lr for EBM as suggested in Gao et al (2019))')
+parser.add_argument('--lr_ebm', type=float, default=0.0003, help='learning rate for EBM')
+parser.add_argument('--n_layer_flow', type=int, default=10, help='depth of flow network in FCE')
 # following two arguments are only relevant for mnist data experiments (will be ignored otherwise)
 parser.add_argument('--config', type=str, default='mnist.yml',  help='Path to the config file')
 parser.add_argument('--run', type=str, default='run', help='Path for saving running related data.')
@@ -54,7 +57,7 @@ if __name__ == '__main__':
         if args.method.lower() == 'ivae':
             r = ivae_exp_runner.runiVAEexp( nSims=args.nSims , simulationMethod=args.method )
         if args.method.lower() in ['ice-beem', 'icebeem']:
-            r = icebeem_exp_runner.runICEBeeMexp( nSims=args.nSims , simulationMethod=args.method) 
+            r = icebeem_exp_runner.runICEBeeMexp( nSims=args.nSims , simulationMethod=args.method, lr_flow=args.lr_flow, lr_ebm=args.lr_ebm, n_layers_flow=args.n_layer_flow ) 
 
         # save results
         fname = 'results/' + args.method + 'res_' + args.dataset + 'exp_' + str(args.nSims) + '.p'
