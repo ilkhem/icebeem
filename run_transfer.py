@@ -131,10 +131,12 @@ if __name__ == '__main__':
     torch.backends.cudnn.benchmark = True
 
     args = parse()
-    train(args)
+    os.makedirs(args.run, exist_ok=True)
 
-    if args.transfer:
+    if not args.transfer and not args.semisupervised:
+        train(args)
 
+    elif args.transfer:
         new_args = argparse.Namespace(**vars(args))
         for n in [500, 1000, 2000, 3000, 4000, 5000, 6000]:
             for seed in range(args.nSims):
@@ -145,8 +147,7 @@ if __name__ == '__main__':
                 transfer(new_args)
                 train(new_args)
 
-    if args.semisupervised:
-
+    elif args.semisupervised:
         print('running semi-supervised learning')
         if args.dataset == 'MNIST':
             semisupervised()
@@ -154,3 +155,6 @@ if __name__ == '__main__':
             semisupervised_cifar()
         elif args.dataset == 'FashionMNIST':
             semisupervised_fmnist()
+
+    else:
+        raise ValueError('invalid combination of flags')

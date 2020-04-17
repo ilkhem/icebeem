@@ -40,6 +40,7 @@ def dict2namespace(config):
 if __name__ == '__main__':
 
     print('Running {} experiments using {}'.format(args.dataset, args.method))
+    os.makedirs(args.run, exist_ok=True)
     fname = os.path.join(args.run, args.method + 'res_' + args.dataset + 'exp.p')
     print(fname)
 

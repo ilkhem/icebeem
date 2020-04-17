@@ -20,40 +20,37 @@ Requirements:
 Tests:
 - [x] TCL simulations (need to be tidied up and run through main.py)
 - [x] iVAE simulations (need to be tidied up and run through main.py)
-- [ ] ICE-BeeM simulations (in progress)
+- [x] ICE-BeeM simulations (in progress)
 - [x] MNIST experiments 
 - [x] add CIFAR10
 - [x] add fashionMNIST
 
-TODO (ilyes):
-- [x] move all Datase objects to `data/`
-- [x] remove legacy and unnecessary files
-- [ ] work on FCE implementation and compare perf to Ricardo's
-- [ ] add plotting option to `main.py`
-- [ ] add weight checkpoints for easy plotting of Figures without training
+### Simulations
 
+To run simulations:
+- `python run_simulations.py --dataset TCL --method ivae --config imca.yaml`
+- `python run_simulations.py --dataset TCL --method tcl --config imca.yaml`
+- `python run_simulations.py --dataset TCL --method icebeem --config imca.yaml`
+and similarly for `-dataset IMCA`.
 
-to run simulations:
-- `python3 main.py --dataset TCL --method ivae --config imca.yaml`
-- `python3 main.py --dataset TCL --method tcl --config imca.yaml`
-- `python3 main.py --dataset TCL --method icebeem --config imca.yaml`
+### Transfer learning
+To run transfer learning experiments, we first we need to train both a conditional and unconditional (baseline) EBM on the classes
+0-7:
 
+```
+python run_transfer.py --dataset MNIST --config mnist.yaml --doc mnistPreTrain
+python run_transfer.py --dataset MNIST --config mnist.yaml --doc mnistPreTrain --baseline
+```
+Then, we fix the representation learnt by the feature extractor **f**, and train the secondary feature extractor **g** on
+the unseen classes 8-9. We compare this to the baseline where we don't fix the feature extractor **f**. This is done by 
+running
+```
+python run_transfer.py --dataset MNIST --transfer
+```
+Finally, to run the semi-supervised experiments:
+```
+python run_transfer.py --dataset MNIST --semisupervised
+```
 
-to run MNIST experiments:
-
- - `python3 main.py --dataset MNIST --config mnist.yaml --doc mnistPreTrain`
- - `python3 main.py --dataset MNIST --config mnist.yaml --doc mnistUncondBaseline --unconditionalBaseline 1`
-
-then run semi-supervised/transfer learning
- - `python3 run_analysis.py --dataset MNIST --run_semisupervised 1 `   or 
- - `python3 run_analysis.py --dataset MNIST --run_transfer 1 `
-
-
-to run CIFAR10 experiemnts:
-
- - `python3 main.py --dataset CIFAR10 --config cifar.yaml --doc cifarPreTrain `
- - `python3 main.py --dataset CIFAR10 --config cifar.yaml --doc cifarUncondBaseline --unconditionalBaseline 1`
-
-then run semi-supervised/transfer learning
- - `python3 run_analysis.py --dataset CIFAR10 --run_semisupervised 1 `   or
- - `python3 run_analysis.py --dataset CIFAR10 --run_transfer 1 `
+The same can be done on CIFAR-10 by changing the value of the flag `--dataset` to `CIFAR10` and of the flag 
+`--config` to `cifar.yaml`.
