@@ -55,7 +55,7 @@ if __name__ == '__main__':
         if args.method.lower() == 'tcl':
             r = tcl_exp_runner.runTCLexp( nSims=args.nSims, simulationMethod=args.method )
         if args.method.lower() == 'ivae':
-            r = ivae_exp_runner.runiVAEexp( nSims=args.nSims , simulationMethod=args.method )
+            r = ivae_exp_runner.runiVAEexp(args)
         if args.method.lower() in ['ice-beem', 'icebeem']:
             r = icebeem_exp_runner.runICEBeeMexp( nSims=args.nSims , simulationMethod=args.method, lr_flow=args.lr_flow, lr_ebm=args.lr_ebm, n_layers_flow=args.n_layer_flow ) 
 

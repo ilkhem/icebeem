@@ -26,6 +26,9 @@ class ConditionalDataset(Dataset):
     def __getitem__(self, index):
         return self.x[index], self.y[index]
 
+    def get_dims(self):
+        return self.data_dim, self.latent_dim, self.aux_dim
+
 
 class SimpleDataset(Dataset):
     """

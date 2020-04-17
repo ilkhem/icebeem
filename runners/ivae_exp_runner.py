@@ -23,9 +23,12 @@ n_obs_seg = [100, 200, 500, 1000, 2000]
 results = {l: {n: [] for n in n_obs_seg} for l in n_layer}
 
 
-def runiVAEexp(nSims=10, simulationMethod='TCL'):
+def runiVAEexp(args):
     """run iVAE simulations"""
-
+    nSims = args.nSims
+    simulationMethod = args.method
+    seed = args.seed
+    test = args.test
     for l in n_layer:
         for n in n_obs_seg:
             print('Running exp with L={} and n={}'.format(l, n))
@@ -53,8 +56,9 @@ def runiVAEexp(nSims=10, simulationMethod='TCL'):
                     st = dat_all['source']
 
                 # run iVAE
+                ckpt_file = 'ivae_l{}_n{}_s{}.pt'.format(l, n,seed)
                 res_iVAE = IVAE_wrapper(X=data, U=to_one_hot(ut.argmax(1))[0], n_layers=l + 1, hidden_dim=data_dim * 2,
-                                        cuda=False, max_iter=1e5)
+                                            cuda=False, max_iter=1e5, ckpt_file=ckpt_file, test=test)
 
                 # store results
                 results[l][n].append(mean_corr_coef(res_iVAE[0].detach().numpy(), st))
