@@ -6,11 +6,11 @@ data_seed: 1
 
 ivae:
   max_iter: 70000
-  lr: 000.1
+  lr: 0.001
   cuda: False
 
 icebeem:
-  lr_flow: 00000.1
+  lr_flow: 0.00001
   lr_ebm: 0.0003
   n_layers_flow: 10
   ebm_hidden_size: 32
