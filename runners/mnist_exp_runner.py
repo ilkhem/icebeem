@@ -214,7 +214,7 @@ class mnist_runner():
                                 pickle.dump( loss_vals, open('transfer_exp/transferRes_cifar/cifar_Baseline_Size' + str(self.subsetSize) + "_Seed" + str(self.seed) + '.p', 'wb'))
                         else:
                             pass
-                        # save checkpoint for transfer learning!
+                        # save checkpoint for transfer learning! !
                         states = [
                             enet.state_dict(),
                             optimizer.state_dict(),
