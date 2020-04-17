@@ -5,12 +5,12 @@ n_obs_per_seg: [100, 200, 500, 1000, 2000]
 data_seed: 1
 
 ivae:
-  max_iter: 1e5
-  lr: 1e-3
+  max_iter: 100000
+  lr: 000.1
   cuda: False
 
 icebeem:
-  lr_flow: 1e-5
+  lr_flow: 00000.1
   lr_ebm: 0.0003
   n_layers_flow: 10
   ebm_hidden_size: 32
