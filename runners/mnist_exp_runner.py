@@ -19,6 +19,7 @@ from torch.utils.data import DataLoader, Subset
 from models.refinenet_dilated_baseline import RefineNetDilated
 from torch.utils.data.dataloader import default_collate
 import pickle 
+import os 
 
 __all__ = ['mnist_runner'] 
 
