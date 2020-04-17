@@ -4,64 +4,42 @@
 import itertools
 
 import numpy as np
-import os
 import torch
 import torch.nn.functional as F
-from scipy.stats import random_correlation
+from sklearn.decomposition import FastICA
 from torch.distributions import Uniform, TransformedDistribution, SigmoidTransform
 
-from data.imca import gen_TCL_data_ortho, gen_IMCA_data
-from data.utils import to_one_hot
+from data.imca import generate_synthetic_data
 from metrics.mcc import mean_corr_coef
 from models.icebeem_fce import ebmFCEsegments
 from models.nets import MLP_general
 from models.nflib.flows import NormalizingFlowModel, Invertible1x1Conv, ActNorm
 from models.nflib.spline_flows import NSF_AR
 
-from sklearn.decomposition import PCA, FastICA
-
 torch.set_default_tensor_type('torch.cuda.FloatTensor')
-#os.environ["CUDA_VISIBLE_DEVICES"] = '0'
+# os.environ["CUDA_VISIBLE_DEVICES"] = '0'
 
 # message for me to check everything is ok !
 
 data_dim = 5
-data_segments = 40 
+data_segments = 40
 n_layer = [4]
 n_obs_seg = [500]
 
 results = {l: {n: [] for n in n_obs_seg} for l in n_layer}
 
-def runICEBeeMexp(nSims=10, simulationMethod='TCL', lr_flow=1e-5, lr_ebm=1e-4, n_layers_flow=10, ebm_hidden_size=32 ):
+
+def runICEBeeMexp(nSims=10, simulationMethod='TCL', lr_flow=1e-5, lr_ebm=1e-4, n_layers_flow=10, ebm_hidden_size=32):
     """run ICE-BeeM simulations"""
 
     for l in n_layer:
         n_layers_ebm = l + 1
         for n in n_obs_seg:
             print('Running exp with L={} and n={}'.format(l, n))
-
-            for _ in range(nSims):
+            for seed in range(nSims):
                 # generate data
-                if simulationMethod == 'TCL':
-                    dat_all = gen_TCL_data_ortho(Ncomp=data_dim, Nsegment=data_segments, Nlayer=l, source='Gaussian',
-                                                 varyMean=1,
-                                                 NsegmentObs=n,
-                                                 NonLin='leaky', negSlope=.2, Niter4condThresh=1e4)
-                    data = PCA().fit_transform( dat_all['obs'] ) # whiten as in Hiroshi TCL code
-                    ut = to_one_hot(dat_all['labels'])[0]
-                    st = dat_all['source']
-                else:
-                    baseEvals = np.random.rand(data_dim)
-                    baseEvals /= ((1. / data_dim) * baseEvals.sum())
-                    baseCov = random_correlation.rvs(baseEvals)
-
-                    dat_all = gen_IMCA_data(Ncomp=data_dim, Nsegment=data_segments, Nlayer=l,
-                                            NsegmentObs=n, NonLin='leaky',
-                                            negSlope=.2, Niter4condThresh=1e4,
-                                            BaseCovariance=baseCov)
-                    data = PCA().fit_transform( dat_all['obs'] ) # whiten as in Hiroshi TCL code
-                    ut = to_one_hot(dat_all['labels'])[0]
-                    st = dat_all['source']
+                data, ut, st = generate_synthetic_data(data_dim, data_segments, n, l, seed=seed,
+                                                       simulationMethod=simulationMethod, one_hot_labels=True)
 
                 # define and run ICEBEEM
                 model_ebm = MLP_general(input_size=data_dim, hidden_size=[ebm_hidden_size] * n_layers_ebm,

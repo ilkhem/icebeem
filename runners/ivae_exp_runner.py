@@ -2,13 +2,11 @@
 #
 #
 
-import numpy as np
 import os
-import torch
-from scipy.stats import random_correlation
 
-from data.imca import gen_TCL_data_ortho, gen_IMCA_data
-from data.utils import to_one_hot
+import torch
+
+from data.imca import generate_synthetic_data
 from metrics.mcc import mean_corr_coef
 from models.ivae.ivae_wrapper import IVAE_wrapper
 
@@ -27,41 +25,22 @@ def runiVAEexp(args):
     """run iVAE simulations"""
     nSims = args.nSims
     simulationMethod = args.method
-    seed = args.seed
     test = args.test
     for l in n_layer:
         for n in n_obs_seg:
             print('Running exp with L={} and n={}'.format(l, n))
-
-            for _ in range(nSims):
+            for seed in range(nSims):
                 # generate data
-                if simulationMethod == 'TCL':
-                    dat_all = gen_TCL_data_ortho(Ncomp=data_dim, Nsegment=data_segments, Nlayer=l, source='Gaussian',
-                                                 NsegmentObs=n, varyMean=True,
-                                                 NonLin='leaky', negSlope=.2, Niter4condThresh=1e4)
-                    data = dat_all['obs']
-                    ut = to_one_hot(dat_all['labels'])[0]
-                    st = dat_all['source']
-                else:
-                    baseEvals = np.random.rand(data_dim)
-                    baseEvals /= ((1. / data_dim) * baseEvals.sum())
-                    baseCov = random_correlation.rvs(baseEvals)
-
-                    dat_all = gen_IMCA_data(Ncomp=data_dim, Nsegment=data_segments, Nlayer=l,
-                                            NsegmentObs=n, NonLin='leaky',
-                                            negSlope=.2, Niter4condThresh=1e4,
-                                            BaseCovariance=baseCov)
-                    data = dat_all['obs']
-                    ut = to_one_hot(dat_all['labels'])[0]
-                    st = dat_all['source']
+                x, y, s = generate_synthetic_data(data_dim, data_segments, n, l, seed=seed,
+                                                  simulationMethod=simulationMethod, one_hot_labels=True)
 
                 # run iVAE
-                ckpt_file = 'ivae_l{}_n{}_s{}.pt'.format(l, n,seed)
-                res_iVAE = IVAE_wrapper(X=data, U=to_one_hot(ut.argmax(1))[0], n_layers=l + 1, hidden_dim=data_dim * 2,
-                                            cuda=False, max_iter=1e5, ckpt_file=ckpt_file, test=test)
+                ckpt_file = 'ivae_l{}_n{}_s{}.pt'.format(l, n, seed)
+                res_iVAE = IVAE_wrapper(X=x, U=y, n_layers=l + 1, hidden_dim=data_dim * 2,
+                                        cuda=False, max_iter=1e5, ckpt_file=ckpt_file, test=test)
 
                 # store results
-                results[l][n].append(mean_corr_coef(res_iVAE[0].detach().numpy(), st))
+                results[l][n].append(mean_corr_coef(res_iVAE[0].detach().numpy(), s))
 
     # prepare output
     Results = {
