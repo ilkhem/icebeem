@@ -62,7 +62,7 @@ def IVAE_wrapper(X, U, batch_size=256, max_iter=7e4, seed=0, n_layers=3, hidden_
     else:
         model = torch.load(ckpt_path, map_location=device)
 
-    Xt, Ut = dset.x, dset.u
+    Xt, Ut = dset.x, dset.y
     decoder_params, encoder_params, z, prior_params = model(Xt, Ut)
     params = {'decoder': decoder_params, 'encoder': encoder_params, 'prior': prior_params}
 
