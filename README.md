@@ -35,12 +35,9 @@ TODO (ilyes):
 
 to run MNIST experiments:
 
-`python3 main.py --dataset MNIST --config mnist.yaml --doc mnistPreTrain`
-
-`python3 main.py --dataset MNIST --config mnist.yaml --doc mnistUncondBaseline --unconditionalBaseline 1`
+ - `python3 main.py --dataset MNIST --config mnist.yaml --doc mnistPreTrain`
+ - `python3 main.py --dataset MNIST --config mnist.yaml --doc mnistUncondBaseline --unconditionalBaseline 1`
 
 then run semi-supervised/transfer learning
-`python3 main.py --dataset MNIST --run_semisupervised 1 `
-
-or 
-`python3 main.py --dataset MNIST --run_transfer 1 `
+ - `python3 main.py --dataset MNIST --run_semisupervised 1 ` or 
+ - `python3 main.py --dataset MNIST --run_transfer 1 `
