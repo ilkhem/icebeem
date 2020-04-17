@@ -27,12 +27,12 @@ def runTCLexp(args, config):
 
     for l in n_layers:
         for n in n_obs_per_seg:
-            print('Running exp with L={} and n={}'.format(l, n))
-            # generate some TCL data
             for seed in range(nSims):
+                print('Running exp with L={} and n={}; seed={}'.format(l, n, seed))
+                # generate data
                 x, y, s = generate_synthetic_data(data_dim, n_segments, n, l, seed=seed,
                                                   simulationMethod=simulationMethod, one_hot_labels=False)
-                # run iVAE
+                # run TCL
                 res_TCL = TCL_wrapper(sensor=x.T, label=y,
                                       list_hidden_nodes=[num_comp * 2] * (l - 1) + [num_comp],
                                       max_steps=stepDict[l][0] * 2, max_steps_init=stepDict[l][1])

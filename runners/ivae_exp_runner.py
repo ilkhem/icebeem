@@ -28,12 +28,11 @@ def runiVAEexp(args, config):
     test = args.test
     for l in n_layers:
         for n in n_obs_per_seg:
-            print('Running exp with L={} and n={}'.format(l, n))
             for seed in range(nSims):
+                print('Running exp with L={} and n={}; seed={}'.format(l, n, seed))
                 # generate data
                 x, y, s = generate_synthetic_data(data_dim, n_segments, n, l, seed=seed,
                                                   simulationMethod=simulationMethod, one_hot_labels=True)
-
                 # run iVAE
                 ckpt_file = 'ivae_l{}_n{}_s{}.pt'.format(l, n, seed)
                 res_iVAE = IVAE_wrapper(X=x, U=y, n_layers=l + 1, hidden_dim=data_dim * 2,

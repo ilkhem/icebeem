@@ -35,8 +35,8 @@ def runICEBeeMexp(args, config):
 
     for l in n_layers:
         for n in n_obs_per_seg:
-            print('Running exp with L={} and n={}'.format(l, n))
             for seed in range(nSims):
+                print('Running exp with L={} and n={}; seed={}'.format(l, n, seed))
                 # generate data
                 x, y, s = generate_synthetic_data(data_dim, n_segments, n, l, seed=seed,
                                                   simulationMethod=simulationMethod, one_hot_labels=True)
