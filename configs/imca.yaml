@@ -1,0 +1,4 @@
+data_dim: 5
+n_segments: 8
+n_layers: [2, 4]
+n_obs_per_seg: [100, 200, 500, 1000, 2000]
