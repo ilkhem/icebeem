@@ -33,6 +33,12 @@ TODO (ilyes):
 - [ ] add weight checkpoints for easy plotting of Figures without training
 
 
+to run simulations:
+- `python3 main.py --dataset TCL --method ivae --config imca.yaml`
+- `python3 main.py --dataset TCL --method tcl --config imca.yaml`
+- `python3 main.py --dataset TCL --method icebeem --config imca.yaml`
+
+
 to run MNIST experiments:
 
  - `python3 main.py --dataset MNIST --config mnist.yaml --doc mnistPreTrain`
