@@ -397,7 +397,7 @@ def generate_synthetic_data(data_dim, data_segments, n_obs_seg, n_layer, simulat
                                      source='Gaussian', NonLin='leaky', negSlope=.2, seed=seed)
     elif simulationMethod.lower() == 'imca':
         baseEvals = np.random.rand(data_dim)
-        baseEvals /= (.5 * baseEvals.sum())
+        baseEvals /= ( (1./data_dim) * baseEvals.sum())
         baseCov = random_correlation.rvs(baseEvals)
 
         dat_all = gen_IMCA_data(Ncomp=data_dim, Nsegment=data_segments, Nlayer=n_layer, NsegmentObs=n_obs_seg,
