@@ -214,18 +214,13 @@ class mnist_runner():
                                 pickle.dump( loss_vals, open('transfer_exp/transferRes_cifar/cifar_Baseline_Size' + str(self.subsetSize) + "_Seed" + str(self.seed) + '.p', 'wb'))
                         else:
                             pass
-                        if True:
-                            # save this one time for transfer learning!
-                            states = [
-                                enet.state_dict(),
-                                optimizer.state_dict(),
-                            ]
-                            torch.save(states, os.path.join(self.args.log, 'checkpoint_{}.pth'.format(step)))
-                            torch.save(states, os.path.join(self.args.log, 'checkpoint.pth'))
-                            # and the final layer weights !
-                            #import pickle
-                            #torch.save( [energy_net_finalLayer], 'finalLayerweights_.pth')
-                            #pickle.dump( energy_net_finalLayer, open('finalLayerweights.p', 'wb') )
+                        # save checkpoint for transfer learning!
+                        states = [
+                            enet.state_dict(),
+                            optimizer.state_dict(),
+                        ]
+                        torch.save(states, os.path.join(self.args.log, 'checkpoint_{}.pth'.format(step)))
+                        torch.save(states, os.path.join(self.args.log, 'checkpoint.pth'))
                     else:
                         states = [
                             enet.state_dict(),
