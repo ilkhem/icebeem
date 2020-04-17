@@ -20,7 +20,7 @@ from models.refinenet_dilated_baseline import RefineNetDilated
 from torch.utils.data.dataloader import default_collate
 import pickle 
 
-__all__ = ['mnist_runner']
+__all__ = ['mnist_runner'] 
 
 def my_collate(batch, nSeg=7):
     modified_batch = []
