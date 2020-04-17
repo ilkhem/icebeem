@@ -10,6 +10,8 @@ import yaml
 import torch 
 import shutil
 
+from transfer_exp.semisupervised import  semisupervised
+
 parser = argparse.ArgumentParser(description='')
 parser.add_argument('--dataset', type=str, help='dataset - should MNIST, CIFAR10 or FashionMNIST')
 parser.add_argument('--run_semisupervised', type=int, default=0, help='run semi-supervised learning on unseen classes')
@@ -24,10 +26,11 @@ if __name__=='__main__':
     if args.dataset=='MNIST':
         if args.run_semisupervised==1:
             print('\n\nrunning semi-supervised learning\n\n')
-            os.system( 'python3 transfer_exp/semisupervised.py' )
+            semisupervised()
+            # os.system( 'python3 transfer_exp/semisupervised.py' )
         if args.run_transfer==1:
             print('\n\nrunning transfer learning\n\n')
-            os.system('sh transfer_exp/run_DSMtransfer.sh'
+            os.system('sh transfer_exp/run_DSMtransfer.sh')
             os.system('sh transfer_exp/run_DSMtransfer_baseline.sh')
 
 
