@@ -10,8 +10,14 @@ from data.imca import generate_synthetic_data
 from metrics.mcc import mean_corr_coef
 from models.ivae.ivae_wrapper import IVAE_wrapper
 
+from warnings import filterwarnings
+filterwarnings('ignore')
+
 torch.set_default_tensor_type('torch.cuda.FloatTensor')
 os.environ["CUDA_VISIBLE_DEVICES"] = '0'
+
+<<<<<<< HEAD
+=======
 
 
 def runiVAEexp(args, config):

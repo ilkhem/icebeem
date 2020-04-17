@@ -12,7 +12,10 @@ from models.icebeem_wrapper import ICEBEEM_wrapper
 torch.set_default_tensor_type('torch.cuda.FloatTensor')
 
 
+<<<<<<< HEAD
 # os.environ["CUDA_VISIBLE_DEVICES"] = '0'
+=======
+
 
 
 def runICEBeeMexp(args, config):
@@ -42,10 +45,12 @@ def runICEBeeMexp(args, config):
                 print('Running exp with L={} and n={}; seed={}'.format(l, n, seed))
                 # generate data
 
+<<<<<<< HEAD
                 n_layers_ebm = l + 1
                 recov_sources = ICEBEEM_wrapper(X=x, Y=y, ebm_hidden_size=ebm_hidden_size,
                                                 n_layers_ebm=n_layers_ebm, n_layers_flow=n_layers_flow,
                                                 lr_flow=lr_flow, lr_ebm=lr_ebm, seed=seed)
+=======
 
                 # store results
                 results[l][n].append(np.max([mean_corr_coef(z, s) for z in recov_sources]))
