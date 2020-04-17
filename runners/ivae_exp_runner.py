@@ -16,8 +16,6 @@ filterwarnings('ignore')
 torch.set_default_tensor_type('torch.cuda.FloatTensor')
 os.environ["CUDA_VISIBLE_DEVICES"] = '0'
 
-<<<<<<< HEAD
-=======
 
 
 def runiVAEexp(args, config):
