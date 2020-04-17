@@ -142,7 +142,7 @@ if __name__ == '__main__':
                 new_args.seed = seed
                 new_args.config = args.dataset.lower() + '_baseline.yaml'
                 new_args.doc = args.dataset.lower() + 'Baseline' + str(n)
-
+                new_args.baseline = True
                 transfer(new_args)
                 train(new_args)
 
