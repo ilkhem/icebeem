@@ -16,9 +16,12 @@ from .tcl_preprocessing import pca
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
+CKPT_FOLDER = 'run/checkpoints/tcl/'
+os.makedirs(CKPT_FOLDER, exist_ok=True)
+
 
 def TCL_wrapper(sensor, label, list_hidden_nodes, random_seed=0, max_steps=int(7e4), max_steps_init=int(7e4),
-                computeApproxJacobian=False, apply_fastICA=True):
+                computeApproxJacobian=False, apply_fastICA=True, ckpt_dir=CKPT_FOLDER):
     ## define some variables:
     # random_seed = 0 # random seed
     # num_comp = 2 # number of components (dimension)
@@ -48,7 +51,7 @@ def TCL_wrapper(sensor, label, list_hidden_nodes, random_seed=0, max_steps=int(7
 
     # Other -------------------------------------------------------
     # # Note: save folder must be under ./storage
-    train_dir = '../storage/temp5'  # save directory
+    train_dir = ckpt_dir  # save directory
     saveparmpath = os.path.join(train_dir, 'parm.pkl')  # file name to save parameters
 
     num_segment = len(np.unique(label))
@@ -98,7 +101,7 @@ def TCL_wrapper(sensor, label, list_hidden_nodes, random_seed=0, max_steps=int(7
 
     # now that we have trained everything, we can evaluate results:
     apply_fast_ica = True
-    eval_dir = '../storage/temp5'
+    eval_dir = ckpt_dir
     ckpt = tf.train.get_checkpoint_state(eval_dir)
 
     with tf.Graph().as_default():
