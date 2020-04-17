@@ -27,3 +27,7 @@ if __name__=='__main__':
     if args.dataset=='CIFAR10':
         if args.run_semisupervised==1:
             os.system( 'python3 transfer_exp/semisupervised_cifar.py' )
+
+    if args.dataset=='FashionMNIST':
+        if args.run_semisupervised==1:
+            os.system( 'python3 transfer_exp/semisupervised_fashionmnist.py' )
