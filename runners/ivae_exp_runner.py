@@ -23,8 +23,8 @@ def runiVAEexp(args, config):
     data_seed = config.data_seed
 
 
-    max_iter = int(config.ivae.max_iter)
-    lr = float(config.ivae.lr)
+    max_iter = config.ivae.max_iter
+    lr = config.ivae.lr
     cuda = config.ivae.cuda
 
     results = {l: {n: [] for n in n_obs_per_seg} for l in n_layers}
