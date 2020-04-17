@@ -206,7 +206,6 @@ class mnist_runner():
                                     self.subsetSize) + "_Seed" + str(self.seed) + '.p', 'wb'))
                         else:
                             pass
-<<<<<<< HEAD
                         # save checkpoint for transfer learning! !
                         states = [
                             enet.state_dict(),
@@ -214,20 +213,6 @@ class mnist_runner():
                         ]
                         torch.save(states, os.path.join(self.args.log, 'checkpoint_{}.pth'.format(step)))
                         torch.save(states, os.path.join(self.args.log, 'checkpoint.pth'))
-=======
-                        if True:
-                            # save this one time for transfer learning!
-                            states = [
-                                enet.state_dict(),
-                                optimizer.state_dict(),
-                            ]
-                            torch.save(states, os.path.join(self.args.log, 'checkpoint_{}.pth'.format(step)))
-                            torch.save(states, os.path.join(self.args.log, 'checkpoint.pth'))
-                            # and the final layer weights !
-                            # import pickle
-                            # torch.save( [energy_net_finalLayer], 'finalLayerweights_.pth')
-                            # pickle.dump( energy_net_finalLayer, open('finalLayerweights.p', 'wb') )
->>>>>>> d3a3e2084b0306dc450ad54795e3be28bfe77d22
                     else:
                         states = [
                             enet.state_dict(),
