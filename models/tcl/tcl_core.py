@@ -8,10 +8,7 @@ import numpy as np
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
-FLAGS = tf.app.flags.FLAGS
-tf.app.flags.DEFINE_string('FILTER_COLLECTION', 'filter',
-                           """filter collection.""")
-
+FILTER_COLLECTION = 'filter'
 
 # =============================================================
 # =============================================================
@@ -95,9 +92,9 @@ def inference(x, list_hidden_nodes, num_class, wd=1e-4, maxout_k=2, MLP_trainabl
 
             # Inner product
             W = _variable_init('W', [in_dim, out_dim], wd, trainable=MLP_trainable,
-                               collections=[FLAGS.FILTER_COLLECTION])
+                               collections=[FILTER_COLLECTION])
             b = _variable_init('b', [out_dim], 0, tf.constant_initializer(0.0), trainable=MLP_trainable,
-                               collections=[FLAGS.FILTER_COLLECTION])
+                               collections=[FILTER_COLLECTION])
             x = tf.nn.xw_plus_b(x, W, b)
 
             # Nonlinearity
@@ -120,8 +117,8 @@ def inference(x, list_hidden_nodes, num_class, wd=1e-4, maxout_k=2, MLP_trainabl
         out_dim = num_class
 
         # Inner product
-        W = _variable_init('W', [in_dim, out_dim], wd, collections=[FLAGS.FILTER_COLLECTION])
-        b = _variable_init('b', [out_dim], 0, tf.constant_initializer(0.0), collections=[FLAGS.FILTER_COLLECTION])
+        W = _variable_init('W', [in_dim, out_dim], wd, collections=[FILTER_COLLECTION])
+        b = _variable_init('b', [out_dim], 0, tf.constant_initializer(0.0), collections=[FILTER_COLLECTION])
         logits = tf.nn.xw_plus_b(x, W, b)
 
     return logits, feats
@@ -359,7 +356,7 @@ def train_cpu(data,
             reader = tf.train.NewCheckpointReader(load_file)
             reader_var_to_shape_map = reader.get_variable_to_shape_map()
             #
-            load_vars = tf.get_collection(FLAGS.FILTER_COLLECTION)
+            load_vars = tf.get_collection(FILTER_COLLECTION)
             # list up vars contained in the file
             initialized_vars = []
             for lv in load_vars:
@@ -516,7 +513,7 @@ def train_gpu(data,
             reader = tf.train.NewCheckpointReader(load_file)
             reader_var_to_shape_map = reader.get_variable_to_shape_map()
             #
-            load_vars = tf.get_collection(FLAGS.FILTER_COLLECTION)
+            load_vars = tf.get_collection(FILTER_COLLECTION)
             # list up vars contained in the file
             initialized_vars = []
             for lv in load_vars:
