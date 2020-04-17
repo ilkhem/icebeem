@@ -390,7 +390,8 @@ def gen_TCL_data_ortho(Ncomp, Nlayer, Nsegment, NsegmentObs, source='Laplace', N
     return {'source': dat, 'obs': mixedDat, 'labels': labels, 'mixing': mixingList, 'var': modMat}
 
 
-def generate_synthetic_data(data_dim, data_segments, n_layer, n_obs_seg, simulationMethod='TCL', seed=1, one_hot_labels=False):
+def generate_synthetic_data(data_dim, data_segments, n_layer, n_obs_seg, n, l, simulationMethod='TCL', seed=1,
+                            one_hot_labels=False):
     np.random.seed(seed)
     if simulationMethod == 'TCL':
         dat_all = gen_TCL_data_ortho(Ncomp=data_dim, Nsegment=data_segments, Nlayer=l, source='Gaussian', NsegmentObs=n,
