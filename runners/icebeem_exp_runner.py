@@ -17,28 +17,36 @@ from models.nflib.flows import NormalizingFlowModel, Invertible1x1Conv, ActNorm
 from models.nflib.spline_flows import NSF_AR
 
 torch.set_default_tensor_type('torch.cuda.FloatTensor')
+
+
 # os.environ["CUDA_VISIBLE_DEVICES"] = '0'
 
-# message for me to check everything is ok !
 
-data_dim = 5
-data_segments = 40
-n_layer = [4]
-n_obs_seg = [500]
-
-results = {l: {n: [] for n in n_obs_seg} for l in n_layer}
-
-
-def runICEBeeMexp(nSims=10, simulationMethod='TCL', lr_flow=1e-5, lr_ebm=1e-4, n_layers_flow=10, ebm_hidden_size=32):
+def runICEBeeMexp(args, config):
     """run ICE-BeeM simulations"""
+    data_dim = config.data_dim
+    n_segments = config.n_segments
+    n_layers = config.n_layers
+    n_obs_per_seg = config.n_obs_per_seg
 
-    for l in n_layer:
+    lr_flow = config.icebeem.lr_flow
+    lr_ebm = config.icebeem.lr_ebm
+    n_layers_flow = config.icebeem.n_layers_flow
+    ebm_hidden_size = config.icebeem.ebm_hidden_size
+
+    results = {l: {n: [] for n in n_obs_per_seg} for l in n_layers}
+
+    nSims = args.nSims
+    simulationMethod = args.method
+    test = args.test
+
+    for l in n_layers:
         n_layers_ebm = l + 1
-        for n in n_obs_seg:
+        for n in n_obs_per_seg:
             print('Running exp with L={} and n={}'.format(l, n))
             for seed in range(nSims):
                 # generate data
-                data, ut, st = generate_synthetic_data(data_dim, data_segments, n, l, seed=seed,
+                data, ut, st = generate_synthetic_data(data_dim, n_segments, n, l, seed=seed,
                                                        simulationMethod=simulationMethod, one_hot_labels=True)
 
                 # define and run ICEBEEM
@@ -101,7 +109,7 @@ def runICEBeeMexp(nSims=10, simulationMethod='TCL', lr_flow=1e-5, lr_ebm=1e-4, n
     # prepare output
     Results = {
         'data_dim': data_dim,
-        'data_segments': data_segments,
+        'data_segments': n_segments,
         'CorrelationCoef': results
     }
 

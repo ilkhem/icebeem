@@ -63,7 +63,7 @@ if __name__ == '__main__':
         if args.method.lower() == 'ivae':
             r = ivae_exp_runner.runiVAEexp(args, new_config)
         if args.method.lower() in ['ice-beem', 'icebeem']:
-            r = icebeem_exp_runner.runICEBeeMexp( nSims=args.nSims , simulationMethod=args.method, lr_flow=args.lr_flow, lr_ebm=args.lr_ebm, n_layers_flow=args.n_layer_flow ) 
+            r = icebeem_exp_runner.runICEBeeMexp(args, new_config)
 
         # save results
         fname = 'results/' + args.method + 'res_' + args.dataset + 'exp_' + str(args.nSims) + '.p'

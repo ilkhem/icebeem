@@ -2,3 +2,9 @@ data_dim: 5
 n_segments: 8
 n_layers: [2, 4]
 n_obs_per_seg: [100, 200, 500, 1000, 2000]
+
+icebeem:
+  lr_flow: 1e-5
+  lr_ebm: 0.0003
+  n_layers_flow: 10
+  ebm_hidden_size: 32
