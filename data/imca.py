@@ -1,8 +1,11 @@
 import numpy as np
 import torch
 from scipy.stats import ortho_group
+from scipy.stats import random_correlation
 from sklearn.preprocessing import scale
 from torch.utils.data import Dataset
+
+from .utils import to_one_hot
 
 
 class ConditionalDataset(Dataset):
@@ -385,6 +388,30 @@ def gen_TCL_data_ortho(Ncomp, Nlayer, Nsegment, NsegmentObs, source='Laplace', N
         mixedDat = np.dot(mixedDat, A)
 
     return {'source': dat, 'obs': mixedDat, 'labels': labels, 'mixing': mixingList, 'var': modMat}
+
+
+def generate_synthetic_data(data_dim, data_segments, n_layer, n_obs_seg, simulationMethod='TCL', seed=1, one_hot_labels=False):
+    np.random.seed(seed)
+    if simulationMethod == 'TCL':
+        dat_all = gen_TCL_data_ortho(Ncomp=data_dim, Nsegment=data_segments, Nlayer=l, source='Gaussian', NsegmentObs=n,
+                                     NonLin='leaky', negSlope=.2, Niter4condThresh=1e4)
+    else:
+        baseEvals = np.random.rand(data_dim)
+        baseEvals /= (.5 * baseEvals.sum())
+        baseCov = random_correlation.rvs(baseEvals)
+
+        dat_all = gen_IMCA_data(Ncomp=data_dim, Nsegment=data_segments, Nlayer=n_layer,
+                                NsegmentObs=n_obs_seg, NonLin='leaky',
+                                negSlope=.2, Niter4condThresh=1e4,
+                                BaseCovariance=baseCov)
+    x = dat_all['obs']
+    if one_hot_labels:
+        y = to_one_hot(dat_all['labels'])[0]
+    else:
+        y = dat_all['labels']
+    s = dat_all['source']
+
+    return x, y, s
 
 
 if __name__ == '__main__':
