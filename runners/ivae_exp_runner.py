@@ -30,7 +30,7 @@ def runiVAEexp(args, config):
     results = {l: {n: [] for n in n_obs_per_seg} for l in n_layers}
 
     nSims = args.nSims
-    simulationMethod = args.method
+    simulationMethod = args.dataset
     test = args.test
     for l in n_layers:
         for n in n_obs_per_seg:

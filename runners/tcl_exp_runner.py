@@ -24,7 +24,7 @@ def runTCLexp(args, config):
     num_comp = data_dim
 
     nSims = args.nSims
-    simulationMethod = args.method
+    simulationMethod = args.dataset
     test = args.test
 
     for l in n_layers:
