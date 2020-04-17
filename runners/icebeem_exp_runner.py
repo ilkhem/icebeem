@@ -23,8 +23,10 @@ from sklearn.decomposition import PCA, FastICA
 torch.set_default_tensor_type('torch.cuda.FloatTensor')
 os.environ["CUDA_VISIBLE_DEVICES"] = '0'
 
+# message for me to check everything is ok !
+
 data_dim = 3
-data_segments = 10
+data_segments = 10 
 n_layer = [4]
 n_obs_seg = [2000]
 
