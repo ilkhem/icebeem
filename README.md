@@ -23,7 +23,7 @@ Tests:
 - [ ] ICE-BeeM simulations (in progress)
 - [x] MNIST experiments 
 - [x] add CIFAR10
-- [ ] add fashionMNIST
+- [x] add fashionMNIST
 
 TODO (ilyes):
 - [x] move all Datase objects to `data/`
