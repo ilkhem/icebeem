@@ -20,7 +20,6 @@ os.makedirs(CKPT_FOLDER, exist_ok=True)
 
 def ICEBEEM_wrapper(X, Y, ebm_hidden_size, n_layers_ebm, n_layers_flow, lr_flow, lr_ebm, seed,
                     ckpt_file='icebeem.pt', test=False):
-
     np.random.seed(seed)
     torch.manual_seed(seed)
     data_dim = X.shape[1]
@@ -60,7 +59,6 @@ def ICEBEEM_wrapper(X, Y, ebm_hidden_size, n_layers_ebm, n_layers_flow, lr_flow,
         # then train full EBM via NCE with flow contrastive noise:
         fce_.train_ebm_fce(epochs=50, augment=augment_ebm, cutoff=.5, useVAT=False)
 
-
         torch.save({'ebm_mlp': fce_.energy_MLP.state_dict(),
                     'ebm_finalLayer': fce_.ebm_finalLayer,
                     'flow': fce_.flow_model.state_dict()}, init_ckpt_path)
@@ -70,7 +68,6 @@ def ICEBEEM_wrapper(X, Y, ebm_hidden_size, n_layers_ebm, n_layers_flow, lr_flow,
         fce_.ebm_finalLayer = state['ebm_finalLayer']
         fce_.flow_model.load_stat_dict(state['flow'])
 
-
     # evaluate recovery of latents
     recov = fce_.unmixSamples(X, modelChoice='ebm')
     source_est_ica = FastICA().fit_transform((recov))
@@ -79,7 +76,7 @@ def ICEBEEM_wrapper(X, Y, ebm_hidden_size, n_layers_ebm, n_layers_flow, lr_flow,
     # iterate between updating noise and tuning the EBM
     eps = .025
     for iter_ in range(3):
-        mid_ckpt_file = str(iter_) + '_' + ckpt_file
+        mid_ckpt_file = str(iter_ + 1) + '_' + ckpt_file
         mid_ckpt_path = os.path.join(CKPT_FOLDER, mid_ckpt_file)
         if not test:
             # update flow model:
@@ -95,7 +92,6 @@ def ICEBEEM_wrapper(X, Y, ebm_hidden_size, n_layers_ebm, n_layers_flow, lr_flow,
             fce_.energy_MLP.load_state_dict(state['ebm_mlp'])
             fce_.ebm_finalLayer = state['ebm_finalLayer']
             fce_.flow_model.load_stat_dict(state['flow'])
-
 
         # evaluate recovery of latents
         recov = fce_.unmixSamples(X, modelChoice='ebm')
