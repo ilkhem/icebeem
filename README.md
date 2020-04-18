@@ -54,3 +54,21 @@ python run_transfer.py --dataset MNIST --semisupervised
 
 The same can be done on CIFAR-10 by changing the value of the flag `--dataset` to `CIFAR10` and of the flag 
 `--config` to `cifar.yaml`.
+
+
+
+# FINAL TESTS
+
+### transfer learning:
+```
+python run_transfer.py --dataset MNIST --config mnist.yaml --doc mnistPreTrain
+python run_transfer.py --dataset MNIST --config mnist.yaml --doc mnistPreTrain --transfer --all
+python run_transfer.py --dataset MNIST --config mnist_baseline.yaml --all
+```
+
+### semi-supervised:
+```
+python run_transfer.py --dataset MNIST --config mnist.yaml --doc mnist --baseline
+python run_transfer.py --dataset MNIST --config mnist.yaml --doc mnist --semisupervised
+python run_transfer.py --dataset MNIST --config mnist.yaml --doc mnist --semisupervised --baseline
+```
