@@ -2,6 +2,8 @@
 #
 #
 
+import os
+
 import numpy as np
 import torch
 
@@ -10,10 +12,7 @@ from metrics.mcc import mean_corr_coef
 from models.icebeem_wrapper import ICEBEEM_wrapper
 
 torch.set_default_tensor_type('torch.cuda.FloatTensor')
-
-
-# os.environ["CUDA_VISIBLE_DEVICES"] = '0'
-
+os.environ["CUDA_VISIBLE_DEVICES"] = '0'
 
 
 def runICEBeeMexp(args, config):
@@ -44,7 +43,7 @@ def runICEBeeMexp(args, config):
                 # generate data
 
                 n_layers_ebm = l + 1
-                ckpt_file = 'icebeem_l{}_n{}_s{}.pt'.format(l, n, seed)
+                ckpt_file = 'icebeem_{}_l{}_n{}_s{}.pt'.format(simulationMethod, l, n, seed)
                 recov_sources = ICEBEEM_wrapper(X=x, Y=y, ebm_hidden_size=ebm_hidden_size,
                                                 n_layers_ebm=n_layers_ebm, n_layers_flow=n_layers_flow,
                                                 lr_flow=lr_flow, lr_ebm=lr_ebm, seed=seed, ckpt_file=ckpt_file)

@@ -44,7 +44,7 @@ def runiVAEexp(args, config):
                 print('Running exp with L={} and n={}; seed={}'.format(l, n, seed))
                 # generate data
                 # run iVAE
-                ckpt_file = 'ivae_l{}_n{}_s{}.pt'.format(l, n, seed)
+                ckpt_file = 'ivae_{}_l{}_n{}_s{}.pt'.format(simulationMethod, l, n, seed)
                 res_iVAE = IVAE_wrapper(X=x, U=y, n_layers=l + 1, hidden_dim=data_dim * 2,
                                         cuda=cuda, max_iter=max_iter, lr=lr,
                                         ckpt_file=ckpt_file, seed=seed)

@@ -14,13 +14,12 @@ from models.nflib.spline_flows import NSF_AR
 
 torch.set_default_tensor_type('torch.cuda.FloatTensor')
 
-CKPT_FOLDER = 'run/checkpoints/ivae/'
+CKPT_FOLDER = 'run/checkpoints/icebeem/'
 os.makedirs(CKPT_FOLDER, exist_ok=True)
 
 
 def ICEBEEM_wrapper(X, Y, ebm_hidden_size, n_layers_ebm, n_layers_flow, lr_flow, lr_ebm, seed,
                     ckpt_file='icebeem.pt', test=False):
-    ckpt_path = os.path.join(CKPT_FOLDER, ckpt_file)
 
     np.random.seed(seed)
     torch.manual_seed(seed)
@@ -47,16 +46,30 @@ def ICEBEEM_wrapper(X, Y, ebm_hidden_size, n_layers_ebm, n_layers_flow, lr_flow,
     fce_ = ebmFCEsegments(data=X.astype(np.float32), segments=Y.astype(np.float32),
                           energy_MLP=model_ebm, flow_model=model_flow, verbose=False)
 
-    if pretrain_flow:
-        # print('pretraining flow model..')
-        fce_.pretrain_flow_model(epochs=1, lr=1e-4)
-        # print('pretraining done.')
+    init_ckpt_file = '0_' + ckpt_file
+    init_ckpt_path = os.path.join(CKPT_FOLDER, init_ckpt_file)
+    if not test:
+        if pretrain_flow:
+            # print('pretraining flow model..')
+            fce_.pretrain_flow_model(epochs=1, lr=1e-4)
+            # print('pretraining done.')
 
-    # first we pretrain the final layer of EBM model (this is g(y) as it depends on segments)
-    fce_.train_ebm_fce(epochs=15, augment=augment_ebm, finalLayerOnly=True, cutoff=.5)
+        # first we pretrain the final layer of EBM model (this is g(y) as it depends on segments)
+        fce_.train_ebm_fce(epochs=15, augment=augment_ebm, finalLayerOnly=True, cutoff=.5)
 
-    # then train full EBM via NCE with flow contrastive noise:
-    fce_.train_ebm_fce(epochs=50, augment=augment_ebm, cutoff=.5, useVAT=False)
+        # then train full EBM via NCE with flow contrastive noise:
+        fce_.train_ebm_fce(epochs=50, augment=augment_ebm, cutoff=.5, useVAT=False)
+
+
+        torch.save({'ebm_mlp': fce_.energy_MLP.state_dict(),
+                    'ebm_finalLayer': fce_.ebm_finalLayer,
+                    'flow': fce_.flow_model.state_dict()}, init_ckpt_path)
+    else:
+        state = torch.load(init_ckpt_path, map_location=fce_.device)
+        fce_.energy_MLP.load_state_dict(state['ebm_mlp'])
+        fce_.ebm_finalLayer = state['ebm_finalLayer']
+        fce_.flow_model.load_stat_dict(state['flow'])
+
 
     # evaluate recovery of latents
     recov = fce_.unmixSamples(X, modelChoice='ebm')
@@ -66,18 +79,27 @@ def ICEBEEM_wrapper(X, Y, ebm_hidden_size, n_layers_ebm, n_layers_flow, lr_flow,
     # iterate between updating noise and tuning the EBM
     eps = .025
     for iter_ in range(3):
-        # update flow model:
-        fce_.train_flow_fce(epochs=5, objConstant=-1., cutoff=.5 - eps, lr=lr_flow)
-        # update energy based model:
-        fce_.train_ebm_fce(epochs=50, augment=augment_ebm, cutoff=.5 + eps, lr=lr_ebm, useVAT=False)
+        mid_ckpt_file = str(iter_) + '_' + ckpt_file
+        mid_ckpt_path = os.path.join(CKPT_FOLDER, mid_ckpt_file)
+        if not test:
+            # update flow model:
+            fce_.train_flow_fce(epochs=5, objConstant=-1., cutoff=.5 - eps, lr=lr_flow)
+            # update energy based model:
+            fce_.train_ebm_fce(epochs=50, augment=augment_ebm, cutoff=.5 + eps, lr=lr_ebm, useVAT=False)
+
+            torch.save({'ebm_mlp': fce_.energy_MLP.state_dict(),
+                        'ebm_finalLayer': fce_.ebm_finalLayer,
+                        'flow': fce_.flow_model.state_dict()}, mid_ckpt_path)
+        else:
+            state = torch.load(mid_ckpt_path, map_location=fce_.device)
+            fce_.energy_MLP.load_state_dict(state['ebm_mlp'])
+            fce_.ebm_finalLayer = state['ebm_finalLayer']
+            fce_.flow_model.load_stat_dict(state['flow'])
+
 
         # evaluate recovery of latents
         recov = fce_.unmixSamples(X, modelChoice='ebm')
         source_est_ica = FastICA().fit_transform((recov))
         recov_sources.append(source_est_ica)
-
-    torch.save({'ebm_mlp': fce_.energy_MLP.state_dict(),
-                'ebm_finalLayer': fce_.ebm_finalLayer,
-                'flow': fce_.flow_model.state_dict()}, ckpt_path)
 
     return recov_sources
