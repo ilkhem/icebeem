@@ -1,24 +1,12 @@
-"""
-main file: chose a runner and a config file and run
-
-usage:
-    python3 main.py --dataset TCL --method iVAE --nSims 10
-
-"""
-
 import argparse
 import os
-import pickle
-import shutil
+import sys
 
+import numpy as np
 import torch
 import yaml
 
-from transfer_exp.semisupervised import semisupervised
-from transfer_exp.semisupervised_cifar import semisupervised_cifar
-from transfer_exp.semisupervised_fashionmnist import semisupervised_fmnist
-from transfer_exp.transfer_nets import transfer
-from runners.mnist_exp_runner import mnist_runner
+from runners.real_data_runner import PreTrainer, semisupervised, transfer
 
 
 def parse():
@@ -26,16 +14,15 @@ def parse():
 
     parser.add_argument('--dataset', type=str, help='dataset to run experiments. Should be MNIST or CIFAR10')
     parser.add_argument('--config', type=str, default='mnist.yaml', help='Path to the config file')
+    parser.add_argument('--run', type=str, default='run', help='Path for saving running related data.')
+    parser.add_argument('--doc', type=str, default='', help='A string for documentation purpose')
 
     parser.add_argument('--nSims', type=int, default=5, help='number of simulations to run')
     parser.add_argument('--SubsetSize', type=int, default=6000,
                         help='only relevant for transfer learning baseline, otherwise ignored')
     parser.add_argument('--seed', type=int, default=0, help='Random seed')
 
-    parser.add_argument('--run', type=str, default='run', help='Path for saving running related data.')
-    parser.add_argument('--doc', type=str, default='', help='A string for documentation purpose')
-
-    parser.add_argument('--test', action='store_true', help='Whether to test the model')
+    parser.add_argument('--all', action='store_true', help='')
     parser.add_argument('--baseline', action='store_true', help='run an unconditional baseline for EBMs')
     parser.add_argument('--semisupervised', action='store_true', help='run semi-supervised experiments')
     parser.add_argument('--transfer', action='store_true',
@@ -55,25 +42,17 @@ def dict2namespace(config):
     return namespace
 
 
-def train(args):
-    """
-    this function trains an icebeem (or just an EBM) on MNIST, CIFAR10, FMNIST
-    also works on subsets of these datasets where we omit some classes for a transfer learning experiments
-    """
-
+def make_dirs(args):
+    os.makedirs(args.run, exist_ok=True)
     args.log = os.path.join(args.run, 'logs', args.doc)
+    os.makedirs(args.log, exist_ok=True)
     args.checkpoints = os.path.join(args.run, 'checkpoints', args.doc)
+    os.makedirs(args.checkpoints, exist_ok=True)
 
-    # prepare directory to save results
-    if os.path.exists(args.log):
-        shutil.rmtree(args.log)
-    print('saving in: ' + args.log)
-    os.makedirs(args.log)
 
-    if os.path.exists(args.checkpoints):
-        shutil.rmtree(args.checkpoints)
-    print('saving final checkpoints in: ' + args.checkpoints)
-    os.makedirs(args.checkpoints)
+def main():
+    args = parse()
+    make_dirs(args)
 
     with open(os.path.join('configs', args.config), 'r') as f:
         config = yaml.load(f)
@@ -81,86 +60,93 @@ def train(args):
     new_config.device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
     print(new_config)
 
-    if args.dataset == 'MNIST':
-        pickle.dump(new_config, open(os.path.join(args.run, 'config_file.p'), 'wb'))
-        if not args.baseline:
-            runner = mnist_runner(args, new_config)
-            if not args.test:
-                runner.train()
-            else:
-                runner.test()
-        else:
-            print('\nbaseline!!\n')
-            runner = mnist_runner(args, new_config)
-            if not args.test:
-                runner.train(conditional=False)
-            else:
-                runner.test()
+    np.random.seed(args.seed)
+    torch.manual_seed(args.seed)
 
-    elif args.dataset == 'CIFAR10':
-        pickle.dump(new_config, open(os.path.join(args.run, 'config_file_cifar.p'), 'wb'))
-        if not args.baseline:
-            runner = mnist_runner(args, new_config)
-            if not args.test:
-                runner.train()
-            else:
-                runner.test()
-        else:
-            print('\nbaseline!!\n')
-            runner = mnist_runner(args, new_config)
-            if not args.test:
-                runner.train(conditional=False)
-            else:
-                runner.test()
+    # These are the possible combinations of flags:
 
-    elif args.dataset == 'FashionMNIST':
-        pickle.dump(new_config, open(os.path.join(args.run, 'config_file_fashionMNIST.p'), 'wb'))
-        if not args.baseline:
-            runner = mnist_runner(args, new_config)
-            if not args.test:
-                runner.train()
-            else:
-                runner.test()
+    # TRANSFER LEARNING EXPERIMENTS
+    # 1- no special flag: pretrain icebeem on 0-7 // --doc should be different between datasets
+    # 2- --transfer: train only g on 8-9 // --doc should be the same as in step 1
+    # 3- no special flags but with baseline config: train icebeem on 8-9
+    # 4- --transfer --baseline: train icebeem on 8-9 (same as above)
+    # steps 2, 3 and 4 are for many seeds and many subset sizes: the user can do them manually, or add the flag --all
+    # and the script will perform the loop
+
+    if new_config.data.dataset not in ["MNIST_transferBaseline", "CIFAR10_transferBaseline"]:
+        runner = PreTrainer(args, new_config)
+        runner.train()
+
+    if args.transfer and not args.baseline:
+        if not args.all:
+            transfer(args, new_config)
         else:
-            print('\nbaseline!!\n')
-            runner = mnist_runner(args, new_config)
-            if not args.test:
-                runner.train(conditional=True)
-            else:
-                runner.test()
-    else:
-        raise ValueError('Unknown dataset {}'.format(args.dataset))
+            new_args = argparse.Namespace(**vars(args))
+            for n in [500, 1000, 2000, 3000, 4000, 5000, 6000]:
+                for seed in range(args.nSims):
+                    new_args.SubsetSize = n
+                    new_args.seed = seed
+                    # change random seed
+                    np.random.seed(args.seed)
+                    torch.manual_seed(args.seed)
+                    transfer(new_args, new_config)
+
+    if new_config.data.dataset in ["MNIST_transferBaseline", "CIFAR10_transferBaseline"]:
+        if not args.all:
+            runner = PreTrainer(args, new_config)
+            runner.train()
+        else:
+            new_args = argparse.Namespace(**vars(args))
+            for n in [500, 1000, 2000, 3000, 4000, 5000, 6000]:
+                for seed in range(args.nSims):
+                    new_args.SubsetSize = n
+                    new_args.seed = seed
+                    new_args.doc = args.dataset.lower() + 'Baseline' + str(n)
+                    make_dirs(args)
+                    # change random seed
+                    np.random.seed(args.seed)
+                    torch.manual_seed(args.seed)
+                    runner = PreTrainer(new_args, new_config)
+                    runner.train()
+
+    if args.transfer and args.baseline:
+        if not args.all:
+            runner = PreTrainer(args, new_config)
+            runner.train()
+        else:
+            new_args = argparse.Namespace(**vars(args))
+            for n in [500, 1000, 2000, 3000, 4000, 5000, 6000]:
+                for seed in range(args.nSims):
+                    new_args.SubsetSize = n
+                    new_args.seed = seed
+                    new_args.config = args.dataset.lower() + '_baseline.yaml'
+                    new_args.doc = args.dataset.lower() + 'Baseline' + str(n)
+                    make_dirs(args)
+                    # change random seed
+                    np.random.seed(args.seed)
+                    torch.manual_seed(args.seed)
+                    runner = PreTrainer(new_args, new_config)
+                    runner.train()
+
+    # SEMI-SUPERVISED EXPERIMENTS
+    # 1- no special flag: pretrain icebeem on 0-7 // same as 1- above
+    # 2- --semisupervised: classify 8-9 using pretrained icebeem // --doc should be the same as from step 1-
+    # 3- --baseline: pretrain unconditional ebm  on 0-7: IT IS VERY IMPORTANT HERE TO SPECIFY A --doc THAT IS
+    # DIFFERENT FROM WHEN RUN FOR ICEBEEM
+    # 4- --semisupervised --baseline: classify 8-9 using unconditional ebm // --doc should be the same as from step 3-
+
+    if args.baseline and not args.semisupervised and not args.transfer:
+        args.doc += 'Baseline'
+        runner = PreTrainer(args, new_config)
+        runner.train(conditional=False)
+
+    if args.semisupervised and not args.baseline:
+        semisupervised(args, new_config)
+
+    if args.semisupervised and args.baseline:
+        args.doc += 'Baseline'
+        semisupervised(args, new_config)
 
 
 if __name__ == '__main__':
-    os.environ["CUDA_VISIBLE_DEVICES"] = "0"
-    torch.backends.cudnn.benchmark = True
-
-    args = parse()
-    os.makedirs(args.run, exist_ok=True)
-
-    if not args.transfer and not args.semisupervised:
-        train(args)
-
-    elif args.transfer:
-        new_args = argparse.Namespace(**vars(args))
-        for n in [500, 1000, 2000, 3000, 4000, 5000, 6000]:
-            for seed in range(args.nSims):
-                new_args.SubsetSize = n
-                new_args.seed = seed
-                new_args.config = args.dataset.lower() + '_baseline.yaml'
-                new_args.doc = args.dataset.lower() + 'Baseline' + str(n)
-                transfer(new_args)
-                train(new_args)
-
-    elif args.semisupervised:
-        print('running semi-supervised learning')
-        if args.dataset == 'MNIST':
-            semisupervised()
-        elif args.dataset == 'CIFAR10':
-            semisupervised_cifar()
-        elif args.dataset == 'FashionMNIST':
-            semisupervised_fmnist()
-
-    else:
-        raise ValueError('invalid combination of flags')
+    sys.exit(main())
