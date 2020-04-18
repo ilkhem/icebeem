@@ -61,13 +61,14 @@ The same can be done on CIFAR-10 by changing the value of the flag `--dataset` t
 
 ### transfer learning:
 ```
-python run_transfer.py --dataset MNIST --config mnist.yaml --doc mnistPreTrain
-python run_transfer.py --dataset MNIST --config mnist.yaml --doc mnistPreTrain --transfer --all
-python run_transfer.py --dataset MNIST --config mnist_baseline.yaml --all
+python run_transfer.py --dataset MNIST --config mnist.yaml --doc mnist
+python run_transfer.py --dataset MNIST --config mnist.yaml --doc mnist --transfer --all
+python run_transfer.py --dataset MNIST --config mnist.yaml --doc mnist --transfer --baseline --all
 ```
 
 ### semi-supervised:
 ```
+python run_transfer.py --dataset MNIST --config mnist.yaml --doc mnist
 python run_transfer.py --dataset MNIST --config mnist.yaml --doc mnist --baseline
 python run_transfer.py --dataset MNIST --config mnist.yaml --doc mnist --semisupervised
 python run_transfer.py --dataset MNIST --config mnist.yaml --doc mnist --semisupervised --baseline

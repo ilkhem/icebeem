@@ -92,6 +92,7 @@ def main():
                     transfer(new_args, new_config)
 
     if new_config.data.dataset in ["MNIST_transferBaseline", "CIFAR10_transferBaseline"]:
+        # this is just here for debug, shouldn't be run, use --baseline --transfer instead
         if not args.all:
             runner = PreTrainer(args, new_config)
             runner.train()
@@ -102,7 +103,7 @@ def main():
                     new_args.SubsetSize = n
                     new_args.seed = seed
                     new_args.doc = args.dataset.lower() + 'Baseline' + str(n)
-                    make_dirs(args)
+                    make_dirs(new_args)
                     # change random seed
                     np.random.seed(args.seed)
                     torch.manual_seed(args.seed)
@@ -110,18 +111,25 @@ def main():
                     runner.train()
 
     if args.transfer and args.baseline:
+        # update args and config
+        new_args = argparse.Namespace(**vars(args))
+        new_args.config = os.path.splitext(args.config)[0] + '_baseline' + os.path.splitext(args.config)[1]
+        with open(os.path.join('configs', new_args.config), 'r') as f:
+            config = yaml.load(f)
+        new_config = dict2namespace(config)
+        new_config.device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
         if not args.all:
-            runner = PreTrainer(args, new_config)
+            new_args.doc = args.doc + 'Baseline' + str(new_args.SubsetSize)
+            make_dirs(new_args)
+            runner = PreTrainer(new_args, new_config)
             runner.train()
         else:
-            new_args = argparse.Namespace(**vars(args))
             for n in [500, 1000, 2000, 3000, 4000, 5000, 6000]:
                 for seed in range(args.nSims):
+                    new_args.doc = args.doc + 'Baseline' + str(n)
+                    make_dirs(new_args)
                     new_args.SubsetSize = n
                     new_args.seed = seed
-                    new_args.config = args.dataset.lower() + '_baseline.yaml'
-                    new_args.doc = args.dataset.lower() + 'Baseline' + str(n)
-                    make_dirs(args)
                     # change random seed
                     np.random.seed(args.seed)
                     torch.manual_seed(args.seed)
@@ -136,16 +144,20 @@ def main():
     # 4- --semisupervised --baseline: classify 8-9 using unconditional ebm // --doc should be the same as from step 3-
 
     if args.baseline and not args.semisupervised and not args.transfer:
-        args.doc += 'Baseline'
-        runner = PreTrainer(args, new_config)
+        new_args = argparse.Namespace(**vars(args))
+        new_args.doc = args.doc + 'Baseline'
+        make_dirs(new_args)
+        runner = PreTrainer(new_args, new_config)
         runner.train(conditional=False)
 
     if args.semisupervised and not args.baseline:
         semisupervised(args, new_config)
 
     if args.semisupervised and args.baseline:
-        args.doc += 'Baseline'
-        semisupervised(args, new_config)
+        new_args = argparse.Namespace(**vars(args))
+        new_args.doc = args.doc + 'Baseline'
+        make_dirs(new_args)
+        semisupervised(new_args, new_config)
 
 
 if __name__ == '__main__':
