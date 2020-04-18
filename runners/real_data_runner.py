@@ -157,6 +157,7 @@ class PreTrainer:
         # training
         optimizer = self.get_optimizer(list(enet.parameters()) + [energy_net_finalLayer])
         step = 0
+        loss_track_epochs = []
         for epoch in range(self.config.training.n_epochs):
             loss_vals = []
             for i, (X, y) in enumerate(dataloader):
@@ -180,22 +181,13 @@ class PreTrainer:
 
                 logging.info("step: {}, loss: {}, maxLabel: {}".format(step, loss.item(), y.max()))
                 loss_vals.append(loss.item())
+                loss_track_epochs.append(loss.item())
+
                 if step >= self.config.training.n_iters:
                     return 0
 
                 if step % self.config.training.snapshot_freq == 0:
                     print('checkpoint at step: {}'.format(step))
-                    if self.config.data.dataset in ['MNIST_transferBaseline', 'CIFAR10_transferBaseline']:
-                        if self.config.data.store_loss:
-                            # just save the losses, thats all we care about
-                            if self.config.data.dataset == 'MNIST_transferBaseline':
-                                pickle.dump(loss_vals, open(os.path.join(self.args.run, 'Baseline_Size' + str(
-                                    self.subsetSize) + "_Seed" + str(self.seed) + '.p'), 'wb'))
-
-                            else:
-                                pickle.dump(loss_vals, open(os.path.join(self.args.run, 'cifar_Baseline_Size' + str(
-                                    self.subsetSize) + "_Seed" + str(self.seed) + '.p'), 'wb'))
-
                     # save checkpoint for transfer learning! !
                     torch.save([energy_net_finalLayer], os.path.join(self.args.log, 'finalLayerweights_.pth'))
                     pickle.dump(energy_net_finalLayer,
@@ -206,6 +198,18 @@ class PreTrainer:
                     ]
                     torch.save(states, os.path.join(self.args.log, 'checkpoint_{}.pth'.format(step)))
                     torch.save(states, os.path.join(self.args.log, 'checkpoint.pth'))
+
+            if self.config.data.dataset in ['MNIST_transferBaseline', 'CIFAR10_transferBaseline']:
+                # save loss track during epoch for transfer baseline
+                pickle.dump(loss_vals,
+                            open(os.path.join(self.args.run, self.args.dataset + '_Baseline_Size' + str(
+                                self.subsetSize) + "_Seed" + str(self.seed) + '.p'), 'wb'))
+
+        if self.config.data.dataset in ['MNIST_transferBaseline', 'CIFAR10_transferBaseline']:
+            # save loss track during epoch for transfer baseline
+            pickle.dump(loss_track_epochs,
+                        open(os.path.join(self.args.run, self.args.dataset + '_Baseline_epochs_Size' + str(
+                            self.subsetSize) + "_Seed" + str(self.seed) + '.p'), 'wb'))
 
         # save final checkpoints for distrubution!
         states = [
