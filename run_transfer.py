@@ -73,7 +73,7 @@ def main():
     # steps 2, 3 and 4 are for many seeds and many subset sizes: the user can do them manually, or add the flag --all
     # and the script will perform the loop
 
-    if new_config.data.dataset not in ["MNIST_transferBaseline", "CIFAR10_transferBaseline"]:
+    if not args.transfer and not args.semisupervised and not args.baseline:
         runner = PreTrainer(args, new_config)
         runner.train()
 
