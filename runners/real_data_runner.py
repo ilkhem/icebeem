@@ -184,7 +184,16 @@ class PreTrainer:
                 loss_track_epochs.append(loss.item())
 
                 if step >= self.config.training.n_iters:
-                    return 0
+                    # save final checkpoints for distrubution!
+                    states = [
+                        enet.state_dict(),
+                        optimizer.state_dict(),
+                    ]
+                    torch.save(states, os.path.join(self.args.checkpoints, 'checkpoint_{}.pth'.format(step)))
+                    torch.save(states, os.path.join(self.args.checkpoints, 'checkpoint.pth'))
+                    torch.save([energy_net_finalLayer], os.path.join(self.args.checkpoints, 'finalLayerweights_.pth'))
+                    pickle.dump(energy_net_finalLayer,
+                                open(os.path.join(self.args.checkpoints, 'finalLayerweights.p'), 'wb'))
 
                 if step % self.config.training.snapshot_freq == 0:
                     print('checkpoint at step: {}'.format(step))
@@ -347,6 +356,6 @@ def semisupervised(args, config):
                                                                 random_state=0)
     clf = class_model(random_state=0, max_iter=2000).fit(rep_train, lab_train)
     acc = accuracy_score(lab_test, clf.predict(rep_test)) * 100
-    msg = 'Accuracy o f' + args.baseline * 'unconditional' + (
-            1 - args.baseline) * 'transfer' ' representation: acc={}'.format(np.round(acc, 2))
+    msg = 'Accuracy of ' + args.baseline * 'unconditional' + (
+            1 - args.baseline) * 'transfer' + ' representation: acc={}'.format(np.round(acc, 2))
     print(msg)
