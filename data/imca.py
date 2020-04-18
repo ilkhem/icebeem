@@ -278,9 +278,10 @@ def gen_IMCA_data(Ncomp, Nlayer, Nsegment, NsegmentObs, BaseCovariance, NonLin='
     # generate segment variance for latent variables
     modMat = np.random.uniform(0.01, 3, (Ncomp, Nsegment))
 
+    print('normalizing')
     for i in range(Nsegment):
         # define presicion for segment i
-        Pres_i = np.linalg.inv(BaseCovariance) + np.diag(1 / modMat[:, i])
+        Pres_i = np.linalg.inv(BaseCovariance)*(1./Ncomp) + np.diag(1 / modMat[:, i])
         latents[(i * NsegmentObs):((i + 1) * NsegmentObs), :] = np.random.multivariate_normal(mean=np.zeros((Ncomp,)),
                                                                                               cov=np.linalg.inv(Pres_i),
                                                                                               size=NsegmentObs)
