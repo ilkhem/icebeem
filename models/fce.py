@@ -1,6 +1,7 @@
 ### Pytorch implementation of training EBMs via FCE 
 #
 #
+import os
 
 import contextlib
 import time
@@ -17,7 +18,8 @@ from torch.utils.data import DataLoader
 from data.imca import ContrastiveConditionalDataset, ConditionalDataset, SimpleDataset, ContrastiveSimpleDataset
 from data.utils import to_one_hot
 
-torch.set_default_tensor_type(torch.cuda.FloatTensor)
+torch.set_default_tensor_type('torch.cuda.FloatTensor')
+os.environ["CUDA_VISIBLE_DEVICES"] = '0'
 
 
 class ebmFCE(object):
