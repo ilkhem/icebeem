@@ -2,7 +2,8 @@
 main file: chose a runner and a config file and run
 
 usage:
-    python3 main.py --dataset TCL --method iVAE --nSims 10
+    python3 run_simulations.py --dataset TCL --method iVAE --nSims 10
+
 
 """
 
