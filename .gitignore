@@ -138,7 +138,5 @@ results/*
 datasets_test/* 
 *.gz 
 *.p
-*.pth 
 log/*
-run/*
-run/datasets/*  
+run/

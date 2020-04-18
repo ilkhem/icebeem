@@ -1,39 +1,35 @@
-"""
-main file: chose a runner and a config file and run
+import argparse
+import os
+import sys
 
-usage:
-    python3 main.py --dataset TCL --method iVAE --nSims 10
+import numpy as np
+import torch
+import yaml
 
-"""
-
-import argparse 
-from runners import ivae_exp_runner, icebeem_exp_runner, mnist_exp_runner, mnist_unconditional_exp_runner #, tcl_exp_runner
-
-import os 
-import pickle
-import yaml 
-import torch 
-import shutil
-
-parser = argparse.ArgumentParser(description='')
-parser.add_argument('--dataset', type=str, help='dataset to run experiments. Should be TCL, IMCA or MNIST')
-parser.add_argument('--method', type=str, default='dsm', help='method to employ. Should be TCL, iVAE or ICE-BeeM')
-parser.add_argument('--nSims', type=int, default=5, help='number of simulations to run')
-parser.add_argument('--lr_flow', type=float, default=1e-5, help='learning rate for flow in FCE (should be smaller than lr for EBM as suggested in Gao et al (2019))')
-parser.add_argument('--lr_ebm', type=float, default=0.0003, help='learning rate for EBM')
-parser.add_argument('--n_layer_flow', type=int, default=10, help='depth of flow network in FCE')
-# following two arguments are only relevant for mnist data experiments (will be ignored otherwise)
-parser.add_argument('--config', type=str, default='mnist.yml',  help='Path to the config file')
-parser.add_argument('--run', type=str, default='run', help='Path for saving running related data.')
-parser.add_argument('--test', action='store_true', help='Whether to test the model')
-parser.add_argument('--nSegments', type=int, default=7)
-parser.add_argument('--SubsetSize', type=int, default=6000) # only relevant for transfer learning baseline, otherwise ignored
-parser.add_argument('--doc', type=str, default='0', help='A string for documentation purpose')
-parser.add_argument('--seed', type=int, default=0, help='Random seed')
-parser.add_argument('--unconditionalBaseline', type=int, default=0, help='should we run an unconditional baseline for EBMs - default no')
+from runners.real_data_runner import PreTrainer, semisupervised, transfer
 
 
-args = parser.parse_args()
+def parse():
+    parser = argparse.ArgumentParser(description='')
+
+    parser.add_argument('--dataset', type=str, help='dataset to run experiments. Should be MNIST or CIFAR10')
+    parser.add_argument('--config', type=str, default='mnist.yaml', help='Path to the config file')
+    parser.add_argument('--run', type=str, default='run', help='Path for saving running related data.')
+    parser.add_argument('--doc', type=str, default='', help='A string for documentation purpose')
+
+    parser.add_argument('--nSims', type=int, default=5, help='number of simulations to run')
+    parser.add_argument('--SubsetSize', type=int, default=6000,
+                        help='only relevant for transfer learning baseline, otherwise ignored')
+    parser.add_argument('--seed', type=int, default=0, help='Random seed')
+
+    parser.add_argument('--all', action='store_true', help='')
+    parser.add_argument('--baseline', action='store_true', help='run an unconditional baseline for EBMs')
+    parser.add_argument('--semisupervised', action='store_true', help='run semi-supervised experiments')
+    parser.add_argument('--transfer', action='store_true',
+                        help='run the transfer learning experiments after pretraining')
+
+    return parser.parse_args()
+
 
 def dict2namespace(config):
     namespace = argparse.Namespace()
@@ -45,196 +41,172 @@ def dict2namespace(config):
         setattr(namespace, key, new_value)
     return namespace
 
-if __name__ == '__main__':
-    print('Running {} experiments using {}'.format(args.dataset, args.method))
 
-    fname = 'results/' + args.method + 'res_' + args.dataset +'exp.p'
-    print(fname)
+def make_dirs(args):
+    os.makedirs(args.run, exist_ok=True)
+    args.log = os.path.join(args.run, 'logs', args.doc)
+    os.makedirs(args.log, exist_ok=True)
+    args.checkpoints = os.path.join(args.run, 'checkpoints', args.doc)
+    os.makedirs(args.checkpoints, exist_ok=True)
 
-    if args.dataset in ['TCL', 'IMCA']:
-        with open(os.path.join('configs', 'imca.yaml'), 'r') as f:
+
+def main():
+    args = parse()
+    make_dirs(args)
+
+    with open(os.path.join('configs', args.config), 'r') as f:
+        config = yaml.load(f)
+    new_config = dict2namespace(config)
+    new_config.device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+    print(new_config)
+
+    np.random.seed(args.seed)
+    torch.manual_seed(args.seed)
+
+    # These are the possible combinations of flags:
+
+    # TRANSFER LEARNING EXPERIMENTS
+    # 1- no special flag: pretrain icebeem on 0-7 // --doc should be different between datasets
+    # 2- --transfer: train only g on 8-9 // --doc should be the same as in step 1
+    # 3- no special flags but with baseline config: train icebeem on 8-9
+    # 4- --transfer --baseline: train icebeem on 8-9 (same as above)
+    # steps 2, 3 and 4 are for many seeds and many subset sizes: the user can do them manually, or add the flag --all
+    # and the script will perform the loop
+
+    if not args.transfer and not args.semisupervised and not args.baseline:
+        runner = PreTrainer(args, new_config)
+        runner.train()
+
+    if args.transfer and not args.baseline:
+        if not args.all:
+            transfer(args, new_config)
+        else:
+            new_args = argparse.Namespace(**vars(args))
+            for n in [500, 1000, 2000, 3000, 4000, 5000, 6000]:
+                for seed in range(args.nSims):
+                    new_args.SubsetSize = n
+                    new_args.seed = seed
+                    # change random seed
+                    np.random.seed(args.seed)
+                    torch.manual_seed(args.seed)
+                    transfer(new_args, new_config)
+
+    if new_config.data.dataset in ["MNIST_transferBaseline", "CIFAR10_transferBaseline"]:
+        # this is just here for debug, shouldn't be run, use --baseline --transfer instead
+        if not args.all:
+            runner = PreTrainer(args, new_config)
+            runner.train()
+        else:
+            new_args = argparse.Namespace(**vars(args))
+            for n in [500, 1000, 2000, 3000, 4000, 5000, 6000]:
+                for seed in range(args.nSims):
+                    new_args.SubsetSize = n
+                    new_args.seed = seed
+                    new_args.doc = args.dataset.lower() + 'Baseline' + str(n)
+                    make_dirs(new_args)
+                    # change random seed
+                    np.random.seed(args.seed)
+                    torch.manual_seed(args.seed)
+                    runner = PreTrainer(new_args, new_config)
+                    runner.train()
+
+    if args.transfer and args.baseline:
+        # update args and config
+        new_args = argparse.Namespace(**vars(args))
+        new_args.config = os.path.splitext(args.config)[0] + '_baseline' + os.path.splitext(args.config)[1]
+        with open(os.path.join('configs', new_args.config), 'r') as f:
             config = yaml.load(f)
         new_config = dict2namespace(config)
         new_config.device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+        if not args.all:
+            new_args.doc = args.doc + 'Baseline' + str(new_args.SubsetSize)
+            make_dirs(new_args)
+            runner = PreTrainer(new_args, new_config)
+            runner.train()
+        else:
+            for n in [500, 1000, 2000, 3000, 4000, 5000, 6000]:
+                for seed in range(args.nSims):
+                    new_args.doc = args.doc + 'Baseline' + str(n)
+                    make_dirs(new_args)
+                    new_args.SubsetSize = n
+                    new_args.seed = seed
+                    # change random seed
+                    np.random.seed(args.seed)
+                    torch.manual_seed(args.seed)
+                    runner = PreTrainer(new_args, new_config)
+                    runner.train()
 
-        if args.method.lower() == 'tcl':
-            pass
-            # r = tcl_exp_runner.runTCLexp(args, new_config)
-        if args.method.lower() == 'ivae':
-            r = ivae_exp_runner.runiVAEexp(args, new_config)
-        if args.method.lower() in ['ice-beem', 'icebeem']:
-            r = icebeem_exp_runner.runICEBeeMexp(args, new_config)
+    # SEMI-SUPERVISED EXPERIMENTS
+    # 1- no special flag: pretrain icebeem on 0-7 // same as 1- above
+    # 2- --semisupervised: classify 8-9 using pretrained icebeem // --doc should be the same as from step 1-
+    # 3- --baseline: pretrain unconditional ebm  on 0-7: IT IS VERY IMPORTANT HERE TO SPECIFY A --doc THAT IS
+    # DIFFERENT FROM WHEN RUN FOR ICEBEEM
+    # 4- --semisupervised --baseline: classify 8-9 using unconditional ebm // --doc should be the same as from step 3-
 
-        # save results
-        fname = 'results/' + args.method + 'res_' + args.dataset + 'exp_' + str(args.nSims) + '.p'
-        pickle.dump( r, open( fname, "wb" ))
+    if args.baseline and not args.semisupervised and not args.transfer:
+        new_args = argparse.Namespace(**vars(args))
+        new_args.doc = args.doc + 'Baseline'
+        make_dirs(new_args)
+        runner = PreTrainer(new_args, new_config)
+        runner.train(conditional=False)
 
+    if args.semisupervised and not args.baseline:
+        semisupervised(args, new_config)
 
-    if args.dataset == 'MNIST':
-        if args.unconditionalBaseline == 0:
-            # train conditional EBM
-            args.log = os.path.join(args.run, 'logs', args.doc)
-
-            # prepare directory to save results
-            if os.path.exists(args.log):
-                shutil.rmtree(args.log)
-            print('saving in: ' + args.log )
-            os.makedirs(args.log)
-
-            with open(os.path.join('configs', args.config), 'r') as f:
-                config = yaml.load(f)
-            new_config = dict2namespace(config)
-            new_config.device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
-
-            #config_file = yaml.load( args.config )
-            print(new_config)
-
-            torch.backends.cudnn.benchmark = True
-
-            runner = mnist_exp_runner.mnist_runner( args, new_config, nSeg = args.nSegments, subsetSize=args.SubsetSize, seed=args.seed )
-            if not args.test:
-                runner.train()
-            else:
-                runner.test()
-        if args.unconditionalBaseline == 1:
-            print('\n\n\n\n\nunconditional baseline')
-            # train an unconditional EBM using DSM
-            args.log = os.path.join(args.run, 'logs', args.doc)
-
-            # prepare directory to save results
-            if os.path.exists(args.log):
-                shutil.rmtree(args.log)
-            print('saving in: ' + args.log )
-            os.makedirs(args.log)
-
-            with open(os.path.join('configs', args.config), 'r') as f:
-                config = yaml.load(f)
-            new_config = dict2namespace(config)
-            new_config.device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
-
-            #config_file = yaml.load( args.config )
-            print(new_config)
-
-            torch.backends.cudnn.benchmark = True
-
-            runner = mnist_unconditional_exp_runner.mnist_ucond_runner( args, new_config, nSeg = args.nSegments, subsetSize=args.SubsetSize, seed=args.seed )
-            if not args.test:
-                runner.train()
-            else:
-                runner.test()
+    if args.semisupervised and args.baseline:
+        new_args = argparse.Namespace(**vars(args))
+        new_args.doc = args.doc + 'Baseline'
+        make_dirs(new_args)
+        semisupervised(new_args, new_config)
 
 
-    if args.dataset == 'CIFAR10':
-        if args.unconditionalBaseline == 0:
-            # train conditional EBM
-            args.log = os.path.join(args.run, 'logs', args.doc)
+def plot():
+    import numpy as np
+    import pickle
+    import os
+    import pylab as plt;
+    plt.ion()
+    import seaborn as sns
 
-            # prepare directory to save results
-            if os.path.exists(args.log):
-                shutil.rmtree(args.log)
-            print('saving in: ' + args.log )
-            os.makedirs(args.log)
+    sns.set_style("whitegrid")
+    sns.set_palette('deep')
 
-            with open(os.path.join('configs', args.config), 'r') as f:
-                config = yaml.load(f)
-            new_config = dict2namespace(config)
-            new_config.device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+    # load transfer results
+    os.chdir('transfer_exp/transferRes')
 
-            #config_file = yaml.load( args.config )
-            print(new_config)
-            pickle.dump( new_config, open('transfer_exp/config_file_cifar.p', 'wb'))
+    # collect results for transfer learning
+    samplesSizes = [500, 1000, 2000, 3000, 5000, 6000]
 
-            torch.backends.cudnn.benchmark = True
+    resTransfer = {x: [] for x in samplesSizes}
+    resBaseline = {x: [] for x in samplesSizes}
 
-            runner = mnist_exp_runner.mnist_runner( args, new_config, nSeg = args.nSegments, subsetSize=args.SubsetSize, seed=args.seed )
-            if not args.test:
-                runner.train()
-            else:
-                runner.test()
-        if args.unconditionalBaseline == 1:
-            print('\n\n\n\n\nunconditional baseline')
-            # train an unconditional EBM using DSM
-            args.log = os.path.join(args.run, 'logs', args.doc)
+    for x in samplesSizes:
+        files = [f for f in os.listdir(os.getcwd()) if 'TransferCDSM_Size' + str(x) + '_' in f]
+        for f in files:
+            resTransfer[x].append(np.median(pickle.load(open(f, 'rb'))))
 
-            # prepare directory to save results
-            if os.path.exists(args.log):
-                shutil.rmtree(args.log)
-            print('saving in: ' + args.log )
-            os.makedirs(args.log)
+        files = [f for f in os.listdir(os.getcwd()) if 'Baseline_Size' + str(x) + '_' in f]
+        for f in files:
+            resBaseline[x].append(np.median(pickle.load(open(f, 'rb'))))
 
-            with open(os.path.join('configs', args.config), 'r') as f:
-                config = yaml.load(f)
-            new_config = dict2namespace(config)
-            new_config.device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+        print(
+            'Transfer: ' + str(np.median(resTransfer[x]) * 1e4) + '\tBaseline: ' + str(np.median(resBaseline[x]) * 1e4))
 
-            #config_file = yaml.load( args.config )
-            print(new_config)
+    resTsd = np.array([np.std(resTransfer[x]) * 1e4 for x in samplesSizes])
 
-            torch.backends.cudnn.benchmark = True
+    resT = [np.median(resTransfer[x]) * 1e4 for x in samplesSizes]
+    resBas = [np.median(resBaseline[x]) * 1e4 for x in samplesSizes]
 
-            runner = mnist_unconditional_exp_runner.mnist_ucond_runner( args, new_config, nSeg = args.nSegments, subsetSize=args.SubsetSize, seed=args.seed )
-            if not args.test:
-                runner.train()
-            else:
-                runner.test()
+    f, (ax1) = plt.subplots(1, 1, sharey=True, figsize=(4, 4))
+    ax1.plot(samplesSizes, resT, label='Transfer', linewidth=2, color=sns.color_palette()[2])
+    ax1.fill_between(samplesSizes, resT + 2 * resTsd, resT - 2 * resTsd, alpha=.25, color=sns.color_palette()[2])
+    ax1.plot(samplesSizes, resBas, label='Baseline', linewidth=2, color=sns.color_palette()[4])
+    ax1.legend()
+    ax1.set_xlabel('Train dataset size')
+    ax1.set_ylabel('DSM Objective (scaled)')
+    ax1.set_title('Conditional DSM Objective')
+    f.tight_layout()
 
 
-    if args.dataset == 'FashionMNIST':
-        if args.unconditionalBaseline == 0:
-            # train conditional EBM
-            args.log = os.path.join(args.run, 'logs', args.doc)
-
-            # prepare directory to save results
-            if os.path.exists(args.log):
-                shutil.rmtree(args.log)
-            print('saving in: ' + args.log )
-            os.makedirs(args.log)
-
-            with open(os.path.join('configs', args.config), 'r') as f:
-                config = yaml.load(f)
-            new_config = dict2namespace(config)
-            new_config.device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
-
-            #config_file = yaml.load( args.config )
-            print(new_config)
-            pickle.dump( new_config, open('transfer_exp/config_file_fashionMNIST.p', 'wb'))
-
-            torch.backends.cudnn.benchmark = True
-
-            runner = mnist_exp_runner.mnist_runner( args, new_config, nSeg = args.nSegments, subsetSize=args.SubsetSize, seed=args.seed )
-            if not args.test:
-                runner.train()
-            else:
-                runner.test()
-        if args.unconditionalBaseline == 1:
-            print('\n\n\n\n\nunconditional baseline')
-            os.environ["CUDA_VISIBLE_DEVICES"]="1"
-            # train an unconditional EBM using DSM
-            args.log = os.path.join(args.run, 'logs', args.doc)
-
-            # prepare directory to save results
-            if os.path.exists(args.log):
-                shutil.rmtree(args.log)
-            print('saving in: ' + args.log )
-            os.makedirs(args.log)
-
-            with open(os.path.join('configs', args.config), 'r') as f:
-                config = yaml.load(f)
-            new_config = dict2namespace(config)
-            new_config.device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
-
-            #config_file = yaml.load( args.config )
-            print(new_config)
-
-            torch.backends.cudnn.benchmark = True
-
-            runner = mnist_unconditional_exp_runner.mnist_ucond_runner( args, new_config, nSeg = args.nSegments, subsetSize=args.SubsetSize, seed=args.seed )
-            if not args.test:
-                runner.train()
-            else:
-                runner.test()
-# runner for cifar:
-# python3 main.py --dataset CIFAR10 --config cifar.yaml --doc cifarPreTrain
-
-
-
+if __name__ == '__main__':
+    sys.exit(main())
