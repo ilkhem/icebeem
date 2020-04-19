@@ -7,16 +7,10 @@ import torch.nn.functional as F
 from sklearn.decomposition import FastICA
 from torch.distributions import Uniform, TransformedDistribution, SigmoidTransform
 
-from models.fce import ebmFCEsegments
-from models.nets import MLP_general
-from models.nflib.flows import NormalizingFlowModel, Invertible1x1Conv, ActNorm
-from models.nflib.spline_flows import NSF_AR
-
-torch.set_default_tensor_type('torch.cuda.FloatTensor')
-os.environ["CUDA_VISIBLE_DEVICES"] = '0'
-
-CKPT_FOLDER = 'run/checkpoints/icebeem/'
-os.makedirs(CKPT_FOLDER, exist_ok=True)
+from .fce import ConditionalFCE
+from .nets import MLP_general
+from .nflib.flows import NormalizingFlowModel, Invertible1x1Conv, ActNorm
+from .nflib.spline_flows import NSF_AR
 
 
 def ICEBEEM_wrapper(X, Y, ebm_hidden_size, n_layers_ebm, n_layers_flow, lr_flow, lr_ebm, seed,
@@ -43,11 +37,10 @@ def ICEBEEM_wrapper(X, Y, ebm_hidden_size, n_layers_ebm, n_layers_flow, lr_flow,
     augment_ebm = True
 
     # instantiate ebmFCE object
-    fce_ = ebmFCEsegments(data=X.astype(np.float32), segments=Y.astype(np.float32),
+    fce_ = ConditionalFCE(data=X.astype(np.float32), segments=Y.astype(np.float32),
                           energy_MLP=model_ebm, flow_model=model_flow, verbose=False)
 
-    init_ckpt_file = '0_' + ckpt_file
-    init_ckpt_path = os.path.join(CKPT_FOLDER, init_ckpt_file)
+    init_ckpt_file = os.path.splitext(ckpt_file)[0] + '_0' + os.path.splitext(ckpt_file)[1]
     if not test:
         if pretrain_flow:
             # print('pretraining flow model..')
@@ -62,9 +55,9 @@ def ICEBEEM_wrapper(X, Y, ebm_hidden_size, n_layers_ebm, n_layers_flow, lr_flow,
 
         torch.save({'ebm_mlp': fce_.energy_MLP.state_dict(),
                     'ebm_finalLayer': fce_.ebm_finalLayer,
-                    'flow': fce_.flow_model.state_dict()}, init_ckpt_path)
+                    'flow': fce_.flow_model.state_dict()}, init_ckpt_file)
     else:
-        state = torch.load(init_ckpt_path, map_location=fce_.device)
+        state = torch.load(init_ckpt_file, map_location=fce_.device)
         fce_.energy_MLP.load_state_dict(state['ebm_mlp'])
         fce_.ebm_finalLayer = state['ebm_finalLayer']
         fce_.flow_model.load_stat_dict(state['flow'])
@@ -77,8 +70,7 @@ def ICEBEEM_wrapper(X, Y, ebm_hidden_size, n_layers_ebm, n_layers_flow, lr_flow,
     # iterate between updating noise and tuning the EBM
     eps = .025
     for iter_ in range(3):
-        mid_ckpt_file = str(iter_ + 1) + '_' + ckpt_file
-        mid_ckpt_path = os.path.join(CKPT_FOLDER, mid_ckpt_file)
+        mid_ckpt_file = os.path.splitext(ckpt_file)[0] + '_' + str(iter_ + 1) + os.path.splitext(ckpt_file)[1]
         if not test:
             # update flow model:
             fce_.train_flow_fce(epochs=5, objConstant=-1., cutoff=.5 - eps, lr=lr_flow)
@@ -87,9 +79,9 @@ def ICEBEEM_wrapper(X, Y, ebm_hidden_size, n_layers_ebm, n_layers_flow, lr_flow,
 
             torch.save({'ebm_mlp': fce_.energy_MLP.state_dict(),
                         'ebm_finalLayer': fce_.ebm_finalLayer,
-                        'flow': fce_.flow_model.state_dict()}, mid_ckpt_path)
+                        'flow': fce_.flow_model.state_dict()}, mid_ckpt_file)
         else:
-            state = torch.load(mid_ckpt_path, map_location=fce_.device)
+            state = torch.load(mid_ckpt_file, map_location=fce_.device)
             fce_.energy_MLP.load_state_dict(state['ebm_mlp'])
             fce_.ebm_finalLayer = state['ebm_finalLayer']
             fce_.flow_model.load_stat_dict(state['flow'])

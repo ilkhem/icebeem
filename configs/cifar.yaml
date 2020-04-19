@@ -22,6 +22,8 @@ data:
  channels: 3
  logit_transform: false
  random_flip: true
+ random_state: 0
+ split_size: .33
 
 model:
   sigma_begin: 1

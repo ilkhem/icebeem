@@ -16,6 +16,8 @@ data:
   channels: 1
   logit_transform: false
   random_flip: false
+  random_state: 0
+  split_size: .15
   ## celeba
 #  dataset: "CELEBA"
 #  image_size: 32
