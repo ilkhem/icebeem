@@ -51,7 +51,7 @@ def runiVAEexp(args, config):
 
                 # store results
                 results[l][n].append(mean_corr_coef(res_iVAE[0].detach().numpy(), s))
-
+                print( mean_corr_coef(res_iVAE[0].detach().numpy(), s) )
     # prepare output
     Results = {
         'data_dim': data_dim,
