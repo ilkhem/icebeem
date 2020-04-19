@@ -14,17 +14,22 @@ import pickle
 import torch
 import yaml
 
-from runners import ivae_exp_runner, icebeem_exp_runner, tcl_exp_runner
+# from runners import ivae_exp_runner, icebeem_exp_runner, tcl_exp_runner
+from runners.simulation_runner import run_icebeem_exp, run_ivae_exp, run_tcl_exp
 
-parser = argparse.ArgumentParser(description='')
-parser.add_argument('--dataset', type=str, default='TCL', help='dataset to run experiments. Should be TCL or IMCA')
-parser.add_argument('--method', type=str, default='icebeem', help='method to employ. Should be TCL, iVAE or ICE-BeeM')
-parser.add_argument('--nSims', type=int, default=10, help='number of simulations to run')
-parser.add_argument('--config', type=str, default='imca.yaml', help='Path to the config file')
-parser.add_argument('--run', type=str, default='run/', help='Path for saving running related data.')
-parser.add_argument('--test', action='store_true', help='Whether to test the model')
 
-args = parser.parse_args()
+def parse_sim():
+    parser = argparse.ArgumentParser(description='')
+    parser.add_argument('--dataset', type=str, default='TCL', help='dataset to run experiments. Should be TCL or IMCA')
+    parser.add_argument('--method', type=str, default='icebeem',
+                        help='method to employ. Should be TCL, iVAE or ICE-BeeM')
+    parser.add_argument('--config', type=str, default='imca.yaml', help='Path to the config file')
+    parser.add_argument('--run', type=str, default='run/', help='Path for saving running related data.')
+    parser.add_argument('--nSims', type=int, default=10, help='number of simulations to run')
+
+    parser.add_argument('--test', action='store_true', help='Whether to test the model')
+
+    return parser.parse_args()
 
 
 def dict2namespace(config):
@@ -38,12 +43,17 @@ def dict2namespace(config):
     return namespace
 
 
-if __name__ == '__main__':
-
-    print('Running {} experiments using {}'.format(args.dataset, args.method))
+def make_dirs_simulations(args):
     os.makedirs(args.run, exist_ok=True)
-    fname = os.path.join(args.run, args.method + 'res_' + args.dataset + 'exp.p')
-    print(fname)
+    args.checkpoints = os.path.join(args.run, 'checkpoints', args.method)
+    os.makedirs(args.checkpoints, exist_ok=True)
+
+
+if __name__ == '__main__':
+    args = parse_sim()
+    print('Running {} experiments using {}'.format(args.dataset, args.method))
+    # make checkpoint and log folders
+    make_dirs_simulations(args)
 
     if args.dataset.lower() in ['tcl', 'imca']:
         with open(os.path.join('configs', args.config), 'r') as f:
@@ -52,15 +62,16 @@ if __name__ == '__main__':
         new_config.device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
         if args.method.lower() == 'tcl':
-            r = tcl_exp_runner.runTCLexp(args, new_config)
+            r = run_tcl_exp(args, new_config)
         elif args.method.lower() == 'ivae':
-            r = ivae_exp_runner.runiVAEexp(args, new_config)
+            r = run_ivae_exp(args, new_config)
         elif args.method.lower() in ['ice-beem', 'icebeem']:
-            r = icebeem_exp_runner.runICEBeeMexp(args, new_config)
+            r = run_icebeem_exp(args, new_config)
         else:
             raise ValueError('Unsupported method {}'.format(args.method))
 
         # save results
+        # Each of the runners loops over many seeds, so the saved file contains results from multiple runs
         fname = os.path.join(args.run, args.method + 'res_' + args.dataset + 'exp_' + str(args.nSims) + '.p')
         pickle.dump(r, open(fname, "wb"))
 

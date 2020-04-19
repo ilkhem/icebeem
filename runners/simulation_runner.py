@@ -41,7 +41,7 @@ def run_ivae_exp(args, config):
                 print('Running exp with L={} and n={}; seed={}'.format(l, n, seed))
                 # generate data
                 # run iVAE
-                ckpt_file = 'ivae_{}_l{}_n{}_s{}.pt'.format(dataset, l, n, seed)
+                ckpt_file = os.path.join(args.checkpoints, 'ivae_{}_l{}_n{}_s{}.pt'.format(dataset, l, n, seed))
                 res_iVAE = IVAE_wrapper(X=x, U=y, n_layers=l + 1, hidden_dim=data_dim * 2,
                                         cuda=cuda, max_iter=max_iter, lr=lr,
                                         ckpt_file=ckpt_file, seed=seed)
@@ -87,7 +87,7 @@ def run_icebeem_exp(args, config):
                 # generate data
 
                 n_layers_ebm = l + 1
-                ckpt_file = 'icebeem_{}_l{}_n{}_s{}.pt'.format(dataset, l, n, seed)
+                ckpt_file = os.path.join(args.checkpoints, 'icebeem_{}_l{}_n{}_s{}.pt'.format(dataset, l, n, seed))
                 recov_sources = ICEBEEM_wrapper(X=x, Y=y, ebm_hidden_size=ebm_hidden_size,
                                                 n_layers_ebm=n_layers_ebm, n_layers_flow=n_layers_flow,
                                                 lr_flow=lr_flow, lr_ebm=lr_ebm, seed=seed, ckpt_file=ckpt_file)
@@ -135,7 +135,8 @@ def run_tcl_exp(args, config):
                 # run TCL
                 res_TCL = TCL_wrapper(sensor=x.T, label=y, random_seed=seed,
                                       list_hidden_nodes=[num_comp * 2] * (l - 1) + [num_comp],
-                                      max_steps=stepDict[l][0] * 2, max_steps_init=stepDict[l][1])
+                                      max_steps=stepDict[l][0] * 2, max_steps_init=stepDict[l][1],
+                                      ckpt_dir=args.checkpoints)
 
                 # store results
                 from sklearn.decomposition import FastICA

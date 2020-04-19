@@ -2,13 +2,9 @@ import numpy as np
 import torch
 from torch import optim
 from torch.utils.data import DataLoader
-import os
 
 from data.imca import ConditionalDataset
 from .ivae_core import iVAE
-
-CKPT_FOLDER = 'run/checkpoints/ivae/'
-os.makedirs(CKPT_FOLDER, exist_ok=True)
 
 
 def IVAE_wrapper(X, U, batch_size=256, max_iter=7e4, seed=0, n_layers=3, hidden_dim=20, lr=1e-3, cuda=True,
@@ -16,8 +12,6 @@ def IVAE_wrapper(X, U, batch_size=256, max_iter=7e4, seed=0, n_layers=3, hidden_
     " args are the arguments from the main.py file"
     torch.manual_seed(seed)
     np.random.seed(seed)
-
-    ckpt_path = os.path.join(CKPT_FOLDER, ckpt_file)
 
     device = torch.device('cuda:0' if cuda else 'cpu')
     # print('training on {}'.format(torch.cuda.get_device_name(device) if cuda else 'cpu'))
@@ -58,13 +52,12 @@ def IVAE_wrapper(X, U, batch_size=256, max_iter=7e4, seed=0, n_layers=3, hidden_
             scheduler.step(elbo_train)
             # print('epoch {}/{} \tloss: {}'.format(epoch, max_epochs, elbo_train))
         # save model checkpoint after training
-        torch.save(model.state_dict(), ckpt_path)
+        torch.save(model.state_dict(), ckpt_file)
     else:
-        model = torch.load(ckpt_path, map_location=device)
+        model = torch.load(ckpt_file, map_location=device)
 
     Xt, Ut = dset.x, dset.y
     decoder_params, encoder_params, z, prior_params = model(Xt, Ut)
     params = {'decoder': decoder_params, 'encoder': encoder_params, 'prior': prior_params}
-
 
     return z, model, params

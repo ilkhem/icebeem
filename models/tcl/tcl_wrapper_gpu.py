@@ -16,12 +16,9 @@ from .tcl_preprocessing import pca
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
-CKPT_FOLDER = 'run/checkpoints/tcl/'
-os.makedirs(CKPT_FOLDER, exist_ok=True)
-
 
 def TCL_wrapper(sensor, label, list_hidden_nodes, random_seed=0, max_steps=int(7e4), max_steps_init=int(7e4),
-                computeApproxJacobian=False, apply_fastICA=True, ckpt_dir=CKPT_FOLDER):
+                ckpt_dir='./'):
     ## define some variables:
     # random_seed = 0 # random seed
     # num_comp = 2 # number of components (dimension)
@@ -140,66 +137,3 @@ def TCL_wrapper(sensor, label, list_hidden_nodes, random_seed=0, max_steps=int(7
     featval = feat_val.T
 
     return featval, feateval_ica, accuracy
-
-#
-#
-#
-# ## now that we have trained everything, we can evaluate results:
-#
-# #apply_fastICA = True
-# nonlinearity_to_source = 'abs'
-# eval_dir = '../storage/temp5'
-# parmpath = os.path.join(eval_dir, 'parm.pkl')
-# ckpt = tf.train.get_checkpoint_state(eval_dir)
-# modelpath = ckpt.model_checkpoint_path
-#
-#
-# with tf.Graph().as_default() as g:
-#
-#     data_holder = tf.placeholder(tf.float32, shape=[None, sensor.shape[0]], name='data')
-#     label_holder = tf.placeholder(tf.int32, shape=[None], name='label')
-#
-#     # Build a Graph that computes the logits predictions from the
-#     # inference model.
-#     logits, feats = tcl.inference(data_holder, list_hidden_nodes, num_class=num_segment)
-#
-#     # Calculate predictions.
-#     top_value, preds = tf.nn.top_k(logits, k=1, name='preds')
-#
-#     # Restore the moving averaged version of the learned variables for eval.
-#     variable_averages = tf.train.ExponentialMovingAverage(moving_average_decay)
-#     variables_to_restore = variable_averages.variables_to_restore()
-#     saver = tf.train.Saver(variables_to_restore)
-#
-#     with tf.Session() as sess:
-#         saver.restore(sess, ckpt.model_checkpoint_path)
-#
-#         tensor_val = tf_eval.get_tensor(sensor, [preds, feats], sess, data_holder, batch=256)
-#         pred_val = tensor_val[0].reshape(-1)
-#         feat_val = tensor_val[1]
-#
-#
-# # Calculate accuracy ------------------------------------------
-# accuracy, confmat = tf_eval.calc_accuracy(pred_val, label)
-#
-# # Apply fastICA -----------------------------------------------
-# if apply_fastICA:
-#     ica = FastICA(random_state=random_seed)
-#     feat_val_ica = ica.fit_transform(feat_val)
-# else:
-# 	feat_val_ica = feat_val
-#
-#
-# # Evaluate ----------------------------------------------------
-# #if nonlinearity_to_source == 'abs':
-# #    xseval = np.abs(source) # Original source
-# #else:
-# #    raise ValueError
-# feateval_ica = feat_val_ica.T # Estimated feature
-# featval = feat_val.T
-# #
-# #corrmat, sort_idx, _ = tf_eval.correlation(feateval, xseval, 'Pearson')
-# #meanabscorr = np.mean(np.abs(np.diag(corrmat)))
-#
-# return featval, feateval_ica, accuracy
-#
