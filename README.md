@@ -11,6 +11,10 @@ This project was tested with the following version:
 - python 3.6 and 3.7
 - pytorch 1.4
 - tensorflow 1.14
+- PyYAML 5.3.1
+- seaborn 0.10
+- scikit-learn 0.22.2
+- scipy 1.4.1
 
 ## Running Simulations
 
