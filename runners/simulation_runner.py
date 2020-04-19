@@ -130,7 +130,7 @@ def run_tcl_exp(args, config):
                 res_TCL = TCL_wrapper(sensor=x.T, label=y, random_seed=seed,
                                       list_hidden_nodes=[num_comp * 2] * (l - 1) + [num_comp],
                                       max_steps=stepDict[l][0] * 2, max_steps_init=stepDict[l][1],
-                                      ckpt_dir=os.join(args.checkpoints, args.dataset), test=test)
+                                      ckpt_dir=os.path.join(args.checkpoints, args.dataset), test=test)
 
                 # store results
                 from sklearn.decomposition import FastICA
