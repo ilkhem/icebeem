@@ -31,7 +31,9 @@ def parse():
     parser.add_argument('--plot', action='store_true',
                         help='Plot transfer learning experiment for the selected dataset')
 
-    return parser.parse_args()
+    args = parser.parse_args()
+    args.dataset = args.dataset.upper()
+    return args
 
 
 def dict2namespace(config):
@@ -76,7 +78,7 @@ def main():
     # steps 2, 3 and 4 are for many seeds and many subset sizes: the user can do them manually, or add the flag --all
     # and the script will perform the loop
 
-    if not args.transfer and not args.semisupervised and not args.baseline:
+    if not args.transfer and not args.semisupervised and not args.baseline and not args.plot:
         runner = PreTrainer(args, new_config)
         runner.train()
 
@@ -190,11 +192,11 @@ def plot(args):
     for x in samplesSizes:
         files = [f for f in os.listdir(args.run) if args.dataset.lower() + 'TransferCDSM_Size' + str(x) + '_' in f]
         for f in files:
-            resTransfer[x].append(np.median(pickle.load(open(f, 'rb'))))
+            resTransfer[x].append(np.median(pickle.load(open(os.path.join(args.run, f), 'rb'))))
 
         files = [f for f in os.listdir(args.run) if args.dataset + '_Baseline_Size' + str(x) + '_' in f]
         for f in files:
-            resBaseline[x].append(np.median(pickle.load(open(f, 'rb'))))
+            resBaseline[x].append(np.median(pickle.load(open(os.path.join(args.run, f), 'rb'))))
 
         print(
             'Transfer: ' + str(np.median(resTransfer[x]) * 1e4) + '\tBaseline: ' + str(np.median(resBaseline[x]) * 1e4))
@@ -213,7 +215,7 @@ def plot(args):
     ax1.set_ylabel('DSM Objective (scaled)')
     ax1.set_title('Conditional DSM Objective')
     f.tight_layout()
-    plt.savefig('transfer_{}.pdf'.format(args.dataset.lower()))
+    plt.savefig(os.path.join(args.run, 'transfer_{}.pdf'.format(args.dataset.lower())))
 
 
 if __name__ == '__main__':
