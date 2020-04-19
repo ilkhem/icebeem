@@ -7,7 +7,7 @@ import torch.nn.functional as F
 from sklearn.decomposition import FastICA
 from torch.distributions import Uniform, TransformedDistribution, SigmoidTransform
 
-from models.fce import ebmFCEsegments
+from models.fce import ConditionalFCE
 from models.nets import MLP_general
 from models.nflib.flows import NormalizingFlowModel, Invertible1x1Conv, ActNorm
 from models.nflib.spline_flows import NSF_AR
@@ -40,7 +40,7 @@ def ICEBEEM_wrapper(X, Y, ebm_hidden_size, n_layers_ebm, n_layers_flow, lr_flow,
     augment_ebm = True
 
     # instantiate ebmFCE object
-    fce_ = ebmFCEsegments(data=X.astype(np.float32), segments=Y.astype(np.float32),
+    fce_ = ConditionalFCE(data=X.astype(np.float32), segments=Y.astype(np.float32),
                           energy_MLP=model_ebm, flow_model=model_flow, verbose=False)
 
     init_ckpt_file = os.path.splitext(ckpt_file)[0] + '_0' + os.path.splitext(ckpt_file)[1]
