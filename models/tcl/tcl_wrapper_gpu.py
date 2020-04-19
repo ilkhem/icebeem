@@ -19,17 +19,6 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 def TCL_wrapper(sensor, label, list_hidden_nodes, random_seed=0, max_steps=int(7e4), max_steps_init=int(7e4),
                 ckpt_dir='./', test=False):
-    ## define some variables:
-    # random_seed = 0 # random seed
-    # num_comp = 2 # number of components (dimension)
-    # num_segment = 16 # number of segnents
-    # num_segmentdata = 512 # number of data-points in each segment
-    # num_layer = 2 # number of layers of mixing-MLP
-
-    # MLP ---------------------------------------------------------
-    # list_hidden_nodes = [num_comp *2]*(num_layer-1) + [num_comp]
-    # list of the number of nodes of each hidden layer of feature-MLP
-    # [layer1, layer2, ..., layer(num_layer)]
 
     # Training ----------------------------------------------------
     initial_learning_rate = 0.01  # initial learning rate
@@ -43,18 +32,12 @@ def TCL_wrapper(sensor, label, list_hidden_nodes, random_seed=0, max_steps=int(7
     num_comp = sensor.shape[0]
 
     # for MLR initialization
-    # max_steps_init = int(7e4) # number of iterations (mini-batches) for initializing only MLR
     decay_steps_init = int(5e4)  # decay steps for initializing only MLR
 
     # Other -------------------------------------------------------
-    # # Note: save folder must be under ./storage
     train_dir = ckpt_dir  # save directory
-    saveparmpath = os.path.join(train_dir, 'parm.pkl')  # file name to save parameters
 
     num_segment = len(np.unique(label))
-
-    ## generate/load some data
-    # sensor, source, label = generate_artificial_data(num_comp=num_comp, num_segment=num_segment, num_segmentdata=num_segmentdata, num_layer=num_layer, random_seed=random_seed)
 
     # Preprocessing -----------------------------------------------
     sensor, pca_parm = pca(sensor, num_comp=num_comp)
@@ -98,7 +81,6 @@ def TCL_wrapper(sensor, label, list_hidden_nodes, random_seed=0, max_steps=int(7
               random_seed=random_seed)
 
     # now that we have trained everything, we can evaluate results:
-    apply_fast_ica = True
     eval_dir = ckpt_dir
     ckpt = tf.train.get_checkpoint_state(eval_dir)
 
@@ -128,13 +110,10 @@ def TCL_wrapper(sensor, label, list_hidden_nodes, random_seed=0, max_steps=int(7
     accuracy, confmat = calc_accuracy(pred_val, label)
 
     # Apply fastICA -----------------------------------------------
-    if apply_fast_ica:
-        ica = FastICA(random_state=random_seed)
-        feat_val_ica = ica.fit_transform(feat_val)
-        feateval_ica = feat_val_ica.T  # Estimated feature
-    else:
-        feateval_ica = feat_val.T
+    ica = FastICA(random_state=random_seed)
+    feat_val_ica = ica.fit_transform(feat_val)
 
-    featval = feat_val.T
+    feat_val_ica = feat_val_ica.T  # Estimated feature
+    feat_val = feat_val.T
 
-    return featval, feateval_ica, accuracy
+    return feat_val, feat_val_ica, accuracy
