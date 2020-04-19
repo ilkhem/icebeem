@@ -28,6 +28,9 @@ def parse():
     parser.add_argument('--transfer', action='store_true',
                         help='run the transfer learning experiments after pretraining')
 
+    parser.add_argument('--plot', action='store_true',
+                        help='Plot transfer learning experiment for the selected dataset')
+
     return parser.parse_args()
 
 
@@ -160,19 +163,22 @@ def main():
         semisupervised(new_args, new_config)
 
 
-def plot():
+    # PLOTTING TRANSFER LEARNING
+    # 1- just use of the flag --plot AND NO other flag (except --dataset of course)
+    if args.plot and not args.baseline and not args.semisupervised and not args.transfer:
+        plot(args)
+
+
+def plot(args):
     import numpy as np
     import pickle
     import os
-    import pylab as plt;
-    plt.ion()
+    from matplotlib import pyplot as plt
     import seaborn as sns
 
     sns.set_style("whitegrid")
     sns.set_palette('deep')
 
-    # load transfer results
-    os.chdir('transfer_exp/transferRes')
 
     # collect results for transfer learning
     samplesSizes = [500, 1000, 2000, 3000, 5000, 6000]
@@ -180,12 +186,13 @@ def plot():
     resTransfer = {x: [] for x in samplesSizes}
     resBaseline = {x: [] for x in samplesSizes}
 
+    # load transfer results
     for x in samplesSizes:
-        files = [f for f in os.listdir(os.getcwd()) if 'TransferCDSM_Size' + str(x) + '_' in f]
+        files = [f for f in os.listdir(args.run) if args.dataset.lower() + 'TransferCDSM_Size' + str(x) + '_' in f]
         for f in files:
             resTransfer[x].append(np.median(pickle.load(open(f, 'rb'))))
 
-        files = [f for f in os.listdir(os.getcwd()) if 'Baseline_Size' + str(x) + '_' in f]
+        files = [f for f in os.listdir(args.run) if args.dataset + '_Baseline_Size' + str(x) + '_' in f]
         for f in files:
             resBaseline[x].append(np.median(pickle.load(open(f, 'rb'))))
 
@@ -194,10 +201,10 @@ def plot():
 
     resTsd = np.array([np.std(resTransfer[x]) * 1e4 for x in samplesSizes])
 
-    resT = [np.median(resTransfer[x]) * 1e4 for x in samplesSizes]
-    resBas = [np.median(resBaseline[x]) * 1e4 for x in samplesSizes]
+    resT = np.array([np.median(resTransfer[x]) * 1e4 for x in samplesSizes])
+    resBas = np.array([np.median(resBaseline[x]) * 1e4 for x in samplesSizes])
 
-    f, (ax1) = plt.subplots(1, 1, sharey=True, figsize=(4, 4))
+    f, (ax1) = plt.subplots(1, 1, figsize=(4, 4))
     ax1.plot(samplesSizes, resT, label='Transfer', linewidth=2, color=sns.color_palette()[2])
     ax1.fill_between(samplesSizes, resT + 2 * resTsd, resT - 2 * resTsd, alpha=.25, color=sns.color_palette()[2])
     ax1.plot(samplesSizes, resBas, label='Baseline', linewidth=2, color=sns.color_palette()[4])
@@ -206,6 +213,7 @@ def plot():
     ax1.set_ylabel('DSM Objective (scaled)')
     ax1.set_title('Conditional DSM Objective')
     f.tight_layout()
+    plt.savefig('transfer_{}.pdf'.format(args.dataset.lower()))
 
 
 if __name__ == '__main__':
