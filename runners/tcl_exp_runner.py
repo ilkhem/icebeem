@@ -42,7 +42,7 @@ def runTCLexp(args, config):
                 # store results
                 from sklearn.decomposition import FastICA
                 results[l][n].append(mean_corr_coef(FastICA().fit_transform(res_TCL[0].T), s))
-
+                print( mean_corr_coef(FastICA().fit_transform(res_TCL[0].T), s) )
     # prepare output
     Results = {
         'data_dim': data_dim,

@@ -14,7 +14,7 @@ import pickle
 import torch
 import yaml
 
-from runners import ivae_exp_runner, icebeem_exp_runner# , tcl_exp_runner
+from runners import ivae_exp_runner, icebeem_exp_runner #, tcl_exp_runner
 
 parser = argparse.ArgumentParser(description='')
 parser.add_argument('--dataset', type=str, default='TCL', help='dataset to run experiments. Should be TCL or IMCA')
