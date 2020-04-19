@@ -318,7 +318,7 @@ def semisupervised(args, config):
     labels in classes 8-9
     """
     class_model = LinearSVC  # LogisticRegression
-    test_size = .15
+    test_size = config.data.split_size
 
     ckpt_path = os.path.join(args.checkpoints, 'checkpoint.pth')
     # ckpt_path = os.path.join(args.logs, 'checkpoint_5000.pth')
@@ -350,11 +350,11 @@ def semisupervised(args, config):
                              drop_last=True, collate_fn=collate_helper)
     print('loaded test data')
 
-    representations = np.zeros((10000, 28 * 28))
+    representations = np.zeros((10000, config.data.image_size * config.data.image_size * config.data.channels )) # allow for multiple channels and distinct image sizes
     labels = np.zeros((10000,))
     counter = 0
     for i, (X, y) in enumerate(test_loader):
-        rep_i = score(X).view(-1, 28 * 28).data.cpu().numpy()
+        rep_i = score(X).view(-1, config.data.image_size * config.data.image_size * config.data.channels ).data.cpu().numpy()
         representations[counter:(counter + rep_i.shape[0]), :] = rep_i
         labels[counter:(counter + rep_i.shape[0])] = y.data.numpy()
         counter += rep_i.shape[0]
@@ -364,9 +364,11 @@ def semisupervised(args, config):
 
     labels -= 8
     rep_train, rep_test, lab_train, lab_test = train_test_split(scale(representations), labels, test_size=test_size,
-                                                                random_state=0)
+                                                                random_state=config.data.random_state)
     clf = class_model(random_state=0, max_iter=2000).fit(rep_train, lab_train)
     acc = accuracy_score(lab_test, clf.predict(rep_test)) * 100
+    print('#' * 10 )
     msg = 'Accuracy of ' + args.baseline * 'unconditional' + (
             1 - args.baseline) * 'transfer' + ' representation: acc={}'.format(np.round(acc, 2))
     print(msg)
+    print('#' * 10 )

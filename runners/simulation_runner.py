@@ -8,7 +8,7 @@ from data.imca import generate_synthetic_data
 from metrics.mcc import mean_corr_coef
 from models.icebeem_wrapper import ICEBEEM_wrapper
 from models.ivae.ivae_wrapper import IVAE_wrapper
-from models.tcl.tcl_wrapper_gpu import TCL_wrapper
+#from models.tcl.tcl_wrapper_gpu import TCL_wrapper
 
 filterwarnings('ignore')
 
@@ -142,7 +142,7 @@ def run_tcl_exp(args, config):
                 # store results
                 from sklearn.decomposition import FastICA
                 results[l][n].append(mean_corr_coef(FastICA().fit_transform(res_TCL[0].T), s))
-
+                print(mean_corr_coef(FastICA().fit_transform(res_TCL[0].T), s))
     # prepare output
     Results = {
         'data_dim': data_dim,
