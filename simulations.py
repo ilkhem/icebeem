@@ -20,14 +20,14 @@ from runners.simulation_runner import run_icebeem_exp, run_ivae_exp, run_tcl_exp
 
 def parse_sim():
     parser = argparse.ArgumentParser(description='')
-    parser.add_argument('--dataset', type=str, default='TCL', help='dataset to run experiments. Should be TCL or IMCA')
+    parser.add_argument('--dataset', type=str, default='TCL', help='Dataset to run experiments. Should be TCL or IMCA')
     parser.add_argument('--method', type=str, default='icebeem',
-                        help='method to employ. Should be TCL, iVAE or ICE-BeeM')
+                        help='Method to employ. Should be TCL, iVAE or ICE-BeeM')
     parser.add_argument('--config', type=str, default='imca.yaml', help='Path to the config file')
     parser.add_argument('--run', type=str, default='run/', help='Path for saving running related data.')
-    parser.add_argument('--nSims', type=int, default=10, help='number of simulations to run')
+    parser.add_argument('--nSims', type=int, default=10, help='Number of simulations to run')
 
-    parser.add_argument('--test', action='store_true', help='Whether to test the model')
+    parser.add_argument('--test', action='store_true', help='Whether to evaluate the models from checkpoints')
 
     return parser.parse_args()
 

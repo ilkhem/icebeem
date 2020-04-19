@@ -12,21 +12,21 @@ from runners.real_data_runner import PreTrainer, semisupervised, transfer
 def parse():
     parser = argparse.ArgumentParser(description='')
 
-    parser.add_argument('--dataset', type=str, help='dataset to run experiments. Should be MNIST or CIFAR10')
+    parser.add_argument('--dataset', type=str, help='Dataset to run experiments. Should be MNIST or CIFAR10, or FMNIST')
     parser.add_argument('--config', type=str, default='mnist.yaml', help='Path to the config file')
     parser.add_argument('--run', type=str, default='run', help='Path for saving running related data.')
     parser.add_argument('--doc', type=str, default='', help='A string for documentation purpose')
 
-    parser.add_argument('--nSims', type=int, default=5, help='number of simulations to run')
+    parser.add_argument('--nSims', type=int, default=5, help='Number of simulations to run')
     parser.add_argument('--SubsetSize', type=int, default=6000,
-                        help='only relevant for transfer learning baseline, otherwise ignored')
+                        help='Number of data points per class to consider -- only relevant for transfer learning')
     parser.add_argument('--seed', type=int, default=0, help='Random seed')
 
-    parser.add_argument('--all', action='store_true', help='')
-    parser.add_argument('--baseline', action='store_true', help='run an unconditional baseline for EBMs')
-    parser.add_argument('--semisupervised', action='store_true', help='run semi-supervised experiments')
+    parser.add_argument('--all', action='store_true', help='Run transfer learning experiment for many seeds and subset sizes -- only relevant for transfer learning')
+    parser.add_argument('--baseline', action='store_true', help='Run the script for the baseline')
+    parser.add_argument('--semisupervised', action='store_true', help='Run semi-supervised experiments')
     parser.add_argument('--transfer', action='store_true',
-                        help='run the transfer learning experiments after pretraining')
+                        help='Run the transfer learning experiments after pretraining')
 
     parser.add_argument('--plot', action='store_true',
                         help='Plot transfer learning experiment for the selected dataset')
@@ -164,7 +164,6 @@ def main():
         make_dirs(new_args)
         semisupervised(new_args, new_config)
 
-
     # PLOTTING TRANSFER LEARNING
     # 1- just use of the flag --plot AND NO other flag (except --dataset of course)
     if args.plot and not args.baseline and not args.semisupervised and not args.transfer:
@@ -180,7 +179,6 @@ def plot(args):
 
     sns.set_style("whitegrid")
     sns.set_palette('deep')
-
 
     # collect results for transfer learning
     samplesSizes = [500, 1000, 2000, 3000, 5000, 6000]
