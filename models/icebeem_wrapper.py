@@ -12,9 +12,6 @@ from models.nets import MLP_general
 from models.nflib.flows import NormalizingFlowModel, Invertible1x1Conv, ActNorm
 from models.nflib.spline_flows import NSF_AR
 
-torch.set_default_tensor_type('torch.cuda.FloatTensor')
-os.environ["CUDA_VISIBLE_DEVICES"] = '0'
-
 
 def ICEBEEM_wrapper(X, Y, ebm_hidden_size, n_layers_ebm, n_layers_flow, lr_flow, lr_ebm, seed,
                     ckpt_file='icebeem.pt', test=False):

@@ -1,19 +1,10 @@
-import os
-from warnings import filterwarnings
-
 import numpy as np
-import torch
 
 from data.imca import generate_synthetic_data
 from metrics.mcc import mean_corr_coef
 from models.icebeem_wrapper import ICEBEEM_wrapper
 from models.ivae.ivae_wrapper import IVAE_wrapper
 from models.tcl.tcl_wrapper_gpu import TCL_wrapper
-
-filterwarnings('ignore')
-
-torch.set_default_tensor_type('torch.cuda.FloatTensor')
-os.environ["CUDA_VISIBLE_DEVICES"] = '0'
 
 
 def run_ivae_exp(args, config):
