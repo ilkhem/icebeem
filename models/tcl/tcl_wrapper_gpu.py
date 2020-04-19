@@ -18,7 +18,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 
 def TCL_wrapper(sensor, label, list_hidden_nodes, random_seed=0, max_steps=int(7e4), max_steps_init=int(7e4),
-                ckpt_dir='./'):
+                ckpt_dir='./', test=False):
     ## define some variables:
     # random_seed = 0 # random seed
     # num_comp = 2 # number of components (dimension)
@@ -59,42 +59,45 @@ def TCL_wrapper(sensor, label, list_hidden_nodes, random_seed=0, max_steps=int(7
     # Preprocessing -----------------------------------------------
     sensor, pca_parm = pca(sensor, num_comp=num_comp)
 
-    # Train model (only MLR) --------------------------------------
-    train(sensor,
-          label,
-          num_class=len(np.unique(label)),  # num_segment,
-          list_hidden_nodes=list_hidden_nodes,
-          initial_learning_rate=initial_learning_rate,
-          momentum=momentum,
-          max_steps=max_steps_init,  # For init
-          decay_steps=decay_steps_init,  # For init
-          decay_factor=decay_factor,
-          batch_size=batch_size,
-          train_dir=train_dir,
-          checkpoint_steps=checkpoint_steps,
-          moving_average_decay=moving_average_decay,
-          MLP_trainable=False,  # For init
-          save_file='model_init.ckpt',  # For init
-          random_seed=random_seed)
+    if not test:
+        # Train model (only MLR) --------------------------------------
+        train(sensor,
+              label,
+              num_class=len(np.unique(label)),  # num_segment,
+              list_hidden_nodes=list_hidden_nodes,
+              initial_learning_rate=initial_learning_rate,
+              momentum=momentum,
+              max_steps=max_steps_init,  # For init
+              decay_steps=decay_steps_init,  # For init
+              decay_factor=decay_factor,
+              batch_size=batch_size,
+              train_dir=train_dir,
+              checkpoint_steps=checkpoint_steps,
+              moving_average_decay=moving_average_decay,
+              MLP_trainable=False,  # For init
+              save_file='model_init.ckpt',  # For init
+              random_seed=random_seed)
 
-    init_model_path = os.path.join(train_dir, 'model_init.ckpt')
+        init_model_path = os.path.join(train_dir, 'model_init.ckpt')
 
-    # Train model -------------------------------------------------
-    train(sensor,
-          label,
-          num_class=len(np.unique(label)),  # num_segment,
-          list_hidden_nodes=list_hidden_nodes,
-          initial_learning_rate=initial_learning_rate,
-          momentum=momentum,
-          max_steps=max_steps,
-          decay_steps=decay_steps,
-          decay_factor=decay_factor,
-          batch_size=batch_size,
-          train_dir=train_dir,
-          checkpoint_steps=checkpoint_steps,
-          moving_average_decay=moving_average_decay,
-          load_file=init_model_path,
-          random_seed=random_seed)
+        # Train model -------------------------------------------------
+        train(sensor,
+              label,
+              num_class=len(np.unique(label)),  # num_segment,
+              list_hidden_nodes=list_hidden_nodes,
+              initial_learning_rate=initial_learning_rate,
+              momentum=momentum,
+              max_steps=max_steps,
+              decay_steps=decay_steps,
+              decay_factor=decay_factor,
+              batch_size=batch_size,
+              train_dir=train_dir,
+              checkpoint_steps=checkpoint_steps,
+              moving_average_decay=moving_average_decay,
+              load_file=init_model_path,
+              random_seed=random_seed)
+
+
 
     # now that we have trained everything, we can evaluate results:
     apply_fast_ica = True
