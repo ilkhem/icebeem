@@ -1,3 +1,5 @@
+import os
+
 import numpy as np
 
 from data.imca import generate_synthetic_data
