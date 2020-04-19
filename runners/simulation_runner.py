@@ -6,7 +6,7 @@ from data.imca import generate_synthetic_data
 from metrics.mcc import mean_corr_coef
 from models.icebeem_wrapper import ICEBEEM_wrapper
 from models.ivae.ivae_wrapper import IVAE_wrapper
-#from models.tcl.tcl_wrapper_gpu import TCL_wrapper
+from models.tcl.tcl_wrapper_gpu import TCL_wrapper
 
 
 def run_ivae_exp(args, config):
@@ -112,6 +112,7 @@ def run_tcl_exp(args, config):
     data_seed = config.data_seed
 
     results = {l: {n: [] for n in n_obs_per_seg} for l in n_layers}
+    results_no_ica = {l: {n: [] for n in n_obs_per_seg} for l in n_layers}
 
     num_comp = data_dim
 
@@ -133,14 +134,18 @@ def run_tcl_exp(args, config):
                                       ckpt_dir=os.path.join(args.checkpoints, args.dataset), test=test)
 
                 # store results
-                from sklearn.decomposition import FastICA
-                results[l][n].append(mean_corr_coef(FastICA().fit_transform(res_TCL[0].T), s))
-                print(mean_corr_coef(FastICA().fit_transform(res_TCL[0].T), s))
+                mcc_no_ica = mean_corr_coef(res_TCL[0].T, s ** 2)
+                mcc_ica = mean_corr_coef(res_TCL[1].T, s ** 2)
+                print('TCL mcc (no ICA): {}\t mcc: {}'.format(mcc_no_ica, mcc_ica))
+                results[l][n].append(mcc_ica)
+                results_no_ica[l][n].append(mcc_no_ica)
+
     # prepare output
     Results = {
         'data_dim': data_dim,
         'data_segments': n_segments,
-        'CorrelationCoef': results
+        'CorrelationCoef': results,
+        'CorrelationCoef_no_ica': results_no_ica,
     }
 
     return Results
