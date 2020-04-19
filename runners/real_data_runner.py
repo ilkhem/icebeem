@@ -196,6 +196,7 @@ class PreTrainer:
                     torch.save([energy_net_finalLayer], os.path.join(self.args.checkpoints, 'finalLayerweights_.pth'))
                     pickle.dump(energy_net_finalLayer,
                                 open(os.path.join(self.args.checkpoints, 'finalLayerweights.p'), 'wb'))
+                    return 0
 
                 if step % self.config.training.snapshot_freq == 0:
                     print('checkpoint at step: {}'.format(step))
