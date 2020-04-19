@@ -278,7 +278,6 @@ def gen_IMCA_data(Ncomp, Nlayer, Nsegment, NsegmentObs, BaseCovariance, NonLin='
     # generate segment variance for latent variables
     modMat = np.random.uniform(0.01, 3, (Ncomp, Nsegment)) ** 2 # this is to make consistent with TCL experiments ! 
 
-    print('normalizing')
     for i in range(Nsegment):
         # define presicion for segment i
         Pres_i = np.linalg.inv(BaseCovariance)*(.5/Ncomp) + np.diag(1 / modMat[:, i])
