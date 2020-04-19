@@ -1,14 +1,15 @@
 """tcl"""
 
-import tensorflow as tf
-
 import os
 import os.path
+
 import numpy as np
+import tensorflow as tf
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 FILTER_COLLECTION = 'filter'
+
 
 # =============================================================
 # =============================================================

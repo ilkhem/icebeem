@@ -22,7 +22,8 @@ def parse():
                         help='Number of data points per class to consider -- only relevant for transfer learning')
     parser.add_argument('--seed', type=int, default=0, help='Random seed')
 
-    parser.add_argument('--all', action='store_true', help='Run transfer learning experiment for many seeds and subset sizes -- only relevant for transfer learning')
+    parser.add_argument('--all', action='store_true',
+                        help='Run transfer learning experiment for many seeds and subset sizes -- only relevant for transfer learning')
     parser.add_argument('--baseline', action='store_true', help='Run the script for the baseline')
     parser.add_argument('--semisupervised', action='store_true', help='Run semi-supervised experiments')
     parser.add_argument('--transfer', action='store_true',

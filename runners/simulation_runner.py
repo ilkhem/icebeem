@@ -1,19 +1,12 @@
 import os
-from warnings import filterwarnings
 
 import numpy as np
-import torch
 
 from data.imca import generate_synthetic_data
 from metrics.mcc import mean_corr_coef
 from models.icebeem_wrapper import ICEBEEM_wrapper
 from models.ivae.ivae_wrapper import IVAE_wrapper
 #from models.tcl.tcl_wrapper_gpu import TCL_wrapper
-
-filterwarnings('ignore')
-
-torch.set_default_tensor_type('torch.cuda.FloatTensor')
-os.environ["CUDA_VISIBLE_DEVICES"] = '0'
 
 
 def run_ivae_exp(args, config):
@@ -137,7 +130,7 @@ def run_tcl_exp(args, config):
                 res_TCL = TCL_wrapper(sensor=x.T, label=y, random_seed=seed,
                                       list_hidden_nodes=[num_comp * 2] * (l - 1) + [num_comp],
                                       max_steps=stepDict[l][0] * 2, max_steps_init=stepDict[l][1],
-                                      ckpt_dir=args.checkpoints, test=test)
+                                      ckpt_dir=os.path.join(args.checkpoints, args.dataset), test=test)
 
                 # store results
                 from sklearn.decomposition import FastICA

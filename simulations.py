@@ -1,12 +1,3 @@
-"""
-main file: chose a runner and a config file and run
-
-usage:
-    python3 run_simulations.py --dataset TCL --method iVAE --nSims 10
-
-
-"""
-
 import argparse
 import os
 import pickle
@@ -14,8 +5,7 @@ import pickle
 import torch
 import yaml
 
-# from runners import ivae_exp_runner, icebeem_exp_runner, tcl_exp_runner
-from runners.simulation_runner import run_icebeem_exp, run_ivae_exp , run_tcl_exp
+from runners.simulation_runner import run_icebeem_exp, run_ivae_exp, run_tcl_exp
 
 
 def parse_sim():

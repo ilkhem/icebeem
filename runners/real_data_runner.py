@@ -44,6 +44,7 @@ class PreTrainer:
     This is done using this class.
     As a comparison, we want to train an icebeem on 8-9, for varying subset size, and this class allows that
     """
+
     def __init__(self, args, config):
         self.args = args
         self.config = config
