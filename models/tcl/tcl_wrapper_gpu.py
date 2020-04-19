@@ -97,8 +97,6 @@ def TCL_wrapper(sensor, label, list_hidden_nodes, random_seed=0, max_steps=int(7
               load_file=init_model_path,
               random_seed=random_seed)
 
-
-
     # now that we have trained everything, we can evaluate results:
     apply_fast_ica = True
     eval_dir = ckpt_dir

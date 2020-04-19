@@ -40,6 +40,7 @@ def conditional_dsm(energy_net, samples, segLabels, energy_net_final_layer, sigm
 
     return loss
 
+
 def dsm_score_estimation(scorenet, samples, sigma=0.01):
     perturbed_samples = samples + torch.randn_like(samples) * sigma
     target = - 1 / (sigma ** 2) * (perturbed_samples - samples)

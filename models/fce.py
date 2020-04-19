@@ -1,9 +1,8 @@
 ### Pytorch implementation of training EBMs via FCE 
 #
 #
-import os
-
 import contextlib
+import os
 import time
 
 import numpy as np
