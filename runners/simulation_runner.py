@@ -29,7 +29,7 @@ def run_ivae_exp(args, config):
     for l in n_layers:
         for n in n_obs_per_seg:
             x, y, s = generate_synthetic_data(data_dim, n_segments, n, l, seed=data_seed,
-                                              simulationMethod=dataset, one_hot_labels=True)
+                                              simulationMethod=dataset, one_hot_labels=True, varyMean=True)
             for seed in range(nSims):
                 print('Running exp with L={} and n={}; seed={}'.format(l, n, seed))
                 # generate data

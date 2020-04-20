@@ -356,6 +356,7 @@ def gen_TCL_data_ortho(Ncomp, Nlayer, Nsegment, NsegmentObs, source='Laplace', N
 
     # meanMat = np.random.uniform(0, 5, (Ncomp, Nsegment))
     if varyMean:
+        print('varying mean')
         meanMat = np.random.uniform(-3, 3, (Ncomp, Nsegment))
     else:
         meanMat = np.zeros((Ncomp, Nsegment))
@@ -390,11 +391,11 @@ def gen_TCL_data_ortho(Ncomp, Nlayer, Nsegment, NsegmentObs, source='Laplace', N
 
 
 def generate_synthetic_data(data_dim, data_segments, n_obs_seg, n_layer, simulationMethod='TCL', seed=1,
-                            one_hot_labels=False):
+                            one_hot_labels=False, varyMean=False):
     np.random.seed(seed)
     if simulationMethod.lower() == 'tcl':
         dat_all = gen_TCL_data_ortho(Ncomp=data_dim, Nsegment=data_segments, Nlayer=n_layer, NsegmentObs=n_obs_seg,
-                                     source='Gaussian', NonLin='leaky', negSlope=.2, seed=seed)
+                                     source='Gaussian', NonLin='leaky', negSlope=.2, seed=seed, varyMean=varyMean)
     elif simulationMethod.lower() == 'imca':
         baseEvals = np.random.rand(data_dim)
         baseEvals /= ((1. / data_dim) * baseEvals.sum())
