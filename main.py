@@ -172,9 +172,7 @@ def main():
 
 
 def plot(args):
-    import numpy as np
     import pickle
-    import os
     from matplotlib import pyplot as plt
     import seaborn as sns
 
