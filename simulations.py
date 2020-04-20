@@ -54,25 +54,21 @@ if __name__ == '__main__':
         marker_dict = {'ICEBEEM':'v', 'iVAE':'o', 'TCL':'s'}
         line_dict   = {'ICEBEEM':'solid', 'iVAE':'--', 'TCL':':'}
         legend_dict = {'ICEBEEM':'ICE-BeeM', 'iVAE':'iVAE', 'TCL':'TCL'}
-        n_obs_ = [100,500,1000,2000]
+        n_obs_ = [100, 500,1000,2000]
         algos = ['ICEBEEM', 'iVAE', 'TCL']
         
-        L = [2] # [2,4]
+        L = [2] #[2,4]
         # load results
         res = {}
         for a in algos:
             fname = os.path.join(args.run, a + 'res_' + args.dataset + 'exp_' + str(args.nSims) + '.p')
             res[a] = pickle.load(open(fname, 'rb'))['CorrelationCoef']
 
-        #print(res['ICEBEEM'])     
-        #print([np.median(res['ICEBEEM'][2][n]) for n in n_obs_])
-        print(res.keys())
-
         f, (ax1) = plt.subplots(1,1, figsize=(4,4))
 
         for l in L:
             for a in algos:
-                ax1.plot( n_obs_, [np.median(res[a][l][n]) for n in n_obs_], label = str(a) + ' (L=' + str(l) + ')', marker=marker_dict[a], color = sns.color_palette()[l], linestyle=line_dict[a], linewidth=2)
+                ax1.plot( n_obs_, [np.mean(res[a][l][n]) for n in n_obs_], label = str(a) + ' (L=' + str(l) + ')', marker=marker_dict[a], color = sns.color_palette()[l], linestyle=line_dict[a], linewidth=2)
 
         ax1.set_xlabel('Observations per segment')
         ax1.set_ylabel('Mean Correlation Coefficient')
