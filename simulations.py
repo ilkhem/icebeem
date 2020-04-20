@@ -57,7 +57,7 @@ if __name__ == '__main__':
         n_obs_ = [100, 500,1000,2000]
         algos = ['ICEBEEM', 'iVAE', 'TCL']
         
-        L = [2] #[2,4]
+        L = [2,4]
         # load results
         res = {}
         for a in algos:
