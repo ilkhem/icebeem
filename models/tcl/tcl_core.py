@@ -398,7 +398,7 @@ def train_cpu(data,
             assert not np.isnan(loss_value), 'Model diverged with loss = NaN'
 
             if step % summary_steps == 0:
-                print(step)
+                # print(step)
                 summary_str = sess.run(summary_op)  # , feed_dict=feed_dict)
                 summary_writer.add_summary(summary_str, step)
 
@@ -555,7 +555,7 @@ def train_gpu(data,
             assert not np.isnan(loss_value), 'Model diverged with loss = NaN'
 
             if step % summary_steps == 0:
-                print(step)
+                # print(step)
                 summary_str = sess.run(summary_op)  # , feed_dict=feed_dict)
                 summary_writer.add_summary(summary_str, step)
 
