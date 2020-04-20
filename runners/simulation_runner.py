@@ -122,17 +122,18 @@ def run_tcl_exp(args, config):
 
     for l in n_layers:
         for n in n_obs_per_seg:
+            # generate data
             x, y, s = generate_synthetic_data(data_dim, n_segments, n, l, seed=data_seed,
                                               simulationMethod=dataset, one_hot_labels=False)
             for seed in range(nSims):
                 print('Running exp with L={} and n={}; seed={}'.format(l, n, seed))
-                # generate data
+                # checkpointing done in TF is more complicated than pytorch, create a separate folder per arg tuple
+                ckpt_folder = os.path.join(args.checkpoints, args.dataset, str(l), str(n), str(seed))
                 # run TCL
                 res_TCL = TCL_wrapper(sensor=x.T, label=y, random_seed=seed,
                                       list_hidden_nodes=[num_comp * 2] * (l - 1) + [num_comp],
                                       max_steps=stepDict[l][0] * 2, max_steps_init=stepDict[l][1],
-                                      ckpt_dir=os.path.join(args.checkpoints, args.dataset), test=test)
-
+                                      ckpt_dir=ckpt_folder, test=test)
                 # store results
                 mcc_no_ica = mean_corr_coef(res_TCL[0].T, s ** 2)
                 mcc_ica = mean_corr_coef(res_TCL[1].T, s ** 2)
