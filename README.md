@@ -33,6 +33,7 @@ Type `python simulations.py --help` to learn about the arguments:
 ```
 usage: simulations.py [-h] [--dataset DATASET] [--method METHOD]
                       [--config CONFIG] [--run RUN] [--nSims NSIMS] [--test]
+                      [--plot]
 
 optional arguments:
   -h, --help         show this help message and exit
@@ -42,6 +43,7 @@ optional arguments:
   --run RUN          Path for saving running related data.
   --nSims NSIMS      Number of simulations to run
   --test             Whether to evaluate the models from checkpoints
+  --plot             Plot comparison of performances
 ```
 
 The results of each simulation is saved in the value of the flag `--run` (defulat is `run/` folder).
