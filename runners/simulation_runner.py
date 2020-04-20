@@ -6,7 +6,7 @@ from data.imca import generate_synthetic_data
 from metrics.mcc import mean_corr_coef
 from models.icebeem_wrapper import ICEBEEM_wrapper
 from models.ivae.ivae_wrapper import IVAE_wrapper
-from models.tcl.tcl_wrapper_gpu import TCL_wrapper
+#from models.tcl.tcl_wrapper_gpu import TCL_wrapper
 
 
 def run_ivae_exp(args, config):

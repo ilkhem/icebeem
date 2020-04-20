@@ -140,3 +140,4 @@ datasets_test/*
 *.p
 log/*
 run/
+*.pdf

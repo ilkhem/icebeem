@@ -5,7 +5,7 @@ import pickle
 import torch
 import yaml
 
-from runners.simulation_runner import run_icebeem_exp, run_ivae_exp, run_tcl_exp
+from runners.simulation_runner import run_icebeem_exp, run_ivae_exp# , run_tcl_exp
 
 
 def parse_sim():
@@ -18,6 +18,7 @@ def parse_sim():
     parser.add_argument('--nSims', type=int, default=10, help='Number of simulations to run')
 
     parser.add_argument('--test', action='store_true', help='Whether to evaluate the models from checkpoints')
+    parser.add_argument('--plot', action='store_true')
 
     return parser.parse_args()
 
@@ -45,25 +46,64 @@ if __name__ == '__main__':
     # make checkpoint and log folders
     make_dirs_simulations(args)
 
-    if args.dataset.lower() in ['tcl', 'imca']:
-        with open(os.path.join('configs', args.config), 'r') as f:
-            config = yaml.load(f)
-        new_config = dict2namespace(config)
-        new_config.device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+    if args.plot:
+        import pylab as plt
+        import seaborn as sns 
+        import numpy as np 
+        # 
+        marker_dict = {'ICEBEEM':'v', 'iVAE':'o', 'TCL':'s'}
+        line_dict   = {'ICEBEEM':'solid', 'iVAE':'--', 'TCL':':'}
+        legend_dict = {'ICEBEEM':'ICE-BeeM', 'iVAE':'iVAE', 'TCL':'TCL'}
+        n_obs_ = [100,500,1000,2000]
+        algos = ['ICEBEEM', 'iVAE', 'TCL']
+        
+        L = [2] # [2,4]
+        # load results
+        res = {}
+        for a in algos:
+            fname = os.path.join(args.run, a + 'res_' + args.dataset + 'exp_' + str(args.nSims) + '.p')
+            res[a] = pickle.load(open(fname, 'rb'))['CorrelationCoef']
 
-        if args.method.lower() == 'tcl':
-            r = run_tcl_exp(args, new_config)
-        elif args.method.lower() == 'ivae':
-            r = run_ivae_exp(args, new_config)
-        elif args.method.lower() in ['ice-beem', 'icebeem']:
-            r = run_icebeem_exp(args, new_config)
-        else:
-            raise ValueError('Unsupported method {}'.format(args.method))
+        #print(res['ICEBEEM'])     
+        #print([np.median(res['ICEBEEM'][2][n]) for n in n_obs_])
+        print(res.keys())
 
-        # save results
-        # Each of the runners loops over many seeds, so the saved file contains results from multiple runs
-        fname = os.path.join(args.run, args.method + 'res_' + args.dataset + 'exp_' + str(args.nSims) + '.p')
-        pickle.dump(r, open(fname, "wb"))
+        f, (ax1) = plt.subplots(1,1, figsize=(4,4))
+
+        for l in L:
+            for a in algos:
+                ax1.plot( n_obs_, [np.median(res[a][l][n]) for n in n_obs_], label = str(a) + ' (L=' + str(l) + ')', marker=marker_dict[a], color = sns.color_palette()[l], linestyle=line_dict[a], linewidth=2)
+
+        ax1.set_xlabel('Observations per segment')
+        ax1.set_ylabel('Mean Correlation Coefficient')
+
+        ax1.set_title(args.dataset)
+        ax1.legend( loc='best', fontsize=7 )
+        f.tight_layout()
+        ax1.set_ylim([0,1])
+        plt.savefig('ExpsResults_' + args.dataset+ '.pdf', dpi=300)
+        print(os.getcwd())
 
     else:
-        raise ValueError('Unsupported dataset {}'.format(args.dataset))
+        if args.dataset.lower() in ['tcl', 'imca']:
+            with open(os.path.join('configs', args.config), 'r') as f:
+                config = yaml.load(f)
+            new_config = dict2namespace(config)
+            new_config.device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+
+            if args.method.lower() == 'tcl':
+                r = run_tcl_exp(args, new_config)
+            elif args.method.lower() == 'ivae':
+                r = run_ivae_exp(args, new_config)
+            elif args.method.lower() in ['ice-beem', 'icebeem']:
+                r = run_icebeem_exp(args, new_config)
+            else:
+                raise ValueError('Unsupported method {}'.format(args.method))
+
+            # save results
+            # Each of the runners loops over many seeds, so the saved file contains results from multiple runs
+            fname = os.path.join(args.run, args.method + 'res_' + args.dataset + 'exp_' + str(args.nSims) + '.p')
+            pickle.dump(r, open(fname, "wb"))
+
+        else:
+            raise ValueError('Unsupported dataset {}'.format(args.dataset))

@@ -278,12 +278,18 @@ def gen_IMCA_data(Ncomp, Nlayer, Nsegment, NsegmentObs, BaseCovariance, NonLin='
     # generate segment variance for latent variables
     modMat = np.random.uniform(0.01, 3, (Ncomp, Nsegment)) ** 2  # this is to make consistent with TCL experiments !
 
+    if varyMean:
+        meanMat = np.random.uniform(-3, 3, (Ncomp, Nsegment))
+    else:
+        meanMat = np.zeros((Ncomp, Nsegment))
+
     for i in range(Nsegment):
         # define presicion for segment i
         Pres_i = np.linalg.inv(BaseCovariance) * (.5 / Ncomp) + np.diag(1 / modMat[:, i])
         latents[(i * NsegmentObs):((i + 1) * NsegmentObs), :] = np.random.multivariate_normal(mean=np.zeros((Ncomp,)),
                                                                                               cov=np.linalg.inv(Pres_i),
                                                                                               size=NsegmentObs)
+        latents[(i * NsegmentObs):((i + 1) * NsegmentObs), :] = np.add( latents[(i * NsegmentObs):((i + 1) * NsegmentObs), :] , meanMat[:, seg])
         labels[(i * NsegmentObs):((i + 1) * NsegmentObs)] = i
 
     # now we are ready to apply the non-linear mixtures:
@@ -356,7 +362,6 @@ def gen_TCL_data_ortho(Ncomp, Nlayer, Nsegment, NsegmentObs, source='Laplace', N
 
     # meanMat = np.random.uniform(0, 5, (Ncomp, Nsegment))
     if varyMean:
-        print('varying mean')
         meanMat = np.random.uniform(-3, 3, (Ncomp, Nsegment))
     else:
         meanMat = np.zeros((Ncomp, Nsegment))
