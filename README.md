@@ -6,7 +6,7 @@ This is the code to run the simulations presented in the manuscript as well as t
 
 ## Dependencies
 
-This project was tested with the following version:
+This project was tested with the following versions:
 
 - python 3.6 and 3.7
 - pytorch 1.4
@@ -102,7 +102,7 @@ We also provide model checkpoints and experimental log to skip the training step
 
 The same can be done on CIFAR-10 by changing the value of the flag `--dataset` to `CIFAR10` and of the flag `--config` to `cifar.yaml`. Also make sure to change the value of `--doc` not to overwrite the mnist checkpoints.
 
-### Semi-supervised learning:
+### Semi-supervised learning
 
 In the semi-supervised learning experiment, we compare:
 
