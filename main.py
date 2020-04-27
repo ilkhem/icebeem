@@ -6,8 +6,10 @@ import numpy as np
 import torch
 import yaml
 
-from runners.real_data_runner import PreTrainer, semisupervised, transfer
+from runners.real_data_runner import PreTrainer, semisupervised, transfer, cca_representations
 
+import os
+os.environ["CUDA_VISIBLE_DEVICES"] = "2"
 
 def parse():
     parser = argparse.ArgumentParser(description='')
@@ -28,6 +30,7 @@ def parse():
     parser.add_argument('--semisupervised', action='store_true', help='Run semi-supervised experiments')
     parser.add_argument('--transfer', action='store_true',
                         help='Run the transfer learning experiments after pretraining')
+    parser.add_argument('--representation', action='store_true', help='Run CCA representation validation across multiple seeds')
 
     parser.add_argument('--plot', action='store_true',
                         help='Plot transfer learning experiment for the selected dataset')
@@ -79,7 +82,7 @@ def main():
     # steps 2, 3 and 4 are for many seeds and many subset sizes: the user can do them manually, or add the flag --all
     # and the script will perform the loop
 
-    if not args.transfer and not args.semisupervised and not args.baseline and not args.plot:
+    if not args.transfer and not args.semisupervised and not args.baseline and not args.plot and not args.representation:
         runner = PreTrainer(args, new_config)
         runner.train()
 
@@ -149,7 +152,7 @@ def main():
     # DIFFERENT FROM WHEN RUN FOR ICEBEEM
     # 4- --semisupervised --baseline: classify 8-9 using unconditional ebm // --doc should be the same as from step 3-
 
-    if args.baseline and not args.semisupervised and not args.transfer:
+    if args.baseline and not args.semisupervised and not args.transfer and not args.representation:
         new_args = argparse.Namespace(**vars(args))
         new_args.doc = args.doc + 'Baseline'
         make_dirs(new_args)
@@ -164,6 +167,27 @@ def main():
         new_args.doc = args.doc + 'Baseline'
         make_dirs(new_args)
         semisupervised(new_args, new_config)
+
+    if args.representation and not args.baseline:
+        # train networks here and compare the outputs for conditional EBMs
+        for seed in range( args.nSims ):
+            new_args = argparse.Namespace(**vars(args))
+            new_args.seed = seed 
+            new_args.doc = args.doc + args.dataset + '_Representation' + str( new_args.seed )
+            print( new_args.doc )
+            make_dirs(new_args)
+            cca_representations( new_args, new_config )
+
+    if args.representation and args.baseline:
+        print('here')
+        # train networks here and compare the outputs for unconditional EBMs
+        for seed in range( args.nSims ):
+            new_args = argparse.Namespace(**vars(args))
+            new_args.seed = seed 
+            new_args.doc = args.doc + args.dataset + '_RepresentationBaseline' + str( new_args.seed )
+            print( new_args.doc )
+            make_dirs(new_args)
+            cca_representations( new_args, new_config, conditional=False )
 
     # PLOTTING TRANSFER LEARNING
     # 1- just use of the flag --plot AND NO other flag (except --dataset of course)

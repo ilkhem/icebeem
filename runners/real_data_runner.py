@@ -373,3 +373,40 @@ def semisupervised(args, config):
             1 - args.baseline) * 'transfer' + ' representation: acc={}'.format(np.round(acc, 2))
     print(msg)
     print('#' * 10 )
+
+
+
+
+def cca_representations(args, config, conditional=True):
+    """
+    we train an icebeem model or an unconditional EBM across multiple random seeds and 
+    compare the reproducibility of representations via CCA 
+
+    """
+
+    SUBSET_SIZE = 10
+    DATASET = args.dataset.upper()
+
+    print('RUNNING REPRESENTATION EXPs ON DATASET: ' + DATASET  )
+    if args.baseline: print('RUNNING BASELINES')
+
+    new_args = args # argparse.Namespace(**vars(args))
+    new_config = config 
+    new_config.n_labels = 10
+    #new_config.subsetSize = 60000
+    new_args.subsetSize = 60000
+
+    new_args.SubsetSize = 60000 # SUBSET_SIZE
+    new_args.seed = args.seed
+    # change random seed
+    np.random.seed(new_args.seed)
+    torch.manual_seed(new_args.seed)
+
+    print( new_args )
+    runner = PreTrainer( new_args, new_config)
+    runner.train( conditional=conditional )
+
+    # finally, save learnt representations
+
+
+
