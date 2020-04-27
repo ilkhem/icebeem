@@ -245,7 +245,7 @@ def gen_nonstationary_data(Ncomp, Nlayer, Nsegment, NsegmentObs, source='Laplace
 
 
 def gen_IMCA_data(Ncomp, Nlayer, Nsegment, NsegmentObs, BaseCovariance, NonLin='leaky', negSlope=.2,
-                  Niter4condThresh=1e4, seed=1):
+                  Niter4condThresh=1e4, seed=1, varyMean=False):
     """
     generate data from an IMCA model where latent sources follow a
     MoG distribution conditional on each segment
@@ -289,7 +289,7 @@ def gen_IMCA_data(Ncomp, Nlayer, Nsegment, NsegmentObs, BaseCovariance, NonLin='
         latents[(i * NsegmentObs):((i + 1) * NsegmentObs), :] = np.random.multivariate_normal(mean=np.zeros((Ncomp,)),
                                                                                               cov=np.linalg.inv(Pres_i),
                                                                                               size=NsegmentObs)
-        latents[(i * NsegmentObs):((i + 1) * NsegmentObs), :] = np.add( latents[(i * NsegmentObs):((i + 1) * NsegmentObs), :] , meanMat[:, seg])
+        latents[(i * NsegmentObs):((i + 1) * NsegmentObs), :] = np.add( latents[(i * NsegmentObs):((i + 1) * NsegmentObs), :] , meanMat[:, i])
         labels[(i * NsegmentObs):((i + 1) * NsegmentObs)] = i
 
     # now we are ready to apply the non-linear mixtures:
