@@ -1,7 +1,3 @@
-## evaluate trained energy networks
-#
-#
-
 import logging
 import os
 import pickle
@@ -18,7 +14,6 @@ from torch.utils.data import DataLoader
 from torch.utils.data.dataloader import default_collate
 from torchvision.datasets import MNIST, CIFAR10, FashionMNIST
 
-# load in the required modules
 from losses.dsm import conditional_dsm, dsm
 from models.refinenet_dilated_baseline import RefineNetDilated
 
@@ -42,6 +37,14 @@ def my_collate_rev(batch, nSeg=8):
 
 
 class PreTrainer:
+    """
+    This class trains an ICEBEEM or an unconditional EBM on a subset of MNIST, CIFAR, or FMNIST for some specific
+    labels.
+    For instance, for our transfer learning experiments, we want pretrain an icebeem on labels 0-7.
+    This is done using this class.
+    As a comparison, we want to train an icebeem on 8-9, for varying subset size, and this class allows that
+    """
+
     def __init__(self, args, config):
         self.args = args
         self.config = config
@@ -122,7 +125,7 @@ class PreTrainer:
         else:
             raise ValueError('Unknown config dataset {}'.format(self.config.data.dataset))
 
-        # apply collation for all datasets ! (we only consider MNIST and CIFAR10 anyway!)
+        # apply collation
         if self.config.data.dataset in ['MNIST', 'CIFAR10', 'FashionMNIST']:
             collate_helper = lambda batch: my_collate(batch, nSeg=self.nSeg)
             print('Subset size: ' + str(self.subsetSize))
@@ -194,6 +197,7 @@ class PreTrainer:
                     torch.save([energy_net_finalLayer], os.path.join(self.args.checkpoints, 'finalLayerweights_.pth'))
                     pickle.dump(energy_net_finalLayer,
                                 open(os.path.join(self.args.checkpoints, 'finalLayerweights.p'), 'wb'))
+                    return 0
 
                 if step % self.config.training.snapshot_freq == 0:
                     print('checkpoint at step: {}'.format(step))
@@ -233,6 +237,10 @@ class PreTrainer:
 
 
 def transfer(args, config):
+    """
+    once an icebeem is pretrained on some labels (0-7), we train only secondary network (g in our manuscript)
+    on unseen labels 8-9 (these are new datasets)
+    """
     SUBSET_SIZE = args.SubsetSize
     SEED = args.seed
     DATASET = args.dataset.upper()
@@ -306,8 +314,12 @@ def transfer(args, config):
 
 
 def semisupervised(args, config):
+    """
+    after pretraining an icebeem (or unconditional EBM) on labels 0-7, we use the learnt features to classify
+    labels in classes 8-9
+    """
     class_model = LinearSVC  # LogisticRegression
-    test_size = .15
+    test_size = config.data.split_size
 
     ckpt_path = os.path.join(args.checkpoints, 'checkpoint.pth')
     # ckpt_path = os.path.join(args.logs, 'checkpoint_5000.pth')
@@ -339,11 +351,11 @@ def semisupervised(args, config):
                              drop_last=True, collate_fn=collate_helper)
     print('loaded test data')
 
-    representations = np.zeros((10000, 28 * 28))
+    representations = np.zeros((10000, config.data.image_size * config.data.image_size * config.data.channels )) # allow for multiple channels and distinct image sizes
     labels = np.zeros((10000,))
     counter = 0
     for i, (X, y) in enumerate(test_loader):
-        rep_i = score(X).view(-1, 28 * 28).data.cpu().numpy()
+        rep_i = score(X).view(-1, config.data.image_size * config.data.image_size * config.data.channels ).data.cpu().numpy()
         representations[counter:(counter + rep_i.shape[0]), :] = rep_i
         labels[counter:(counter + rep_i.shape[0])] = y.data.numpy()
         counter += rep_i.shape[0]
@@ -353,9 +365,11 @@ def semisupervised(args, config):
 
     labels -= 8
     rep_train, rep_test, lab_train, lab_test = train_test_split(scale(representations), labels, test_size=test_size,
-                                                                random_state=0)
+                                                                random_state=config.data.random_state)
     clf = class_model(random_state=0, max_iter=2000).fit(rep_train, lab_train)
     acc = accuracy_score(lab_test, clf.predict(rep_test)) * 100
+    print('#' * 10 )
     msg = 'Accuracy of ' + args.baseline * 'unconditional' + (
             1 - args.baseline) * 'transfer' + ' representation: acc={}'.format(np.round(acc, 2))
     print(msg)
+    print('#' * 10 )

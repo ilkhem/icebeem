@@ -7,7 +7,6 @@ from metrics.mcc import mean_corr_coef
 from models.icebeem_wrapper import ICEBEEM_wrapper
 from models.ivae.ivae_wrapper import IVAE_wrapper
 #from models.tcl.tcl_wrapper_gpu import TCL_wrapper
-
 from sklearn.decomposition import FastICA
 
 def run_ivae_exp(args, config):

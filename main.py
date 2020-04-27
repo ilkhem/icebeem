@@ -12,23 +12,29 @@ from runners.real_data_runner import PreTrainer, semisupervised, transfer
 def parse():
     parser = argparse.ArgumentParser(description='')
 
-    parser.add_argument('--dataset', type=str, help='dataset to run experiments. Should be MNIST or CIFAR10')
+    parser.add_argument('--dataset', type=str, help='Dataset to run experiments. Should be MNIST or CIFAR10, or FMNIST')
     parser.add_argument('--config', type=str, default='mnist.yaml', help='Path to the config file')
     parser.add_argument('--run', type=str, default='run', help='Path for saving running related data.')
     parser.add_argument('--doc', type=str, default='', help='A string for documentation purpose')
 
-    parser.add_argument('--nSims', type=int, default=5, help='number of simulations to run')
+    parser.add_argument('--nSims', type=int, default=5, help='Number of simulations to run')
     parser.add_argument('--SubsetSize', type=int, default=6000,
-                        help='only relevant for transfer learning baseline, otherwise ignored')
+                        help='Number of data points per class to consider -- only relevant for transfer learning')
     parser.add_argument('--seed', type=int, default=0, help='Random seed')
 
-    parser.add_argument('--all', action='store_true', help='')
-    parser.add_argument('--baseline', action='store_true', help='run an unconditional baseline for EBMs')
-    parser.add_argument('--semisupervised', action='store_true', help='run semi-supervised experiments')
+    parser.add_argument('--all', action='store_true',
+                        help='Run transfer learning experiment for many seeds and subset sizes -- only relevant for transfer learning')
+    parser.add_argument('--baseline', action='store_true', help='Run the script for the baseline')
+    parser.add_argument('--semisupervised', action='store_true', help='Run semi-supervised experiments')
     parser.add_argument('--transfer', action='store_true',
-                        help='run the transfer learning experiments after pretraining')
+                        help='Run the transfer learning experiments after pretraining')
 
-    return parser.parse_args()
+    parser.add_argument('--plot', action='store_true',
+                        help='Plot transfer learning experiment for the selected dataset')
+
+    args = parser.parse_args()
+    args.dataset = args.dataset.upper()
+    return args
 
 
 def dict2namespace(config):
@@ -73,7 +79,7 @@ def main():
     # steps 2, 3 and 4 are for many seeds and many subset sizes: the user can do them manually, or add the flag --all
     # and the script will perform the loop
 
-    if not args.transfer and not args.semisupervised and not args.baseline:
+    if not args.transfer and not args.semisupervised and not args.baseline and not args.plot:
         runner = PreTrainer(args, new_config)
         runner.train()
 
@@ -159,20 +165,19 @@ def main():
         make_dirs(new_args)
         semisupervised(new_args, new_config)
 
+    # PLOTTING TRANSFER LEARNING
+    # 1- just use of the flag --plot AND NO other flag (except --dataset of course)
+    if args.plot and not args.baseline and not args.semisupervised and not args.transfer:
+        plot(args)
 
-def plot():
-    import numpy as np
+
+def plot(args):
     import pickle
-    import os
-    import pylab as plt;
-    plt.ion()
+    from matplotlib import pyplot as plt
     import seaborn as sns
 
     sns.set_style("whitegrid")
     sns.set_palette('deep')
-
-    # load transfer results
-    os.chdir('transfer_exp/transferRes')
 
     # collect results for transfer learning
     samplesSizes = [500, 1000, 2000, 3000, 5000, 6000]
@@ -180,24 +185,25 @@ def plot():
     resTransfer = {x: [] for x in samplesSizes}
     resBaseline = {x: [] for x in samplesSizes}
 
+    # load transfer results
     for x in samplesSizes:
-        files = [f for f in os.listdir(os.getcwd()) if 'TransferCDSM_Size' + str(x) + '_' in f]
+        files = [f for f in os.listdir(args.run) if args.dataset.lower() + 'TransferCDSM_Size' + str(x) + '_' in f]
         for f in files:
-            resTransfer[x].append(np.median(pickle.load(open(f, 'rb'))))
+            resTransfer[x].append(np.median(pickle.load(open(os.path.join(args.run, f), 'rb'))))
 
-        files = [f for f in os.listdir(os.getcwd()) if 'Baseline_Size' + str(x) + '_' in f]
+        files = [f for f in os.listdir(args.run) if args.dataset + '_Baseline_Size' + str(x) + '_' in f]
         for f in files:
-            resBaseline[x].append(np.median(pickle.load(open(f, 'rb'))))
+            resBaseline[x].append(np.median(pickle.load(open(os.path.join(args.run, f), 'rb'))))
 
         print(
             'Transfer: ' + str(np.median(resTransfer[x]) * 1e4) + '\tBaseline: ' + str(np.median(resBaseline[x]) * 1e4))
 
     resTsd = np.array([np.std(resTransfer[x]) * 1e4 for x in samplesSizes])
 
-    resT = [np.median(resTransfer[x]) * 1e4 for x in samplesSizes]
-    resBas = [np.median(resBaseline[x]) * 1e4 for x in samplesSizes]
+    resT = np.array([np.median(resTransfer[x]) * 1e4 for x in samplesSizes])
+    resBas = np.array([np.median(resBaseline[x]) * 1e4 for x in samplesSizes])
 
-    f, (ax1) = plt.subplots(1, 1, sharey=True, figsize=(4, 4))
+    f, (ax1) = plt.subplots(1, 1, figsize=(4, 4))
     ax1.plot(samplesSizes, resT, label='Transfer', linewidth=2, color=sns.color_palette()[2])
     ax1.fill_between(samplesSizes, resT + 2 * resTsd, resT - 2 * resTsd, alpha=.25, color=sns.color_palette()[2])
     ax1.plot(samplesSizes, resBas, label='Baseline', linewidth=2, color=sns.color_palette()[4])
@@ -206,6 +212,7 @@ def plot():
     ax1.set_ylabel('DSM Objective (scaled)')
     ax1.set_title('Conditional DSM Objective')
     f.tight_layout()
+    plt.savefig(os.path.join(args.run, 'transfer_{}.pdf'.format(args.dataset.lower())))
 
 
 if __name__ == '__main__':

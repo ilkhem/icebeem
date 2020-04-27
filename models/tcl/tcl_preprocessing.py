@@ -1,11 +1,11 @@
 """Preprocessing"""
 
-
 import numpy as np
 
+
 # ============================================================
 # ============================================================
-def pca(x, num_comp=None, params=None, zerotolerance = 1e-7):
+def pca(x, num_comp=None, params=None, zerotolerance=1e-7):
     """Apply PCA whitening to data.
     Args:
         x: data. 2D ndarray [num_comp, num_data]
@@ -19,12 +19,12 @@ def pca(x, num_comp=None, params=None, zerotolerance = 1e-7):
             W: whitening matrix
             A: mixing matrix
     """
-    #print("PCA...")
+    # print("PCA...")
 
     # Dimension
     if num_comp is None:
         num_comp = x.shape[0]
-    #print("    num_comp={0:d}".format(num_comp))
+    # print("    num_comp={0:d}".format(num_comp))
 
     # From learned parameters --------------------------------
     if params is not None:
@@ -47,12 +47,12 @@ def pca(x, num_comp=None, params=None, zerotolerance = 1e-7):
         V = V[:, ::-1]
 
         zeroeigval = np.sum((d[:num_comp] / d[0]) < zerotolerance)
-        if zeroeigval > 0: # Do not allow zero eigenval
+        if zeroeigval > 0:  # Do not allow zero eigenval
             raise ValueError
 
         # Calculate contribution ratio
         contratio = np.sum(d[:num_comp]) / np.sum(d)
-        #print("    contribution ratio={0:f}".format(contratio))
+        # print("    contribution ratio={0:f}".format(contratio))
 
         # Construct whitening and dewhitening matrices
         dsqrt = np.sqrt(d[:num_comp])
@@ -69,5 +69,3 @@ def pca(x, num_comp=None, params=None, zerotolerance = 1e-7):
         datacov = np.cov(x)
 
     return x, params
-
-

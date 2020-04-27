@@ -42,6 +42,7 @@ def make_dirs_simulations(args):
     os.makedirs(args.checkpoints, exist_ok=True)
 
 
+
 if __name__ == '__main__':
     args = parse_sim()
     print('Running {} experiments using {}'.format(args.dataset, args.method))
@@ -105,3 +106,5 @@ if __name__ == '__main__':
 
         else:
             raise ValueError('Unsupported dataset {}'.format(args.dataset))
+    else:
+        plot(args)

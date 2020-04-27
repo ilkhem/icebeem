@@ -276,14 +276,20 @@ def gen_IMCA_data(Ncomp, Nlayer, Nsegment, NsegmentObs, BaseCovariance, NonLin='
     latents = np.zeros((Nobs, Ncomp))
 
     # generate segment variance for latent variables
-    modMat = np.random.uniform(0.01, 3, (Ncomp, Nsegment)) ** 2 # this is to make consistent with TCL experiments ! 
+    modMat = np.random.uniform(0.01, 3, (Ncomp, Nsegment)) ** 2  # this is to make consistent with TCL experiments !
+
+    if varyMean:
+        meanMat = np.random.uniform(-3, 3, (Ncomp, Nsegment))
+    else:
+        meanMat = np.zeros((Ncomp, Nsegment))
 
     for i in range(Nsegment):
         # define presicion for segment i
-        Pres_i = np.linalg.inv(BaseCovariance)*(.5/Ncomp) + np.diag(1 / modMat[:, i])
+        Pres_i = np.linalg.inv(BaseCovariance) * (.5 / Ncomp) + np.diag(1 / modMat[:, i])
         latents[(i * NsegmentObs):((i + 1) * NsegmentObs), :] = np.random.multivariate_normal(mean=np.zeros((Ncomp,)),
                                                                                               cov=np.linalg.inv(Pres_i),
                                                                                               size=NsegmentObs)
+        latents[(i * NsegmentObs):((i + 1) * NsegmentObs), :] = np.add( latents[(i * NsegmentObs):((i + 1) * NsegmentObs), :] , meanMat[:, seg])
         labels[(i * NsegmentObs):((i + 1) * NsegmentObs)] = i
 
     # now we are ready to apply the non-linear mixtures:
@@ -390,14 +396,14 @@ def gen_TCL_data_ortho(Ncomp, Nlayer, Nsegment, NsegmentObs, source='Laplace', N
 
 
 def generate_synthetic_data(data_dim, data_segments, n_obs_seg, n_layer, simulationMethod='TCL', seed=1,
-                            one_hot_labels=False):
+                            one_hot_labels=False, varyMean=False):
     np.random.seed(seed)
     if simulationMethod.lower() == 'tcl':
         dat_all = gen_TCL_data_ortho(Ncomp=data_dim, Nsegment=data_segments, Nlayer=n_layer, NsegmentObs=n_obs_seg,
-                                     source='Gaussian', NonLin='leaky', negSlope=.2, seed=seed)
+                                     source='Gaussian', NonLin='leaky', negSlope=.2, seed=seed, varyMean=varyMean)
     elif simulationMethod.lower() == 'imca':
         baseEvals = np.random.rand(data_dim)
-        baseEvals /= ( (1./data_dim) * baseEvals.sum())
+        baseEvals /= ((1. / data_dim) * baseEvals.sum())
         baseCov = random_correlation.rvs(baseEvals)
 
         dat_all = gen_IMCA_data(Ncomp=data_dim, Nsegment=data_segments, Nlayer=n_layer, NsegmentObs=n_obs_seg,

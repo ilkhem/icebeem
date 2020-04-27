@@ -1,10 +1,10 @@
+import numpy as np
 import torch
 import torch.nn.functional as F
 from torch import nn
-import numpy as np
 
-from ..nets import MLP4
 from .spline_flows import unconstrained_RQS
+from ..nets import MLP4
 
 
 class Invertible1x1Conv(nn.Module):
@@ -226,7 +226,7 @@ class NormalizingFlowModel(nn.Module):
 
         # unconditional model
         else:
-            u = self.prior.sample((n_samples, ))
+            u = self.prior.sample((n_samples,))
             samples, _ = self.backward(u)
             samples = samples[-1]
             log_probs = self.log_pdf(samples)
