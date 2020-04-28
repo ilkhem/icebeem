@@ -377,11 +377,12 @@ def semisupervised(args, config):
 
 
 
-def cca_representations(args, config, conditional=True):
+def cca_representations(args, config, conditional=True, retrain=True):
     """
     we train an icebeem model or an unconditional EBM across multiple random seeds and 
     compare the reproducibility of representations via CCA 
 
+    first we train the entire network, then we save the activations !
     """
 
     SUBSET_SIZE = 10
@@ -402,11 +403,55 @@ def cca_representations(args, config, conditional=True):
     np.random.seed(new_args.seed)
     torch.manual_seed(new_args.seed)
 
+    # this will be used to reload the network later 
+    ckpt_path = os.path.join(args.run, 'logs', new_args.doc,  'checkpoint.pth')
+    print(ckpt_path)
+
     print( new_args )
-    runner = PreTrainer( new_args, new_config)
-    runner.train( conditional=conditional )
+    if retrain:
+        print('training networks ..')
+        runner = PreTrainer( new_args, new_config)
+        runner.train( conditional=conditional )
 
     # finally, save learnt representations
+    states = torch.load(ckpt_path, map_location='cuda:0')
+    score = RefineNetDilated(config).to('cuda:0')
+    score = torch.nn.DataParallel(score)
+    score.load_state_dict(states[0])
 
+    # now load in the data
+    test_transform = transforms.Compose([
+        transforms.Resize(config.data.image_size),
+        transforms.ToTensor()
+    ])
 
+    useTrain = False
+    if args.dataset.lower() == 'mnist':
+        test_dataset = MNIST(os.path.join(args.run, 'datasets'), train=useTrain, download=True, transform=test_transform)
+    elif args.dataset.lower() == 'cifar10':
+        test_dataset = CIFAR10(os.path.join(args.run, 'datasets'), train=useTrain, download=True, transform=test_transform)
+    elif args.dataset.lower() in ['fmnist', 'fashionmnist']:
+        test_dataset = FashionMNIST(os.path.join(args.run, 'datasets'), train=useTrain, download=True,
+                                    transform=test_transform)
+    else:
+        raise ValueError('Unknown dataset {}'.format(args.dataset))
+
+    test_loader = DataLoader(test_dataset, batch_size=config.training.batch_size, shuffle=False, num_workers=0,
+                             drop_last=True)
+    print('loaded test data')
+
+    representations = np.zeros((10000, config.data.image_size * config.data.image_size * config.data.channels )) # allow for multiple channels and distinct image sizes
+    labels = np.zeros((10000,))
+    counter = 0
+    for i, (X, y) in enumerate(test_loader):
+        rep_i = score(X).view(-1, config.data.image_size * config.data.image_size * config.data.channels ).data.cpu().numpy()
+        representations[counter:(counter + rep_i.shape[0]), :] = rep_i
+        labels[counter:(counter + rep_i.shape[0])] = y.data.cpu().numpy()
+        counter += rep_i.shape[0]
+    representations = representations[:counter, :]
+    labels = labels[:counter]
+
+    import pickle
+    pickle.dump( {'rep':representations, 'lab':labels}, open( os.path.join(args.run, 'logs', new_args.doc,  'test_representations.p'), 'wb') )
+    print('loaded and saved representations')
 

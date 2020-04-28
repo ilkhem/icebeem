@@ -31,6 +31,7 @@ def parse():
     parser.add_argument('--transfer', action='store_true',
                         help='Run the transfer learning experiments after pretraining')
     parser.add_argument('--representation', action='store_true', help='Run CCA representation validation across multiple seeds')
+    parser.add_argument('--retrainNets', default=False, action='store_true', help='Should we retrain conditional and unconditional networks or proceed to get representations')
 
     parser.add_argument('--plot', action='store_true',
                         help='Plot transfer learning experiment for the selected dataset')
@@ -170,28 +171,44 @@ def main():
 
     if args.representation and not args.baseline:
         # train networks here and compare the outputs for conditional EBMs
+        # train conditional EBMs
+
+        if args.retrainNets:
+            print('retraining')
+        else:
+            print('not retraining')
+
         for seed in range( args.nSims ):
             new_args = argparse.Namespace(**vars(args))
             new_args.seed = seed 
             new_args.doc = args.doc + args.dataset + '_Representation' + str( new_args.seed )
             print( new_args.doc )
             make_dirs(new_args)
-            cca_representations( new_args, new_config )
+            cca_representations( new_args, new_config, retrain=args.retrainNets )
+
+        # load representations and save them
+
 
     if args.representation and args.baseline:
-        print('here')
         # train networks here and compare the outputs for unconditional EBMs
+
+        if args.retrainNets:
+            print('retraining')
+        else:
+            print('not retraining')
+
+        # train unconditional EBMs
         for seed in range( args.nSims ):
             new_args = argparse.Namespace(**vars(args))
             new_args.seed = seed 
             new_args.doc = args.doc + args.dataset + '_RepresentationBaseline' + str( new_args.seed )
             print( new_args.doc )
             make_dirs(new_args)
-            cca_representations( new_args, new_config, conditional=False )
+            cca_representations( new_args, new_config, conditional=False, retrain=args.retrainNets )
 
     # PLOTTING TRANSFER LEARNING
     # 1- just use of the flag --plot AND NO other flag (except --dataset of course)
-    if args.plot and not args.baseline and not args.semisupervised and not args.transfer:
+    if args.plot and not args.baseline and not args.semisupervised and args.transfer and not args.representation:
         plot(args)
 
 
