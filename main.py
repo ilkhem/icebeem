@@ -173,26 +173,25 @@ def main():
         # train networks here and compare the outputs for conditional v unconditional EBMs
         if args.retrainNets:
             print('retraining')
+            # train conditional EBMs
+            for seed in range( args.nSims ):
+                new_args = argparse.Namespace(**vars(args))
+                new_args.seed = seed 
+                new_args.doc = args.doc + args.dataset + '_Representation' + str( new_args.seed )
+                print( new_args.doc )
+                make_dirs(new_args)
+                cca_representations( new_args, new_config, retrain=args.retrainNets )
+
+            # train unconditional EBMs
+            for seed in range( args.nSims ):
+                new_args = argparse.Namespace(**vars(args))
+                new_args.seed = seed 
+                new_args.doc = args.doc + args.dataset + '_RepresentationBaseline' + str( new_args.seed )
+                print( new_args.doc )
+                make_dirs(new_args)
+                cca_representations( new_args, new_config, conditional=False, retrain=args.retrainNets )
         else:
             print('not retraining')
-
-        # train conditional EBMs
-        for seed in range( args.nSims ):
-            new_args = argparse.Namespace(**vars(args))
-            new_args.seed = seed 
-            new_args.doc = args.doc + args.dataset + '_Representation' + str( new_args.seed )
-            print( new_args.doc )
-            make_dirs(new_args)
-            cca_representations( new_args, new_config, retrain=args.retrainNets )
-
-        # train unconditional EBMs
-        for seed in range( args.nSims ):
-            new_args = argparse.Namespace(**vars(args))
-            new_args.seed = seed 
-            new_args.doc = args.doc + args.dataset + '_RepresentationBaseline' + str( new_args.seed )
-            print( new_args.doc )
-            make_dirs(new_args)
-            cca_representations( new_args, new_config, conditional=False, retrain=args.retrainNets )
 
         # load in trained representations
         import pickle
@@ -200,9 +199,10 @@ def main():
         res_cond   = []
         res_uncond = []
         for seed in range( args.nSims ):
-            print(args.doc + args.dataset + '_Representation' + str( new_args.seed ))
-            res_cond.append( pickle.load(open(args.doc + args.dataset + '_Representation' + str( seed ), 'rb')) )
-            res_uncond.append( pickle.load(open(args.doc + args.dataset + '_RepresentationBaseline' + str( seed ), 'rb')) )
+            path_cond = os.path.join(args.run, 'logs', args.doc + args.dataset + '_Representation' + str( seed ),  'test_representations.p')
+            path_uncond = os.path.join(args.run, 'logs', args.doc + args.dataset + '_RepresentationBaseline' + str( seed ),  'test_representations.p')
+            res_cond.append( pickle.load(open(path_cond, 'rb')) )
+            res_uncond.append( pickle.load(open(path_uncond, 'rb')) )
 
         # check things are in correct order
         assert np.max( np.abs( res_cond[0]['lab'] - res_cond[1]['lab'] ) ) == 0
@@ -218,11 +218,13 @@ def main():
                 mcc_strong_uncond.append( mean_corr_coef( res_uncond[i]['rep'], res_uncond[j]['rep']) )
 
 
-        print('Strong identifiability performance (i.e., direct MCC)')
-        print('Conditional: {}\tUnconditional: {}'.format( np.mean(mcc_strong_cond), np.mean(mcc_strong_uncond) ) )
+        print('\n\nStrong identifiability performance (i.e., direct MCC)')
+        print('Conditional: {}\t\tUnconditional: {}'.format( np.mean(mcc_strong_cond), np.mean(mcc_strong_uncond) ) )
 
         # no we compare representation identifiability for weaker case
         from sklearn.cross_decomposition import CCA
+        import warnings
+        warnings.filterwarnings("ignore", category=DeprecationWarning)
         ii = np.where( res_cond[0]['lab'] < 5 )[0]
         iinot = np.where( res_cond[0]['lab'] >= 5 )[0]
 
@@ -244,8 +246,8 @@ def main():
                 resbase = cca.transform(res_uncond[i]['rep'][iinot,:], res_uncond[j]['rep'][iinot,:] )
                 mcc_weak_uncond.append( mean_corr_coef( resbase[0], resbase[1] ) )
 
-        print('Weak identifiability performance (i.e., MCC after CCA projection)')
-        print('Conditional: {}\tUnconditional: {}'.format( np.mean(mcc_weak_cond), np.mean(mcc_weak_uncond) ) )
+        print('\n\nWeak identifiability performance (i.e., MCC after CCA projection)')
+        print('Conditional: {}\t\tUnconditional: {}'.format( np.mean(mcc_weak_cond), np.mean(mcc_weak_uncond) ) )
 
 
     # PLOTTING TRANSFER LEARNING
