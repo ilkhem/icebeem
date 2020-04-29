@@ -169,15 +169,14 @@ def main():
         make_dirs(new_args)
         semisupervised(new_args, new_config)
 
-    if args.representation and not args.baseline:
-        # train networks here and compare the outputs for conditional EBMs
-        # train conditional EBMs
-
+    if args.representation:
+        # train networks here and compare the outputs for conditional v unconditional EBMs
         if args.retrainNets:
             print('retraining')
         else:
             print('not retraining')
 
+        # train conditional EBMs
         for seed in range( args.nSims ):
             new_args = argparse.Namespace(**vars(args))
             new_args.seed = seed 
@@ -185,17 +184,6 @@ def main():
             print( new_args.doc )
             make_dirs(new_args)
             cca_representations( new_args, new_config, retrain=args.retrainNets )
-
-        # load representations and save them
-
-
-    if args.representation and args.baseline:
-        # train networks here and compare the outputs for unconditional EBMs
-
-        if args.retrainNets:
-            print('retraining')
-        else:
-            print('not retraining')
 
         # train unconditional EBMs
         for seed in range( args.nSims ):
@@ -205,6 +193,60 @@ def main():
             print( new_args.doc )
             make_dirs(new_args)
             cca_representations( new_args, new_config, conditional=False, retrain=args.retrainNets )
+
+        # load in trained representations
+        import pickle
+        from metrics.mcc import mean_corr_coef
+        res_cond   = []
+        res_uncond = []
+        for seed in range( args.nSims ):
+            print(args.doc + args.dataset + '_Representation' + str( new_args.seed ))
+            res_cond.append( pickle.load(open(args.doc + args.dataset + '_Representation' + str( seed ), 'rb')) )
+            res_uncond.append( pickle.load(open(args.doc + args.dataset + '_RepresentationBaseline' + str( seed ), 'rb')) )
+
+        # check things are in correct order
+        assert np.max( np.abs( res_cond[0]['lab'] - res_cond[1]['lab'] ) ) == 0
+        assert np.max( np.abs( res_uncond[0]['lab'] - res_uncond[1]['lab'] ) ) == 0
+        assert np.max( np.abs( res_cond[0]['lab'] - res_uncond[0]['lab'] ) ) == 0
+
+        # now we compare representation identifiability (strong case)
+        mcc_strong_cond   = []
+        mcc_strong_uncond = []
+        for i in range( args.nSims ):
+            for j in range( i+1, args.nSims ):
+                mcc_strong_cond.append( mean_corr_coef( res_cond[i]['rep'], res_cond[j]['rep']) )
+                mcc_strong_uncond.append( mean_corr_coef( res_uncond[i]['rep'], res_uncond[j]['rep']) )
+
+
+        print('Strong identifiability performance (i.e., direct MCC)')
+        print('Conditional: {}\tUnconditional: {}'.format( np.mean(mcc_strong_cond), np.mean(mcc_strong_uncond) ) )
+
+        # no we compare representation identifiability for weaker case
+        from sklearn.cross_decomposition import CCA
+        ii = np.where( res_cond[0]['lab'] < 5 )[0]
+        iinot = np.where( res_cond[0]['lab'] >= 5 )[0]
+
+        mcc_weak_cond   = []
+        mcc_weak_uncond = []
+
+        for i in range( args.nSims ):
+            for j in range( i+1, args.nSims ):
+                cca = CCA( n_components = 10 )
+                cca.fit( res_cond[i]['rep'][ii,:], res_cond[j]['rep'][ii,:] )
+
+                res = cca.transform(res_cond[i]['rep'][iinot,:], res_cond[j]['rep'][iinot,:] )
+                mcc_weak_cond.append( mean_corr_coef( res[0], res[1] ) )
+
+                # now repeat on the baseline!
+                ccabase = CCA( n_components = 10 )
+                ccabase.fit( res_uncond[i]['rep'][ii,:], res_uncond[j]['rep'][ii,:] )
+
+                resbase = cca.transform(res_uncond[i]['rep'][iinot,:], res_uncond[j]['rep'][iinot,:] )
+                mcc_weak_uncond.append( mean_corr_coef( resbase[0], resbase[1] ) )
+
+        print('Weak identifiability performance (i.e., MCC after CCA projection)')
+        print('Conditional: {}\tUnconditional: {}'.format( np.mean(mcc_weak_cond), np.mean(mcc_weak_uncond) ) )
+
 
     # PLOTTING TRANSFER LEARNING
     # 1- just use of the flag --plot AND NO other flag (except --dataset of course)

@@ -395,9 +395,9 @@ def cca_representations(args, config, conditional=True, retrain=True):
     new_config = config 
     new_config.n_labels = 10
     #new_config.subsetSize = 60000
-    new_args.subsetSize = 60000
+    new_args.subsetSize = 60000 if DATASET=='MNIST' else 50000
 
-    new_args.SubsetSize = 60000 # SUBSET_SIZE
+    new_args.SubsetSize = 60000 if DATASET=='MNIST' else 50000 # SUBSET_SIZE
     new_args.seed = args.seed
     # change random seed
     np.random.seed(new_args.seed)
@@ -453,5 +453,5 @@ def cca_representations(args, config, conditional=True, retrain=True):
 
     import pickle
     pickle.dump( {'rep':representations, 'lab':labels}, open( os.path.join(args.run, 'logs', new_args.doc,  'test_representations.p'), 'wb') )
-    print('loaded and saved representations')
+    print('\ncomputed and saved representations over test data\n')
 
