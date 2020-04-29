@@ -224,7 +224,8 @@ def main():
         # no we compare representation identifiability for weaker case
         from sklearn.cross_decomposition import CCA
         import warnings
-        warnings.filterwarnings("ignore", category=DeprecationWarning)
+        from sklearn.exceptions import ConvergenceWarning
+        warnings.filterwarnings("ignore", category=ConvergenceWarning)
         ii = np.where( res_cond[0]['lab'] < 5 )[0]
         iinot = np.where( res_cond[0]['lab'] >= 5 )[0]
 
