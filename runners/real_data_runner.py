@@ -12,7 +12,7 @@ from sklearn.svm import LinearSVC
 from torch import optim
 from torch.utils.data import DataLoader
 from torch.utils.data.dataloader import default_collate
-from torchvision.datasets import MNIST, CIFAR10, FashionMNIST
+from torchvision.datasets import MNIST, CIFAR10, FashionMNIST, CIFAR100
 
 from losses.dsm import conditional_dsm, dsm
 from models.refinenet_dilated_baseline import RefineNetDilated
@@ -101,6 +101,11 @@ class PreTrainer:
             dataset = FashionMNIST(os.path.join(self.args.run, 'datasets'), train=True, download=True,
                                    transform=tran_transform)
 
+        elif self.config.data.dataset == 'CIFAR100':
+            print('running CIFAR100')
+            dataset = CIFAR100(os.path.join(self.args.run, 'datasets'), train=True, download=True,
+                              transform=tran_transform)
+
         elif self.config.data.dataset == 'MNIST_transferBaseline':
             # use same dataset as transfer_nets.py
             # we can also use the train dataset since the digits are unseen anyway
@@ -126,7 +131,7 @@ class PreTrainer:
             raise ValueError('Unknown config dataset {}'.format(self.config.data.dataset))
 
         # apply collation
-        if self.config.data.dataset in ['MNIST', 'CIFAR10', 'FashionMNIST']:
+        if self.config.data.dataset in ['MNIST', 'CIFAR10', 'FashionMNIST', 'CIFAR100']:
             collate_helper = lambda batch: my_collate(batch, nSeg=self.nSeg)
             print('Subset size: ' + str(self.subsetSize))
             id_range = list(range(self.subsetSize))
@@ -393,11 +398,14 @@ def cca_representations(args, config, conditional=True, retrain=True):
 
     new_args = args # argparse.Namespace(**vars(args))
     new_config = config 
-    new_config.n_labels = 10
+    if DATASET != 'CIFAR100':
+        new_config.n_labels = 10
+    else:
+        new_config.n_labels = 100
     #new_config.subsetSize = 60000
-    new_args.subsetSize = 60000 if DATASET=='MNIST' else 50000
+    new_args.subsetSize = 60000 if DATASET in ['MNIST', 'FASHIONMNIST'] else 50000
 
-    new_args.SubsetSize = 60000 if DATASET=='MNIST' else 50000 # SUBSET_SIZE
+    new_args.SubsetSize = 60000 if DATASET in ['MNIST', 'FASHIONMNIST'] else 50000 # SUBSET_SIZE
     new_args.seed = args.seed
     # change random seed
     np.random.seed(new_args.seed)
@@ -433,6 +441,8 @@ def cca_representations(args, config, conditional=True, retrain=True):
     elif args.dataset.lower() in ['fmnist', 'fashionmnist']:
         test_dataset = FashionMNIST(os.path.join(args.run, 'datasets'), train=useTrain, download=True,
                                     transform=test_transform)
+    elif args.dataset.lower() == 'cifar100':
+        test_dataset = CIFAR100(os.path.join(args.run, 'datasets'), train=useTrain, download=True, transform=test_transform)        
     else:
         raise ValueError('Unknown dataset {}'.format(args.dataset))
 

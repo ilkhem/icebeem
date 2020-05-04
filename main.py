@@ -195,7 +195,7 @@ def main():
 
         # load in trained representations
         import pickle
-        from metrics.mcc import mean_corr_coef
+        from metrics.mcc import mean_corr_coef, mean_corr_coef_out_of_sample
         res_cond   = []
         res_uncond = []
         for seed in range( args.nSims ):
@@ -212,14 +212,22 @@ def main():
         # now we compare representation identifiability (strong case)
         mcc_strong_cond   = []
         mcc_strong_uncond = []
+        ii = np.where( res_cond[0]['lab'] < 5 )[0]
+        iinot = np.where( res_cond[0]['lab'] >= 5 )[0]
+
         for i in range( args.nSims ):
             for j in range( i+1, args.nSims ):
-                mcc_strong_cond.append( mean_corr_coef( res_cond[i]['rep'], res_cond[j]['rep']) )
-                mcc_strong_uncond.append( mean_corr_coef( res_uncond[i]['rep'], res_uncond[j]['rep']) )
+                mcc_strong_cond.append( mean_corr_coef_out_of_sample( x=res_cond[i]['rep'][ii,:], y=res_cond[j]['rep'][ii,:], x_test=res_cond[i]['rep'][iinot,:], y_test=res_cond[j]['rep'][iinot,:] ) )
+                mcc_strong_uncond.append( mean_corr_coef_out_of_sample( x=res_uncond[i]['rep'][ii,:], y=res_uncond[j]['rep'][ii,:], x_test=res_uncond[i]['rep'][iinot,:], y_test=res_uncond[j]['rep'][iinot,:] ) )
+                #mcc_strong_cond.append( mean_corr_coef( res_cond[i]['rep'], res_cond[j]['rep']) )
+                #mcc_strong_uncond.append( mean_corr_coef( res_uncond[i]['rep'], res_uncond[j]['rep']) )
 
 
         print('\n\nStrong identifiability performance (i.e., direct MCC)')
         print('Conditional: {}\t\tUnconditional: {}'.format( np.mean(mcc_strong_cond), np.mean(mcc_strong_uncond) ) )
+
+        # save results:
+        pickle.dump({'mcc_strong_cond': mcc_strong_cond, 'mcc_strong_uncond':mcc_strong_uncond}, open(args.dataset+'_srongMCC.p', 'wb'))
 
         # no we compare representation identifiability for weaker case
         from sklearn.cross_decomposition import CCA
@@ -232,23 +240,27 @@ def main():
         mcc_weak_cond   = []
         mcc_weak_uncond = []
 
+        cca_dim = 20
         for i in range( args.nSims ):
             for j in range( i+1, args.nSims ):
-                cca = CCA( n_components = 10 )
+                cca = CCA( n_components = cca_dim )
                 cca.fit( res_cond[i]['rep'][ii,:], res_cond[j]['rep'][ii,:] )
 
                 res = cca.transform(res_cond[i]['rep'][iinot,:], res_cond[j]['rep'][iinot,:] )
                 mcc_weak_cond.append( mean_corr_coef( res[0], res[1] ) )
 
                 # now repeat on the baseline!
-                ccabase = CCA( n_components = 10 )
+                ccabase = CCA( n_components = cca_dim )
                 ccabase.fit( res_uncond[i]['rep'][ii,:], res_uncond[j]['rep'][ii,:] )
 
                 resbase = cca.transform(res_uncond[i]['rep'][iinot,:], res_uncond[j]['rep'][iinot,:] )
                 mcc_weak_uncond.append( mean_corr_coef( resbase[0], resbase[1] ) )
 
         print('\n\nWeak identifiability performance (i.e., MCC after CCA projection)')
-        print('Conditional: {}\t\tUnconditional: {}'.format( np.mean(mcc_weak_cond), np.mean(mcc_weak_uncond) ) )
+        print('Conditional: {}\t\tUnconditional: {}\n\n'.format( np.mean(mcc_weak_cond), np.mean(mcc_weak_uncond) ) )
+
+        # save results:
+        pickle.dump({'mcc_weak_cond': mcc_weak_cond, 'mcc_weak_uncond':mcc_weak_uncond}, open(args.dataset+'_weakMCC.p', 'wb'))
 
 
     # PLOTTING TRANSFER LEARNING
