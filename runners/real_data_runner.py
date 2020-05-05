@@ -306,15 +306,16 @@ def transfer(args, config):
         raise ValueError('Unknown dataset {}'.format(DATASET))
     id_range = list(range(SUBSET_SIZE))
     dataset = torch.utils.data.Subset(test_dataset, id_range)
+    collate_helper = lambda batch: my_collate_rev(batch, nSeg=config.n_labels, one_hot=True,
+                                                  total_labels=total_labels)
 
-    collate_helper = lambda batch: my_collate_rev(batch, nSeg=config.n_labels, one_hot=True, total_labels=total_labels)
-    test_loader = DataLoader(dataset, batch_size=config.training.batch_size, shuffle=True, num_workers=1,
+    test_loader = DataLoader(dataset, batch_size=config.training.batch_size, shuffle=True, num_workers=0,
                              drop_last=True, collate_fn=collate_helper)
     print('loaded test data')
 
     ckpt_path = os.path.join(args.checkpoints, 'checkpoint.pth')
-    states = torch.load(ckpt_path, map_location='cuda:0')
-    f = RefineNetDilated(config).to('cuda:0')
+    states = torch.load(ckpt_path, map_location=config.device)
+    f = RefineNetDilated(config).to(config.device)
     # f = torch.nn.DataParallel(f)
     f.load_state_dict(states[0])
     print('loaded energy network')
@@ -371,8 +372,8 @@ def semisupervised(args, config):
 
     ckpt_path = os.path.join(args.checkpoints, 'checkpoint.pth')
     # ckpt_path = os.path.join(args.logs, 'checkpoint_5000.pth')
-    states = torch.load(ckpt_path, map_location='cuda:0')
-    f = RefineNetDilated(config).to('cuda:0')
+    states = torch.load(ckpt_path, map_location=config.device)
+    f = RefineNetDilated(config).to(config.device)
     # f = torch.nn.DataParallel(f)
     f.load_state_dict(states[0])
     print('loaded energy network')
@@ -399,7 +400,7 @@ def semisupervised(args, config):
 
     collate_helper = lambda batch: my_collate_rev(batch, nSeg=config.n_labels, one_hot=True, total_labels=total_labels)
 
-    test_loader = DataLoader(test_dataset, batch_size=config.training.batch_size, shuffle=False, num_workers=1,
+    test_loader = DataLoader(test_dataset, batch_size=config.training.batch_size, shuffle=False, num_workers=0,
                              drop_last=True, collate_fn=collate_helper)
     print('loaded test data')
 
@@ -468,8 +469,8 @@ def cca_representations(args, config, conditional=True, retrain=True):
         runner.train(conditional=conditional)
 
     # finally, save learnt representations
-    states = torch.load(ckpt_path, map_location='cuda:0')
-    f = RefineNetDilated(config).to('cuda:0')
+    states = torch.load(ckpt_path, map_location=config.device)
+    f = RefineNetDilated(config).to(config.device)
     # f = torch.nn.DataParallel(f)
     f.load_state_dict(states[0])
 
