@@ -224,7 +224,7 @@ class PreTrainer:
                 loss_track_epochs.append(loss.item())
 
                 if step >= self.config.training.n_iters:
-                    enet, energy_net_finalLayer = energy_net.f, energy_net.g.weight
+                    enet, energy_net_finalLayer = energy_net.f, energy_net.g
                     # save final checkpoints for distrubution!
                     states = [
                         enet.state_dict(),
@@ -238,7 +238,7 @@ class PreTrainer:
                     return 0
 
                 if step % self.config.training.snapshot_freq == 0:
-                    enet, energy_net_finalLayer = energy_net.f, energy_net.g.weight
+                    enet, energy_net_finalLayer = energy_net.f, energy_net.g
                     print('checkpoint at step: {}'.format(step))
                     # save checkpoint for transfer learning! !
                     torch.save([energy_net_finalLayer], os.path.join(self.args.log, 'finalLayerweights_.pth'))
@@ -264,7 +264,7 @@ class PreTrainer:
                             self.subsetSize) + "_Seed" + str(self.seed) + '.p'), 'wb'))
 
         # save final checkpoints for distrubution!
-        enet, energy_net_finalLayer = energy_net.f, energy_net.g.weight
+        enet, energy_net_finalLayer = energy_net.f, energy_net.g
         states = [
             enet.state_dict(),
             optimizer.state_dict(),
