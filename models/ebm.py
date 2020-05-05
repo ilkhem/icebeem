@@ -19,8 +19,8 @@ class UnnormalizedConditialEBM(nn.Module):
         self.f = CleanMLP(input_size, hidden_size, n_hidden, output_size, activation=activation)
         self.g = nn.Linear(condition_size, output_size, bias=False)
 
-    def log_pdf(self, x, y, augment=True, positive=False):
-        fx, gy = self.forward(x, y)
+    def forward(self, x, y, augment=False, positive=False):
+        fx, gy = self.f(x), self.g(y)
 
         if positive:
             fx = F.relu(fx)
@@ -31,11 +31,6 @@ class UnnormalizedConditialEBM(nn.Module):
 
         else:
             return torch.einsum('bi,bi->b', [fx, gy])
-
-    def forward(self, x, y):
-        fx = self.f(x)
-        gy = self.g(y)
-        return fx, gy
 
 
 class ModularUnnormalizedConditionalEBM(nn.Module):
@@ -51,11 +46,8 @@ class ModularUnnormalizedConditionalEBM(nn.Module):
         self.f = f_net
         self.g = g_net
 
-    def forward(self, x, y):
-        return self.f(x), self.g(y)
-
-    def log_pdf(self, x, y, augment=True, positive=False):
-        fx, gy = self.forward(x, y)
+    def forward(self, x, y, augment=False, positive=False):
+        fx, gy = self.f(x), self.g(y)
 
         if positive:
             fx = F.relu(fx)
@@ -74,8 +66,8 @@ class ConditionalEBM(UnnormalizedConditialEBM):
 
         self.log_norm = nn.Parameter(torch.randn(1) - 5, requires_grad=True)
 
-    def log_pdf(self, x, y, augment=True, positive=False):
-        return super().log_pdf(x, y, augment, positive) + self.log_norm
+    def forward(self, x, y, augment=True, positive=False):
+        return super().forward(x, y, augment, positive) + self.log_norm
 
 
 class ModularConditionalEBM(ModularUnnormalizedConditionalEBM):
@@ -84,9 +76,8 @@ class ModularConditionalEBM(ModularUnnormalizedConditionalEBM):
 
         self.log_norm = nn.Parameter(torch.randn(1) - 5, requires_grad=True)
 
-    def log_pdf(self, x, y, augment=True, positive=False):
-        return super().log_pdf(x, y, augment, positive) + self.log_norm
-
+    def forward(self, x, y, augment=True, positive=False):
+        return super().forward(x, y, augment, positive) + self.log_norm
 
 
 class UnnormalizedEBM(nn.Module):
@@ -101,12 +92,8 @@ class UnnormalizedEBM(nn.Module):
 
         self.f = CleanMLP(input_size, hidden_size, n_hidden, output_size, activation=activation)
 
-    def log_pdf(self, x, y=None):
-        return self.forward(x, y)
-
     def forward(self, x, y=None):
-        fx = self.f(x)
-        return fx
+        return self.f(x)
 
 
 class ModularUnnormalizedEBM(nn.Module):
@@ -121,9 +108,6 @@ class ModularUnnormalizedEBM(nn.Module):
     def forward(self, x, y=None):
         return self.f(x)
 
-    def log_pdf(self, x, y=None):
-        return self.forward(x, y)
-
 
 class EBM(UnnormalizedEBM):
     def __init__(self, input_size, hidden_size, n_hidden, output_size, activation='lrelu'):
@@ -131,8 +115,8 @@ class EBM(UnnormalizedEBM):
 
         self.log_norm = nn.Parameter(torch.randn(1) - 5, requires_grad=True)
 
-    def log_pdf(self, x, y=None):
-        return super().log_pdf(x, y) + self.log_norm
+    def forward(self, x, y=None):
+        return super().forward(x, y) + self.log_norm
 
 
 class ModularEBM(ModularUnnormalizedEBM):
@@ -141,5 +125,5 @@ class ModularEBM(ModularUnnormalizedEBM):
 
         self.log_norm = nn.Parameter(torch.randn(1) - 5, requires_grad=True)
 
-    def log_pdf(self, x, y=None):
-        return super().log_pdf(x, y) + self.log_norm
+    def forward(self, x, y=None):
+        return super().forward(x, y) + self.log_norm

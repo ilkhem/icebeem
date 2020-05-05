@@ -45,6 +45,15 @@ def single_one_hot_encode(label, n_labels=10):
 
     return y
 
+def single_one_hot_encode_rev(label, n_labels=10, start_label=0):
+    """
+    Transforms numeric labels to 1-hot encoded labels. Assumes numeric labels are in the range 0, 1, ..., n_labels-1.
+    """
+    assert label >= start_label and label < n_labels
+    y = np.zeros([n_labels-start_label]).astype(np.float32)
+    y[label-start_label] = 1
+    return y
+
 
 mnist_one_hot_transform = lambda label: single_one_hot_encode(label, n_labels=10)
 contrastive_one_hot_transform = lambda label: single_one_hot_encode(label, n_labels=2)
