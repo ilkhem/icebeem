@@ -15,7 +15,7 @@ from torch.utils.data.dataloader import default_collate
 from torchvision.datasets import MNIST, CIFAR10, FashionMNIST, CIFAR100
 
 from losses.dsm import conditional_dsm, dsm
-from models.refinenet_dilated_baseline import RefineNetDilated
+from models.refinenet_dilated import RefineNetDilated
 
 
 def my_collate(batch, nSeg=8):

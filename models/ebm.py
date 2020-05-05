@@ -86,3 +86,60 @@ class ModularConditionalEBM(ModularUnnormalizedConditionalEBM):
 
     def log_pdf(self, x, y, augment=True, positive=False):
         return super().log_pdf(x, y, augment, positive) + self.log_norm
+
+
+
+class UnnormalizedEBM(nn.Module):
+    def __init__(self, input_size, hidden_size, n_hidden, output_size, activation='lrelu'):
+        super().__init__()
+
+        self.input_size = input_size
+        self.output_size = output_size
+        self.hidden_size = hidden_size
+        self.n_hidden = n_hidden
+        self.activation = activation
+
+        self.f = CleanMLP(input_size, hidden_size, n_hidden, output_size, activation=activation)
+
+    def log_pdf(self, x, y=None):
+        return self.forward(x, y)
+
+    def forward(self, x, y=None):
+        fx = self.f(x)
+        return fx
+
+
+class ModularUnnormalizedEBM(nn.Module):
+    def __init__(self, f_net):
+        super().__init__()
+
+        self.input_size = f_net.input_size
+        self.output_size = f_net.output_size
+
+        self.f = f_net
+
+    def forward(self, x, y=None):
+        return self.f(x)
+
+    def log_pdf(self, x, y=None):
+        return self.forward(x, y)
+
+
+class EBM(UnnormalizedEBM):
+    def __init__(self, input_size, hidden_size, n_hidden, output_size, activation='lrelu'):
+        super().__init__(input_size, hidden_size, n_hidden, output_size, activation)
+
+        self.log_norm = nn.Parameter(torch.randn(1) - 5, requires_grad=True)
+
+    def log_pdf(self, x, y=None):
+        return super().log_pdf(x, y) + self.log_norm
+
+
+class ModularEBM(ModularUnnormalizedEBM):
+    def __init__(self, f_net):
+        super().__init__(f_net)
+
+        self.log_norm = nn.Parameter(torch.randn(1) - 5, requires_grad=True)
+
+    def log_pdf(self, x, y=None):
+        return super().log_pdf(x, y) + self.log_norm
