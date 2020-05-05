@@ -126,21 +126,21 @@ class PreTrainer:
             # use same dataset as transfer_nets.py
             # we can also use the train dataset since the digits are unseen anyway
             dataset = MNIST(os.path.join(self.args.run, 'datasets'), train=False, download=True,
-                            transform=test_transform)
+                            transform=test_transform, target_transform=target_transform)
             print('TRANSFER BASELINES !! Subset size: ' + str(self.subsetSize))
 
         elif self.config.data.dataset == 'CIFAR10_transferBaseline':
             # use same dataset as transfer_nets.py
             # we can also use the train dataset since the digits are unseen anyway
             dataset = CIFAR10(os.path.join(self.args.run, 'datasets'), train=False, download=True,
-                              transform=test_transform)
+                              transform=test_transform, target_transform=target_transform)
             print('TRANSFER BASELINES !! Subset size: ' + str(self.subsetSize))
 
         elif self.config.data.dataset == 'FashionMNIST_transferBaseline':
             # use same dataset as transfer_nets.py
             # we can also use the train dataset since the digits are unseen anyway
             dataset = FashionMNIST(os.path.join(self.args.run, 'datasets'), train=False, download=True,
-                                   transform=test_transform)
+                                   transform=test_transform, target_transform=target_transform)
             print('TRANSFER BASELINES !! Subset size: ' + str(self.subsetSize))
 
         else:
@@ -158,7 +158,7 @@ class PreTrainer:
         elif self.config.data.dataset in ['MNIST_transferBaseline', 'CIFAR10_transferBaseline',
                                           'FashionMNIST_transferBaseline']:
             # trains a model on only digits 8,9 from scratch
-            collate_helper = lambda batch: my_collate_rev(batch, nSeg=self.nSeg)
+            collate_helper = lambda batch: my_collate_rev(batch, nSeg=self.nSeg, one_hot=True)
             print('Subset size: ' + str(self.subsetSize))
             id_range = list(range(self.subsetSize))
             dataset = torch.utils.data.Subset(dataset, id_range)
