@@ -69,6 +69,8 @@ optional arguments:
   --baseline            Run the script for the baseline
   --semisupervised      Run semi-supervised experiments
   --transfer            Run the transfer learning experiments after pretraining
+  --representation      Run experiments to verify identifiability of learnt representations
+  --retrainNets         Should EBMs be trained for representation experiments (omit to use pretrained networks)
   --plot                Plot transfer learning experiment for the selected dataset
 ```
 
@@ -124,4 +126,21 @@ python main.py --dataset MNIST --config mnist.yaml --doc mnist --semisupervised 
 
 We also provide model checkpoints and experimental log to skip the training steps.
 
-The same can be done on CIFAR-10 by changing the value of the flag `--dataset` to `CIFAR10` and of the flag `--config` to `cifar.yaml` and FashioMNIST by changing the value of the flag `--dataset` to `FMNIST` and of the flag `--config` to `fashionmnist.yaml`. Also make sure to change the value of `--doc` not to overwrite the mnist checkpoints.
+The same can be done on CIFAR-10 by changing the value of the flag `--dataset` to `CIFAR10` and of the flag `--config` to `cifar.yaml` and FashioMNIST by changing the value of the flag `--dataset` to `FMNIST` and of the flag `--config` to `fashionmnist.yaml`. Also make sure to change the value of `--doc` not to overwrite the mnist checkpoints
+
+### Identifiability of representations
+
+In these experiments we train multiple conditional and unconditional EBMs on various datasets and assess the identifiability of representations as discussed in Theorems 1-3. 
+
+These experiments therefore do the following:
+ - train conditional and unconditional EBMs using different random initializations
+ - study the learnt representations over held out test data. We compare the MCC over held out representations as well as MCC after linear transformation using CCA (this is akin to weak identifiability)
+
+``````
+# run experiments for MNIST
+python3 main.py --dataset MNIST --nSims 5 --config mnist.yaml --representation --retrainNets
+
+# run experiments for FashionMNIST
+python3 main.py --dataset FashionMNIST --nSims 5 --config fashionmnist.yaml --representation --retrainNets
+```
+
