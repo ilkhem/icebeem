@@ -153,6 +153,7 @@ class PreTrainer:
             dataset = torch.utils.data.Subset(dataset, id_range)
             dataloader = DataLoader(dataset, batch_size=self.config.training.batch_size, shuffle=True, num_workers=0,
                                     collate_fn=collate_helper)
+            cond_size = self.nSeg
 
         elif self.config.data.dataset in ['MNIST_transferBaseline', 'CIFAR10_transferBaseline',
                                           'FashionMNIST_transferBaseline']:
@@ -163,6 +164,7 @@ class PreTrainer:
             dataset = torch.utils.data.Subset(dataset, id_range)
             dataloader = DataLoader(dataset, batch_size=self.config.training.batch_size, shuffle=True, num_workers=0,
                                     drop_last=True, collate_fn=collate_helper)
+            cond_size = total_labels - self.nSeg
             print('loaded reduced subset')
         else:
             raise ValueError('Unknown config dataset {}'.format(self.config.data.dataset))
@@ -180,7 +182,7 @@ class PreTrainer:
 
         if conditional:
             f = RefineNetDilated(self.config).to(self.config.device)
-            g = nn.Linear(self.nSeg, f.output_size, bias=False).to(self.config.device)
+            g = nn.Linear(cond_size, f.output_size, bias=False).to(self.config.device)
             energy_net = ModularUnnormalizedConditionalEBM(f, g)
         else:
             f = RefineNetDilated(self.config).to(self.config.device)
