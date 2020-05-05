@@ -136,7 +136,7 @@ These experiments therefore do the following:
  - train conditional and unconditional EBMs using different random initializations
  - study the learnt representations over held out test data. We compare the MCC over held out representations as well as MCC after linear transformation using CCA (this is akin to weak identifiability)
 
-``````
+```
 # run experiments for MNIST
 python3 main.py --dataset MNIST --nSims 5 --config mnist.yaml --representation --retrainNets
 
