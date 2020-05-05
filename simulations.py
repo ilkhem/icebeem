@@ -5,10 +5,10 @@ import pickle
 import torch
 import yaml
 
-from runners.simulation_runner import run_icebeem_exp, run_ivae_exp# , run_tcl_exp
+from runners.simulation_runner import run_icebeem_exp, run_ivae_exp, run_tcl_exp
 
-import os 
 os.environ["CUDA_VISIBLE_DEVICES"] = "2"
+
 
 def parse_sim():
     parser = argparse.ArgumentParser(description='')
@@ -42,7 +42,6 @@ def make_dirs_simulations(args):
     os.makedirs(args.checkpoints, exist_ok=True)
 
 
-
 if __name__ == '__main__':
     args = parse_sim()
     print('Running {} experiments using {}'.format(args.dataset, args.method))
@@ -51,36 +50,38 @@ if __name__ == '__main__':
 
     if args.plot:
         import pylab as plt
-        import seaborn as sns 
-        import numpy as np 
+        import seaborn as sns
+        import numpy as np
+
         # 
-        marker_dict = {'ICEBEEM':'v', 'iVAE':'o', 'TCL':'s'}
-        line_dict   = {'ICEBEEM':'solid', 'iVAE':'--', 'TCL':':'}
-        legend_dict = {'ICEBEEM':'ICE-BeeM', 'iVAE':'iVAE', 'TCL':'TCL'}
-        n_obs_ = [100, 500,1000,2000]
+        marker_dict = {'ICEBEEM': 'v', 'iVAE': 'o', 'TCL': 's'}
+        line_dict = {'ICEBEEM': 'solid', 'iVAE': '--', 'TCL': ':'}
+        legend_dict = {'ICEBEEM': 'ICE-BeeM', 'iVAE': 'iVAE', 'TCL': 'TCL'}
+        n_obs_ = [100, 500, 1000, 2000]
         algos = ['ICEBEEM', 'iVAE', 'TCL']
-        
-        L = [2,4]
+
+        L = [2, 4]
         # load results
         res = {}
         for a in algos:
             fname = os.path.join(args.run, a + 'res_' + args.dataset + 'exp_' + str(args.nSims) + '.p')
             res[a] = pickle.load(open(fname, 'rb'))['CorrelationCoef']
 
-        f, (ax1) = plt.subplots(1,1, figsize=(4,4))
+        f, (ax1) = plt.subplots(1, 1, figsize=(4, 4))
 
         for l in L:
             for a in algos:
-                ax1.plot( n_obs_, [np.mean(res[a][l][n]) for n in n_obs_], label = str(a) + ' (L=' + str(l) + ')', marker=marker_dict[a], color = sns.color_palette()[l], linestyle=line_dict[a], linewidth=2)
+                ax1.plot(n_obs_, [np.mean(res[a][l][n]) for n in n_obs_], label=str(a) + ' (L=' + str(l) + ')',
+                         marker=marker_dict[a], color=sns.color_palette()[l], linestyle=line_dict[a], linewidth=2)
 
         ax1.set_xlabel('Observations per segment')
         ax1.set_ylabel('Mean Correlation Coefficient')
 
         ax1.set_title(args.dataset)
-        ax1.legend( loc='best', fontsize=7 )
+        ax1.legend(loc='best', fontsize=7)
         f.tight_layout()
-        ax1.set_ylim([0,1])
-        plt.savefig('ExpsResults_' + args.dataset+ '.pdf', dpi=300)
+        ax1.set_ylim([0, 1])
+        plt.savefig('ExpsResults_' + args.dataset + '.pdf', dpi=300)
         print(os.getcwd())
 
     else:
@@ -106,5 +107,3 @@ if __name__ == '__main__':
 
         else:
             raise ValueError('Unsupported dataset {}'.format(args.dataset))
-    else:
-        plot(args)
