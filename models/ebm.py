@@ -91,9 +91,11 @@ class UnnormalizedEBM(nn.Module):
         self.activation = activation
 
         self.f = CleanMLP(input_size, hidden_size, n_hidden, output_size, activation=activation)
+        self.g = torch.ones(output_size)
 
     def forward(self, x, y=None):
-        return self.f(x)
+        fx = self.f(x).view(-1, self.output_size)
+        return torch.einsum('bi,i->b', [fx, self.g])
 
 
 class ModularUnnormalizedEBM(nn.Module):
@@ -104,9 +106,11 @@ class ModularUnnormalizedEBM(nn.Module):
         self.output_size = f_net.output_size
 
         self.f = f_net
+        self.g = torch.ones(self.output_size)
 
     def forward(self, x, y=None):
-        return self.f(x)
+        fx = self.f(x).view(-1, self.output_size)
+        return torch.einsum('bi,i->b', [fx, self.g])
 
 
 class EBM(UnnormalizedEBM):
