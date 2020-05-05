@@ -25,7 +25,7 @@ def my_collate(batch, nSeg=8, one_hot=False):
     for item in batch:
         image, label = item
         if one_hot:
-            idx = torch.nonzero(label)
+            idx = np.nonzero(label)
             if idx in range(nSeg):
                 item[1] = label[:nSeg]
                 modified_batch.append(item)
@@ -40,7 +40,7 @@ def my_collate_rev(batch, nSeg=8, one_hot=False):
     for item in batch:
         image, label = item
         if one_hot:
-            idx = torch.nonzero(label)
+            idx = np.nonzero(label)
             if idx in range(nSeg):
                 item[1] = label[nSeg:]
                 modified_batch.append(item)
