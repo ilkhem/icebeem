@@ -14,10 +14,10 @@ from torch.utils.data import DataLoader
 from torch.utils.data.dataloader import default_collate
 from torchvision.datasets import MNIST, CIFAR10, FashionMNIST, CIFAR100
 
-from losses.dsm import conditional_dsm, dsm, cdsm
-from models.refinenet_dilated import RefineNetDilated
 from data.utils import single_one_hot_encode, single_one_hot_encode_rev
+from losses.dsm import dsm, cdsm
 from models.ebm import ModularUnnormalizedConditionalEBM, ModularUnnormalizedEBM
+from models.refinenet_dilated import RefineNetDilated
 
 
 def my_collate(batch, nSeg=8, one_hot=False):
@@ -111,7 +111,7 @@ class PreTrainer:
         elif self.config.data.dataset == 'CIFAR100':
             print('running CIFAR100')
             dataset = CIFAR100(os.path.join(self.args.run, 'datasets'), train=True, download=True,
-                              transform=tran_transform, target_transform=target_transform)
+                               transform=tran_transform, target_transform=target_transform)
 
         # BASELINE
         elif self.config.data.dataset == 'MNIST_transferBaseline':
@@ -302,7 +302,6 @@ def transfer(args, config):
                              drop_last=True, collate_fn=collate_helper)
     print('loaded test data')
 
-
     ckpt_path = os.path.join(args.checkpoints, 'checkpoint.pth')
     states = torch.load(ckpt_path, map_location='cuda:0')
     f = RefineNetDilated(config).to('cuda:0')
@@ -390,11 +389,12 @@ def semisupervised(args, config):
                              drop_last=True, collate_fn=collate_helper)
     print('loaded test data')
 
-    representations = np.zeros((10000, config.data.image_size * config.data.image_size * config.data.channels )) # allow for multiple channels and distinct image sizes
+    representations = np.zeros((10000,
+                                config.data.image_size * config.data.image_size * config.data.channels))  # allow for multiple channels and distinct image sizes
     labels = np.zeros((10000,))
     counter = 0
     for i, (X, y) in enumerate(test_loader):
-        rep_i = f(X).view(-1, config.data.image_size * config.data.image_size * config.data.channels ).data.cpu().numpy()
+        rep_i = f(X).view(-1, config.data.image_size * config.data.image_size * config.data.channels).data.cpu().numpy()
         representations[counter:(counter + rep_i.shape[0]), :] = rep_i
         labels[counter:(counter + rep_i.shape[0])] = y.data.numpy()
         counter += rep_i.shape[0]
@@ -407,13 +407,11 @@ def semisupervised(args, config):
                                                                 random_state=config.data.random_state)
     clf = class_model(random_state=0, max_iter=2000).fit(rep_train, lab_train)
     acc = accuracy_score(lab_test, clf.predict(rep_test)) * 100
-    print('#' * 10 )
+    print('#' * 10)
     msg = 'Accuracy of ' + args.baseline * 'unconditional' + (
             1 - args.baseline) * 'transfer' + ' representation: acc={}'.format(np.round(acc, 2))
     print(msg)
-    print('#' * 10 )
-
-
+    print('#' * 10)
 
 
 def cca_representations(args, config, conditional=True, retrain=True):
@@ -427,33 +425,33 @@ def cca_representations(args, config, conditional=True, retrain=True):
     SUBSET_SIZE = 10
     DATASET = args.dataset.upper()
 
-    print('RUNNING REPRESENTATION EXPs ON DATASET: ' + DATASET  )
+    print('RUNNING REPRESENTATION EXPs ON DATASET: ' + DATASET)
     if args.baseline: print('RUNNING BASELINES')
 
-    new_args = args # argparse.Namespace(**vars(args))
+    new_args = args  # argparse.Namespace(**vars(args))
     new_config = config
     if DATASET != 'CIFAR100':
         new_config.n_labels = 10
     else:
         new_config.n_labels = 100
-    #new_config.subsetSize = 60000
+    # new_config.subsetSize = 60000
     new_args.subsetSize = 60000 if DATASET in ['MNIST', 'FASHIONMNIST'] else 50000
 
-    new_args.SubsetSize = 60000 if DATASET in ['MNIST', 'FASHIONMNIST'] else 50000 # SUBSET_SIZE
+    new_args.SubsetSize = 60000 if DATASET in ['MNIST', 'FASHIONMNIST'] else 50000  # SUBSET_SIZE
     new_args.seed = args.seed
     # change random seed
     np.random.seed(new_args.seed)
     torch.manual_seed(new_args.seed)
 
     # this will be used to reload the network later 
-    ckpt_path = os.path.join(args.run, 'logs', new_args.doc,  'checkpoint.pth')
+    ckpt_path = os.path.join(args.run, 'logs', new_args.doc, 'checkpoint.pth')
     print(ckpt_path)
 
-    print( new_args )
+    print(new_args)
     if retrain:
         print('training networks ..')
-        runner = PreTrainer( new_args, new_config)
-        runner.train( conditional=conditional )
+        runner = PreTrainer(new_args, new_config)
+        runner.train(conditional=conditional)
 
     # finally, save learnt representations
     states = torch.load(ckpt_path, map_location='cuda:0')
@@ -469,14 +467,17 @@ def cca_representations(args, config, conditional=True, retrain=True):
 
     useTrain = False
     if args.dataset.lower() == 'mnist':
-        test_dataset = MNIST(os.path.join(args.run, 'datasets'), train=useTrain, download=True, transform=test_transform)
+        test_dataset = MNIST(os.path.join(args.run, 'datasets'), train=useTrain, download=True,
+                             transform=test_transform)
     elif args.dataset.lower() == 'cifar10':
-        test_dataset = CIFAR10(os.path.join(args.run, 'datasets'), train=useTrain, download=True, transform=test_transform)
+        test_dataset = CIFAR10(os.path.join(args.run, 'datasets'), train=useTrain, download=True,
+                               transform=test_transform)
     elif args.dataset.lower() in ['fmnist', 'fashionmnist']:
         test_dataset = FashionMNIST(os.path.join(args.run, 'datasets'), train=useTrain, download=True,
                                     transform=test_transform)
     elif args.dataset.lower() == 'cifar100':
-        test_dataset = CIFAR100(os.path.join(args.run, 'datasets'), train=useTrain, download=True, transform=test_transform)
+        test_dataset = CIFAR100(os.path.join(args.run, 'datasets'), train=useTrain, download=True,
+                                transform=test_transform)
     else:
         raise ValueError('Unknown dataset {}'.format(args.dataset))
 
@@ -484,11 +485,12 @@ def cca_representations(args, config, conditional=True, retrain=True):
                              drop_last=True)
     print('loaded test data')
 
-    representations = np.zeros((10000, config.data.image_size * config.data.image_size * config.data.channels )) # allow for multiple channels and distinct image sizes
+    representations = np.zeros((10000,
+                                config.data.image_size * config.data.image_size * config.data.channels))  # allow for multiple channels and distinct image sizes
     labels = np.zeros((10000,))
     counter = 0
     for i, (X, y) in enumerate(test_loader):
-        rep_i = f(X).view(-1, config.data.image_size * config.data.image_size * config.data.channels ).data.cpu().numpy()
+        rep_i = f(X).view(-1, config.data.image_size * config.data.image_size * config.data.channels).data.cpu().numpy()
         representations[counter:(counter + rep_i.shape[0]), :] = rep_i
         labels[counter:(counter + rep_i.shape[0])] = y.data.cpu().numpy()
         counter += rep_i.shape[0]
@@ -496,6 +498,6 @@ def cca_representations(args, config, conditional=True, retrain=True):
     labels = labels[:counter]
 
     import pickle
-    pickle.dump( {'rep':representations, 'lab':labels}, open( os.path.join(args.run, 'logs', new_args.doc,  'test_representations.p'), 'wb') )
+    pickle.dump({'rep': representations, 'lab': labels},
+                open(os.path.join(args.run, 'logs', new_args.doc, 'test_representations.p'), 'wb'))
     print('\ncomputed and saved representations over test data\n')
-
