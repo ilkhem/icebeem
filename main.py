@@ -8,13 +8,14 @@ import yaml
 
 from runners.real_data_runner import PreTrainer, semisupervised, transfer, cca_representations
 
-import os
 os.environ["CUDA_VISIBLE_DEVICES"] = "2"
+
 
 def parse():
     parser = argparse.ArgumentParser(description='')
 
-    parser.add_argument('--dataset', type=str, help='Dataset to run experiments. Should be MNIST or CIFAR10, or FMNIST')
+    parser.add_argument('--dataset', type=str, default='MNIST',
+                        help='Dataset to run experiments. Should be MNIST or CIFAR10, or FMNIST')
     parser.add_argument('--config', type=str, default='mnist.yaml', help='Path to the config file')
     parser.add_argument('--run', type=str, default='run', help='Path for saving running related data.')
     parser.add_argument('--doc', type=str, default='', help='A string for documentation purpose')
@@ -25,13 +26,17 @@ def parse():
     parser.add_argument('--seed', type=int, default=0, help='Random seed')
 
     parser.add_argument('--all', action='store_true',
-                        help='Run transfer learning experiment for many seeds and subset sizes -- only relevant for transfer learning')
+                        help='Run transfer learning experiment for many seeds and subset sizes -- '
+                             'only relevant for transfer learning')
     parser.add_argument('--baseline', action='store_true', help='Run the script for the baseline')
     parser.add_argument('--semisupervised', action='store_true', help='Run semi-supervised experiments')
     parser.add_argument('--transfer', action='store_true',
                         help='Run the transfer learning experiments after pretraining')
-    parser.add_argument('--representation', action='store_true', help='Run CCA representation validation across multiple seeds')
-    parser.add_argument('--retrainNets', default=False, action='store_true', help='Should we retrain conditional and unconditional networks or proceed to get representations')
+    parser.add_argument('--representation', action='store_true',
+                        help='Run CCA representation validation across multiple seeds')
+    parser.add_argument('--retrainNets', default=False, action='store_true',
+                        help='Should we retrain conditional and unconditional networks or proceed to '
+                             'get representations')
 
     parser.add_argument('--plot', action='store_true',
                         help='Plot transfer learning experiment for the selected dataset')
@@ -93,12 +98,12 @@ def main():
         else:
             new_args = argparse.Namespace(**vars(args))
             for n in [500, 1000, 2000, 3000, 4000, 5000, 6000]:
-                for seed in range(args.nSims):
+                for seed in range(args.seed, args.nSims + args.seed):
                     new_args.SubsetSize = n
                     new_args.seed = seed
                     # change random seed
-                    np.random.seed(args.seed)
-                    torch.manual_seed(args.seed)
+                    np.random.seed(seed)
+                    torch.manual_seed(seed)
                     transfer(new_args, new_config)
 
     if new_config.data.dataset in ["MNIST_transferBaseline", "CIFAR10_transferBaseline"]:
@@ -109,14 +114,14 @@ def main():
         else:
             new_args = argparse.Namespace(**vars(args))
             for n in [500, 1000, 2000, 3000, 4000, 5000, 6000]:
-                for seed in range(args.nSims):
+                for seed in range(args.seed, args.nSims + args.seed):
                     new_args.SubsetSize = n
                     new_args.seed = seed
                     new_args.doc = args.dataset.lower() + 'Baseline' + str(n)
                     make_dirs(new_args)
                     # change random seed
-                    np.random.seed(args.seed)
-                    torch.manual_seed(args.seed)
+                    np.random.seed(seed)
+                    torch.manual_seed(seed)
                     runner = PreTrainer(new_args, new_config)
                     runner.train()
 
@@ -135,14 +140,14 @@ def main():
             runner.train()
         else:
             for n in [500, 1000, 2000, 3000, 4000, 5000, 6000]:
-                for seed in range(args.nSims):
+                for seed in range(args.seed, args.nSims + args.seed):
                     new_args.doc = args.doc + 'Baseline' + str(n)
                     make_dirs(new_args)
                     new_args.SubsetSize = n
                     new_args.seed = seed
                     # change random seed
-                    np.random.seed(args.seed)
-                    torch.manual_seed(args.seed)
+                    np.random.seed(seed)
+                    torch.manual_seed(seed)
                     runner = PreTrainer(new_args, new_config)
                     runner.train()
 
@@ -169,107 +174,121 @@ def main():
         make_dirs(new_args)
         semisupervised(new_args, new_config)
 
+    # COMPARE QUALITY OF REPRESENTATIONS ON REAL DATA
+    # 1- --retrainNets --representation: trains both icebeem and unconditional ebm on dataset, and save learnt rep for
+    # different seeds then computes MCC before and after applying a CCA to the rep
+    # 2- just --representation: use features saved on disk; requires to have run with --retrainNets first
+
     if args.representation:
         # train networks here and compare the outputs for conditional v unconditional EBMs
         if args.retrainNets:
             print('retraining')
             # train conditional EBMs
-            for seed in range( args.nSims ):
+            for seed in range(args.seed, args.nSims + args.seed):
                 new_args = argparse.Namespace(**vars(args))
-                new_args.seed = seed 
-                new_args.doc = args.doc + args.dataset + '_Representation' + str( new_args.seed )
-                print( new_args.doc )
+                new_args.seed = seed
+                new_args.doc = args.doc + args.dataset + '_Representation' + str(new_args.seed)
+                print(new_args.doc)
                 make_dirs(new_args)
-                cca_representations( new_args, new_config, retrain=args.retrainNets )
+                cca_representations(new_args, new_config, retrain=args.retrainNets)
 
             # train unconditional EBMs
-            for seed in range( args.nSims ):
+            for seed in range(args.seed, args.nSims + args.seed):
                 new_args = argparse.Namespace(**vars(args))
-                new_args.seed = seed 
-                new_args.doc = args.doc + args.dataset + '_RepresentationBaseline' + str( new_args.seed )
-                print( new_args.doc )
+                new_args.seed = seed
+                new_args.doc = args.doc + args.dataset + '_RepresentationBaseline' + str(new_args.seed)
+                print(new_args.doc)
                 make_dirs(new_args)
-                cca_representations( new_args, new_config, conditional=False, retrain=args.retrainNets )
+                cca_representations(new_args, new_config, conditional=False, retrain=args.retrainNets)
         else:
             print('not retraining')
 
         # load in trained representations
         import pickle
         from metrics.mcc import mean_corr_coef, mean_corr_coef_out_of_sample
-        res_cond   = []
+        res_cond = []
         res_uncond = []
-        for seed in range( args.nSims ):
-            path_cond = os.path.join(args.run, 'logs', args.doc + args.dataset + '_Representation' + str( seed ),  'test_representations.p')
-            path_uncond = os.path.join(args.run, 'logs', args.doc + args.dataset + '_RepresentationBaseline' + str( seed ),  'test_representations.p')
-            res_cond.append( pickle.load(open(path_cond, 'rb')) )
-            res_uncond.append( pickle.load(open(path_uncond, 'rb')) )
+        for seed in range(args.seed, args.nSims + args.seed):
+            path_cond = os.path.join(args.run, 'logs', args.doc + args.dataset + '_Representation' + str(seed),
+                                     'test_representations.p')
+            path_uncond = os.path.join(args.run, 'logs',
+                                       args.doc + args.dataset + '_RepresentationBaseline' + str(seed),
+                                       'test_representations.p')
+            res_cond.append(pickle.load(open(path_cond, 'rb')))
+            res_uncond.append(pickle.load(open(path_uncond, 'rb')))
 
         # check things are in correct order
-        assert np.max( np.abs( res_cond[0]['lab'] - res_cond[1]['lab'] ) ) == 0
-        assert np.max( np.abs( res_uncond[0]['lab'] - res_uncond[1]['lab'] ) ) == 0
-        assert np.max( np.abs( res_cond[0]['lab'] - res_uncond[0]['lab'] ) ) == 0
+        assert np.max(np.abs(res_cond[0]['lab'] - res_cond[1]['lab'])) == 0
+        assert np.max(np.abs(res_uncond[0]['lab'] - res_uncond[1]['lab'])) == 0
+        assert np.max(np.abs(res_cond[0]['lab'] - res_uncond[0]['lab'])) == 0
 
         # now we compare representation identifiability (strong case)
-        mcc_strong_cond   = []
+        mcc_strong_cond = []
         mcc_strong_uncond = []
-        ii = np.where( res_cond[0]['lab'] < 5 )[0]
-        iinot = np.where( res_cond[0]['lab'] >= 5 )[0]
+        ii = np.where(res_cond[0]['lab'] < 5)[0]
+        iinot = np.where(res_cond[0]['lab'] >= 5)[0]
 
-        for i in range( args.nSims ):
-            for j in range( i+1, args.nSims ):
-                mcc_strong_cond.append( mean_corr_coef_out_of_sample( x=res_cond[i]['rep'][ii,:], y=res_cond[j]['rep'][ii,:], x_test=res_cond[i]['rep'][iinot,:], y_test=res_cond[j]['rep'][iinot,:] ) )
-                mcc_strong_uncond.append( mean_corr_coef_out_of_sample( x=res_uncond[i]['rep'][ii,:], y=res_uncond[j]['rep'][ii,:], x_test=res_uncond[i]['rep'][iinot,:], y_test=res_uncond[j]['rep'][iinot,:] ) )
-                #mcc_strong_cond.append( mean_corr_coef( res_cond[i]['rep'], res_cond[j]['rep']) )
-                #mcc_strong_uncond.append( mean_corr_coef( res_uncond[i]['rep'], res_uncond[j]['rep']) )
-
+        for i in range(args.seed, args.nSims + args.seed):
+            for j in range(i + 1, args.nSims + args.seed):
+                mcc_strong_cond.append(
+                    mean_corr_coef_out_of_sample(x=res_cond[i]['rep'][ii, :], y=res_cond[j]['rep'][ii, :],
+                                                 x_test=res_cond[i]['rep'][iinot, :],
+                                                 y_test=res_cond[j]['rep'][iinot, :]))
+                mcc_strong_uncond.append(
+                    mean_corr_coef_out_of_sample(x=res_uncond[i]['rep'][ii, :], y=res_uncond[j]['rep'][ii, :],
+                                                 x_test=res_uncond[i]['rep'][iinot, :],
+                                                 y_test=res_uncond[j]['rep'][iinot, :]))
+                # mcc_strong_cond.append( mean_corr_coef( res_cond[i]['rep'], res_cond[j]['rep']) )
+                # mcc_strong_uncond.append( mean_corr_coef( res_uncond[i]['rep'], res_uncond[j]['rep']) )
 
         print('\n\nStrong identifiability performance (i.e., direct MCC)')
-        print('Conditional: {}\t\tUnconditional: {}'.format( np.mean(mcc_strong_cond), np.mean(mcc_strong_uncond) ) )
+        print('Conditional: {}\t\tUnconditional: {}'.format(np.mean(mcc_strong_cond), np.mean(mcc_strong_uncond)))
 
         # save results:
-        pickle.dump({'mcc_strong_cond': mcc_strong_cond, 'mcc_strong_uncond':mcc_strong_uncond}, open(args.dataset+'_srongMCC.p', 'wb'))
+        pickle.dump({'mcc_strong_cond': mcc_strong_cond, 'mcc_strong_uncond': mcc_strong_uncond},
+                    open(args.dataset + '_srongMCC.p', 'wb'))
 
         # no we compare representation identifiability for weaker case
         from sklearn.cross_decomposition import CCA
         import warnings
         from sklearn.exceptions import ConvergenceWarning
         warnings.filterwarnings("ignore", category=ConvergenceWarning)
-        ii = np.where( res_cond[0]['lab'] < 5 )[0]
-        iinot = np.where( res_cond[0]['lab'] >= 5 )[0]
+        ii = np.where(res_cond[0]['lab'] < 5)[0]
+        iinot = np.where(res_cond[0]['lab'] >= 5)[0]
 
-        mcc_weak_cond   = []
+        mcc_weak_cond = []
         mcc_weak_uncond = []
 
         cca_dim = 20
-        for i in range( args.nSims ):
-            for j in range( i+1, args.nSims ):
-                cca = CCA( n_components = cca_dim )
-                cca.fit( res_cond[i]['rep'][ii,:], res_cond[j]['rep'][ii,:] )
+        for i in range(args.nSims):
+            for j in range(i + 1, args.nSims):
+                cca = CCA(n_components=cca_dim)
+                cca.fit(res_cond[i]['rep'][ii, :], res_cond[j]['rep'][ii, :])
 
-                res = cca.transform(res_cond[i]['rep'][iinot,:], res_cond[j]['rep'][iinot,:] )
-                mcc_weak_cond.append( mean_corr_coef( res[0], res[1] ) )
+                res = cca.transform(res_cond[i]['rep'][iinot, :], res_cond[j]['rep'][iinot, :])
+                mcc_weak_cond.append(mean_corr_coef(res[0], res[1]))
 
                 # now repeat on the baseline!
-                ccabase = CCA( n_components = cca_dim )
-                ccabase.fit( res_uncond[i]['rep'][ii,:], res_uncond[j]['rep'][ii,:] )
+                ccabase = CCA(n_components=cca_dim)
+                ccabase.fit(res_uncond[i]['rep'][ii, :], res_uncond[j]['rep'][ii, :])
 
-                resbase = cca.transform(res_uncond[i]['rep'][iinot,:], res_uncond[j]['rep'][iinot,:] )
-                mcc_weak_uncond.append( mean_corr_coef( resbase[0], resbase[1] ) )
+                resbase = cca.transform(res_uncond[i]['rep'][iinot, :], res_uncond[j]['rep'][iinot, :])
+                mcc_weak_uncond.append(mean_corr_coef(resbase[0], resbase[1]))
 
         print('\n\nWeak identifiability performance (i.e., MCC after CCA projection)')
-        print('Conditional: {}\t\tUnconditional: {}\n\n'.format( np.mean(mcc_weak_cond), np.mean(mcc_weak_uncond) ) )
+        print('Conditional: {}\t\tUnconditional: {}\n\n'.format(np.mean(mcc_weak_cond), np.mean(mcc_weak_uncond)))
 
         # save results:
-        pickle.dump({'mcc_weak_cond': mcc_weak_cond, 'mcc_weak_uncond':mcc_weak_uncond}, open(args.dataset+'_weakMCC.p', 'wb'))
-
+        pickle.dump({'mcc_weak_cond': mcc_weak_cond, 'mcc_weak_uncond': mcc_weak_uncond},
+                    open(args.dataset + '_weakMCC.p', 'wb'))
 
     # PLOTTING TRANSFER LEARNING
     # 1- just use of the flag --plot AND NO other flag (except --dataset of course)
-    if args.plot and not args.baseline and not args.semisupervised and args.transfer and not args.representation:
-        plot(args)
+    if args.plot and not args.baseline and not args.semisupervised and not args.transfer and not args.representation:
+        plot_transfer(args)
 
 
-def plot(args):
+def plot_transfer(args):
     import pickle
     from matplotlib import pyplot as plt
     import seaborn as sns
