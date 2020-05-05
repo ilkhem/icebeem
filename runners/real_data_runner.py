@@ -20,7 +20,7 @@ from models.ebm import ModularUnnormalizedConditionalEBM, ModularUnnormalizedEBM
 from models.refinenet_dilated import RefineNetDilated
 
 
-def my_collate(batch, nSeg=8, one_hot=False):
+def my_collate(batch, nSeg=8, one_hot=False, total_labels=10):
     modified_batch = []
     for item in batch:
         image, label = item
@@ -34,16 +34,16 @@ def my_collate(batch, nSeg=8, one_hot=False):
     return default_collate(modified_batch)
 
 
-def my_collate_rev(batch, nSeg=8, one_hot=False):
+def my_collate_rev(batch, nSeg=8, one_hot=False, total_labels=10):
     modified_batch = []
     for item in batch:
         image, label = item
         if one_hot:
             idx = np.nonzero(label)[0]
-            if idx in range(nSeg):
+            if idx in range(nSeg,total_labels):
                 modified_batch.append((image, label[nSeg:]))
         else:
-            if label in range(nSeg, 10):
+            if label in range(nSeg, total_labels):
                 modified_batch.append(item)
     return default_collate(modified_batch)
 
@@ -158,7 +158,8 @@ class PreTrainer:
         elif self.config.data.dataset in ['MNIST_transferBaseline', 'CIFAR10_transferBaseline',
                                           'FashionMNIST_transferBaseline']:
             # trains a model on only digits 8,9 from scratch
-            collate_helper = lambda batch: my_collate_rev(batch, nSeg=self.nSeg, one_hot=True)
+            collate_helper = lambda batch: my_collate_rev(batch, nSeg=self.nSeg, one_hot=True,
+                                                          total_labels=total_labels)
             print('Subset size: ' + str(self.subsetSize))
             id_range = list(range(self.subsetSize))
             dataset = torch.utils.data.Subset(dataset, id_range)
@@ -306,7 +307,7 @@ def transfer(args, config):
     id_range = list(range(SUBSET_SIZE))
     dataset = torch.utils.data.Subset(test_dataset, id_range)
 
-    collate_helper = lambda batch: my_collate_rev(batch, nSeg=config.n_labels, one_hot=True)
+    collate_helper = lambda batch: my_collate_rev(batch, nSeg=config.n_labels, one_hot=True, total_labels=total_labels)
     test_loader = DataLoader(dataset, batch_size=config.training.batch_size, shuffle=True, num_workers=1,
                              drop_last=True, collate_fn=collate_helper)
     print('loaded test data')
@@ -372,7 +373,7 @@ def semisupervised(args, config):
     # ckpt_path = os.path.join(args.logs, 'checkpoint_5000.pth')
     states = torch.load(ckpt_path, map_location='cuda:0')
     f = RefineNetDilated(config).to('cuda:0')
-    f = torch.nn.DataParallel(f)
+    # f = torch.nn.DataParallel(f)
     f.load_state_dict(states[0])
     print('loaded energy network')
 
@@ -381,18 +382,22 @@ def semisupervised(args, config):
         transforms.Resize(config.data.image_size),
         transforms.ToTensor()
     ])
+    total_labels = 10 if args.dataset.upper() != 'CIFAR100' else 100
+    target_transform = lambda y: single_one_hot_encode(y, n_labels=total_labels)
 
     if args.dataset.lower() == 'mnist':
-        test_dataset = MNIST(os.path.join(args.run, 'datasets'), train=False, download=True, transform=test_transform)
+        test_dataset = MNIST(os.path.join(args.run, 'datasets'), train=False, download=True, transform=test_transform,
+                             target_transform=target_transform)
     elif args.dataset.lower() == 'cifar10':
-        test_dataset = CIFAR10(os.path.join(args.run, 'datasets'), train=False, download=True, transform=test_transform)
+        test_dataset = CIFAR10(os.path.join(args.run, 'datasets'), train=False, download=True, transform=test_transform,
+                               target_transform=target_transform)
     elif args.dataset.lower() in ['fmnist', 'fashionmnist']:
         test_dataset = FashionMNIST(os.path.join(args.run, 'datasets'), train=False, download=True,
                                     transform=test_transform)
     else:
         raise ValueError('Unknown dataset {}'.format(args.dataset))
 
-    collate_helper = lambda batch: my_collate_rev(batch, nSeg=config.n_labels)
+    collate_helper = lambda batch: my_collate_rev(batch, nSeg=config.n_labels, one_hot=True, total_labels=total_labels)
 
     test_loader = DataLoader(test_dataset, batch_size=config.training.batch_size, shuffle=False, num_workers=1,
                              drop_last=True, collate_fn=collate_helper)
@@ -465,7 +470,7 @@ def cca_representations(args, config, conditional=True, retrain=True):
     # finally, save learnt representations
     states = torch.load(ckpt_path, map_location='cuda:0')
     f = RefineNetDilated(config).to('cuda:0')
-    f = torch.nn.DataParallel(f)
+    # f = torch.nn.DataParallel(f)
     f.load_state_dict(states[0])
 
     # now load in the data
