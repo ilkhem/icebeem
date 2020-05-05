@@ -20,7 +20,7 @@ class UnnormalizedConditialEBM(nn.Module):
         self.g = nn.Linear(condition_size, output_size, bias=False)
 
     def forward(self, x, y, augment=False, positive=False):
-        fx, gy = self.f(x), self.g(y)
+        fx, gy = self.f(x).view(-1, self.output_size), self.g(y)
 
         if positive:
             fx = F.relu(fx)
@@ -47,7 +47,7 @@ class ModularUnnormalizedConditionalEBM(nn.Module):
         self.g = g_net
 
     def forward(self, x, y, augment=False, positive=False):
-        fx, gy = self.f(x), self.g(y)
+        fx, gy = self.f(x).view(-1, self.output_size), self.g(y)
 
         if positive:
             fx = F.relu(fx)

@@ -25,10 +25,9 @@ def my_collate(batch, nSeg=8, one_hot=False):
     for item in batch:
         image, label = item
         if one_hot:
-            idx = np.nonzero(label)
+            idx = np.nonzero(label)[0]
             if idx in range(nSeg):
-                item[1] = label[:nSeg]
-                modified_batch.append(item)
+                modified_batch.append((image, label[:nSeg]))
         else:
             if label in range(nSeg):
                 modified_batch.append(item)
@@ -425,8 +424,8 @@ def semisupervised(args, config):
 
 def cca_representations(args, config, conditional=True, retrain=True):
     """
-    we train an icebeem model or an unconditional EBM across multiple random seeds and 
-    compare the reproducibility of representations via CCA 
+    we train an icebeem model or an unconditional EBM across multiple random seeds and
+    compare the reproducibility of representations via CCA
 
     first we train the entire network, then we save the activations !
     """
@@ -452,7 +451,7 @@ def cca_representations(args, config, conditional=True, retrain=True):
     np.random.seed(new_args.seed)
     torch.manual_seed(new_args.seed)
 
-    # this will be used to reload the network later 
+    # this will be used to reload the network later
     ckpt_path = os.path.join(args.run, 'logs', new_args.doc, 'checkpoint.pth')
     print(ckpt_path)
 
