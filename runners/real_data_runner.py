@@ -25,9 +25,13 @@ def my_collate(batch, nSeg=8, one_hot=False):
     for item in batch:
         image, label = item
         if one_hot:
-            label = torch.nonzero(label)
-        if label in range(nSeg):
-            modified_batch.append(item)
+            idx = torch.nonzero(label)
+            if idx in range(nSeg):
+                item[1] = label[:nSeg]
+                modified_batch.append(item)
+        else:
+            if label in range(nSeg):
+                modified_batch.append(item)
     return default_collate(modified_batch)
 
 
@@ -36,9 +40,13 @@ def my_collate_rev(batch, nSeg=8, one_hot=False):
     for item in batch:
         image, label = item
         if one_hot:
-            label = torch.nonzero(label)
-        if label in range(nSeg, 10):
-            modified_batch.append(item)
+            idx = torch.nonzero(label)
+            if idx in range(nSeg):
+                item[1] = label[nSeg:]
+                modified_batch.append(item)
+        else:
+            if label in range(nSeg, 10):
+                modified_batch.append(item)
     return default_collate(modified_batch)
 
 
@@ -93,7 +101,8 @@ class PreTrainer:
                 transforms.Resize(self.config.data.image_size),
                 transforms.ToTensor()
             ])
-        target_transform = lambda label: single_one_hot_encode(label, n_labels=self.nSeg)
+        total_labels = 10 if self.config.data.dataset.upper() != 'CIFAR100' else 100
+        target_transform = lambda label: single_one_hot_encode(label, n_labels=total_labels)
 
         if self.config.data.dataset == 'CIFAR10':
             dataset = CIFAR10(os.path.join(self.args.run, 'datasets'), train=True, download=True,
@@ -284,7 +293,7 @@ def transfer(args, config):
         transforms.ToTensor()
     ])
     total_labels = 10 if DATASET.upper() != 'CIFAR100' else 100
-    target_transform = lambda y: single_one_hot_encode_rev(y, n_labels=total_labels, start_label=config.n_labels)
+    target_transform = lambda y: single_one_hot_encode(y, n_labels=total_labels)
 
     if DATASET == 'MNIST':
         test_dataset = MNIST(os.path.join(args.run, 'datasets'), train=False, download=True, transform=test_transform,
