@@ -384,21 +384,17 @@ def semisupervised(args, config):
         transforms.ToTensor()
     ])
     total_labels = 10 if args.dataset.upper() != 'CIFAR100' else 100
-    target_transform = lambda y: single_one_hot_encode(y, n_labels=total_labels)
 
     if args.dataset.lower() == 'mnist':
-        test_dataset = MNIST(os.path.join(args.run, 'datasets'), train=False, download=True, transform=test_transform,
-                             target_transform=target_transform)
+        test_dataset = MNIST(os.path.join(args.run, 'datasets'), train=False, download=True, transform=test_transform)
     elif args.dataset.lower() == 'cifar10':
-        test_dataset = CIFAR10(os.path.join(args.run, 'datasets'), train=False, download=True, transform=test_transform,
-                               target_transform=target_transform)
+        test_dataset = CIFAR10(os.path.join(args.run, 'datasets'), train=False, download=True, transform=test_transform)
     elif args.dataset.lower() in ['fmnist', 'fashionmnist']:
-        test_dataset = FashionMNIST(os.path.join(args.run, 'datasets'), train=False, download=True,
-                                    transform=test_transform)
+        test_dataset = FashionMNIST(os.path.join(args.run, 'datasets'), train=False, download=True)
     else:
         raise ValueError('Unknown dataset {}'.format(args.dataset))
 
-    collate_helper = lambda batch: my_collate_rev(batch, nSeg=config.n_labels, one_hot=True, total_labels=total_labels)
+    collate_helper = lambda batch: my_collate_rev(batch, nSeg=config.n_labels, total_labels=total_labels)
 
     test_loader = DataLoader(test_dataset, batch_size=config.training.batch_size, shuffle=False, num_workers=0,
                              drop_last=True, collate_fn=collate_helper)
@@ -409,9 +405,10 @@ def semisupervised(args, config):
     labels = np.zeros((10000,))
     counter = 0
     for i, (X, y) in enumerate(test_loader):
+        X = X.to(config.device)
         rep_i = f(X).view(-1, config.data.image_size * config.data.image_size * config.data.channels).data.cpu().numpy()
         representations[counter:(counter + rep_i.shape[0]), :] = rep_i
-        labels[counter:(counter + rep_i.shape[0])] = y.data.numpy()
+        labels[counter:(counter + rep_i.shape[0])] = y.data.cpu().numpy()
         counter += rep_i.shape[0]
     representations = representations[:counter, :]
     labels = labels[:counter]
