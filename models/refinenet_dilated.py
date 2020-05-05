@@ -1,6 +1,6 @@
 ### architecture for mnist experiments 
 #
-# taken from: https://github.com/ermongroup/ncsn/
+# adapted from: https://github.com/ermongroup/ncsn/
 
 from functools import partial
 
@@ -319,6 +319,17 @@ class RefineNetDilated(nn.Module):
         self.num_classes = config.model.num_classes
         self.act = act = nn.ELU()
         # self.act = act = nn.ReLU(True)
+        self.input_size = config.data.image_size ** 2 * config.data.channels
+        self.output_size = config.data.image_size ** 2 * config.data.channels
+
+        try:
+            self.afl = config.model.final_layer
+            if self.afl:
+                self.output_size = config.model.feature_size
+                self.final_layer = nn.Linear(self.input_size, self.output_size)
+        except:
+            # some of the fields relative to the final layers aren't defined in config
+            self.afl = False
 
         self.begin_conv = nn.Conv2d(config.data.channels, ngf, 3, stride=1, padding=1)
         self.normalizer = self.norm(ngf, self.num_classes)
@@ -391,4 +402,8 @@ class RefineNetDilated(nn.Module):
         output = self.normalizer(output, y)
         output = self.act(output)
         output = self.end_conv(output)
+
+        if self.afl:
+            output = self.final_layer(output.view(-1, self.input_size))
+
         return output
