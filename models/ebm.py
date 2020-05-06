@@ -6,7 +6,8 @@ from .nets import CleanMLP
 
 
 class UnnormalizedConditialEBM(nn.Module):
-    def __init__(self, input_size, hidden_size, n_hidden, output_size, condition_size, activation='lrelu'):
+    def __init__(self, input_size, hidden_size, n_hidden, output_size, condition_size, activation='lrelu',
+                 augment=False, positive=False):
         super().__init__()
 
         self.input_size = input_size
@@ -15,18 +16,20 @@ class UnnormalizedConditialEBM(nn.Module):
         self.cond_size = condition_size
         self.n_hidden = n_hidden
         self.activation = activation
+        self.augment = augment
+        self.positive = positive
 
         self.f = CleanMLP(input_size, hidden_size, n_hidden, output_size, activation=activation)
         self.g = nn.Linear(condition_size, output_size, bias=False)
 
-    def forward(self, x, y, augment=False, positive=False):
+    def forward(self, x, y):
         fx, gy = self.f(x).view(-1, self.output_size), self.g(y)
 
-        if positive:
+        if self.positive:
             fx = F.relu(fx)
             gy = F.relu(gy)
 
-        if augment:
+        if self.augment:
             return torch.einsum('bi,bi->b', [fx, gy]) + torch.einsum('bi,bi->b', [fx.pow(2), gy.pow(2)])
 
         else:
@@ -34,7 +37,7 @@ class UnnormalizedConditialEBM(nn.Module):
 
 
 class ModularUnnormalizedConditionalEBM(nn.Module):
-    def __init__(self, f_net, g_net):
+    def __init__(self, f_net, g_net, augment=False, positive=False):
         super().__init__()
 
         assert f_net.output_size == g_net.out_features
@@ -42,18 +45,20 @@ class ModularUnnormalizedConditionalEBM(nn.Module):
         self.input_size = f_net.input_size
         self.output_size = f_net.output_size
         self.cond_size = g_net.in_features
+        self.augment = augment
+        self.positive = positive
 
         self.f = f_net
         self.g = g_net
 
-    def forward(self, x, y, augment=False, positive=False):
+    def forward(self, x, y):
         fx, gy = self.f(x).view(-1, self.output_size), self.g(y)
 
-        if positive:
+        if self.positive:
             fx = F.relu(fx)
             gy = F.relu(gy)
 
-        if augment:
+        if self.augment:
             return torch.einsum('bi,bi->b', [fx, gy]) + torch.einsum('bi,bi->b', [fx.pow(2), gy.pow(2)])
 
         else:

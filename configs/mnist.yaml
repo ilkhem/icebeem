@@ -43,6 +43,8 @@ model:
   ngf: 64
   final_layer: false
   feature_size: 20
+  augment: false
+  positive: false
 
 optim:
   weight_decay: 0.000

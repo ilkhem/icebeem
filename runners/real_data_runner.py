@@ -184,7 +184,9 @@ class PreTrainer:
         if conditional:
             f = RefineNetDilated(self.config).to(self.config.device)
             g = nn.Linear(cond_size, f.output_size, bias=False).to(self.config.device)
-            energy_net = ModularUnnormalizedConditionalEBM(f, g)
+            energy_net = ModularUnnormalizedConditionalEBM(f, g,
+                                                           augment=self.config.model.augment,
+                                                           positive=self.config.model.positive)
         else:
             f = RefineNetDilated(self.config).to(self.config.device)
             energy_net = ModularUnnormalizedEBM(f)
@@ -321,7 +323,7 @@ def transfer(args, config):
     print('loaded energy network')
 
     g = nn.Linear(total_labels - config.n_labels, f.output_size, bias=False).to(config.device)
-    energy_net = ModularUnnormalizedConditionalEBM(f, g)
+    energy_net = ModularUnnormalizedConditionalEBM(f, g, augment=config.model.augment, positive=config.model.positive)
 
     # energy_net_finalLayer = torch.ones((config.data.image_size * config.data.image_size, 2)).to(config.device)
     # energy_net_finalLayer.requires_grad_()
