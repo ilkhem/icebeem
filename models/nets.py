@@ -6,7 +6,6 @@ from torch import nn
 class LeafParam(nn.Module):
     """
     just ignores the input and outputs a parameter tensor
-    todo maybe this exists in PyTorch somewhere?
     """
 
     def __init__(self, n):
@@ -95,6 +94,17 @@ class MLPlayer(nn.Module):
         linear_act = self.linear_layer(x)
         H_x = self.activation_function(linear_act)
         return H_x
+
+
+class SimpleLinear(nn.Linear):
+    """
+    a wrapper around nn.Linear that defines custom fields
+    """
+
+    def __init__(self, nin, nout, bias=False):
+        super().__init__(nin, nout, bias=bias)
+        self.input_size = nin
+        self.output_size = nout
 
 
 class MLP(nn.Module):

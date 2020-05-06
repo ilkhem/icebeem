@@ -40,11 +40,11 @@ class ModularUnnormalizedConditionalEBM(nn.Module):
     def __init__(self, f_net, g_net, augment=False, positive=False):
         super().__init__()
 
-        assert f_net.output_size == g_net.out_features
+        assert f_net.output_size == g_net.output_size
 
         self.input_size = f_net.input_size
         self.output_size = f_net.output_size
-        self.cond_size = g_net.in_features
+        self.cond_size = g_net.input_size
         self.augment = augment
         self.positive = positive
 

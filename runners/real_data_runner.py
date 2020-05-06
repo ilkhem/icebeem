@@ -18,6 +18,7 @@ from data.utils import single_one_hot_encode, single_one_hot_encode_rev
 from losses.dsm import dsm, cdsm
 from models.ebm import ModularUnnormalizedConditionalEBM, ModularUnnormalizedEBM
 from models.refinenet_dilated import RefineNetDilated
+from models.nets import SimpleLinear
 
 
 def my_collate(batch, nSeg=8, one_hot=False, total_labels=10):
@@ -170,7 +171,7 @@ class PreTrainer:
         else:
             raise ValueError('Unknown config dataset {}'.format(self.config.data.dataset))
 
-        self.config.input_dim = self.config.data.image_size ** 2 * self.config.data.channels
+        # self.config.input_dim = self.config.data.image_size ** 2 * self.config.data.channels
 
         # # define the g network
         # energy_net_finalLayer = torch.ones((self.config.data.image_size * self.config.data.image_size, self.nSeg)).to(
@@ -183,7 +184,8 @@ class PreTrainer:
 
         if conditional:
             f = RefineNetDilated(self.config).to(self.config.device)
-            g = nn.Linear(cond_size, f.output_size, bias=False).to(self.config.device)
+            # g = nn.Linear(cond_size, f.output_size, bias=False).to(self.config.device)
+            g = SimpleLinear(cond_size, f.output_size, bias=False).to(self.config.device)
             energy_net = ModularUnnormalizedConditionalEBM(f, g,
                                                            augment=self.config.model.augment,
                                                            positive=self.config.model.positive)
@@ -322,7 +324,8 @@ def transfer(args, config):
     f.load_state_dict(states[0])
     print('loaded energy network')
 
-    g = nn.Linear(total_labels - config.n_labels, f.output_size, bias=False).to(config.device)
+    # g = nn.Linear(total_labels - config.n_labels, f.output_size, bias=False).to(config.device)
+    g = SimpleLinear(total_labels - config.n_labels, f.output_size, bias=False).to(config.device)
     energy_net = ModularUnnormalizedConditionalEBM(f, g, augment=config.model.augment, positive=config.model.positive)
 
     # energy_net_finalLayer = torch.ones((config.data.image_size * config.data.image_size, 2)).to(config.device)
