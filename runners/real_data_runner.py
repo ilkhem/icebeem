@@ -502,6 +502,14 @@ def cca_representations(args, config, conditional=True, retrain=True):
     labels = np.zeros((10000,))
     counter = 0
     for i, (X, y) in enumerate(test_loader):
+        #print('\n\n')
+        #print(config.device)
+        X = X.to(config.device) # X.cuda() #
+        #print( X.dtype )
+        #print( X.is_cuda )
+        #print( X.to(config.device).is_cuda )
+        #print( torch.cuda.is_available() )
+        #print('\n\n')
         rep_i = f(X).view(-1, config.data.image_size * config.data.image_size * config.data.channels).data.cpu().numpy()
         representations[counter:(counter + rep_i.shape[0]), :] = rep_i
         labels[counter:(counter + rep_i.shape[0])] = y.data.cpu().numpy()
