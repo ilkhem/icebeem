@@ -41,6 +41,8 @@ model:
 #  ngf: 128
   ### configurations for MNIST
   ngf: 64
+  final_layer: false
+  feature_size: 20
 
 optim:
   weight_decay: 0.000
