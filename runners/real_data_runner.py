@@ -9,16 +9,16 @@ from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import scale
 from sklearn.svm import LinearSVC
-from torch import optim, nn
+from torch import optim
 from torch.utils.data import DataLoader
 from torch.utils.data.dataloader import default_collate
 from torchvision.datasets import MNIST, CIFAR10, FashionMNIST, CIFAR100
 
-from data.utils import single_one_hot_encode, single_one_hot_encode_rev
+from data.utils import single_one_hot_encode
 from losses.dsm import dsm, cdsm
 from models.ebm import ModularUnnormalizedConditionalEBM, ModularUnnormalizedEBM
-from models.refinenet_dilated import RefineNetDilated
 from models.nets import SimpleLinear
+from models.refinenet_dilated import RefineNetDilated
 
 
 def my_collate(batch, nSeg=8, one_hot=False, total_labels=10):
@@ -41,7 +41,7 @@ def my_collate_rev(batch, nSeg=8, one_hot=False, total_labels=10):
         image, label = item
         if one_hot:
             idx = np.nonzero(label)[0]
-            if idx in range(nSeg,total_labels):
+            if idx in range(nSeg, total_labels):
                 modified_batch.append((image, label[nSeg:]))
         else:
             if label in range(nSeg, total_labels):
@@ -507,14 +507,14 @@ def cca_representations(args, config, conditional=True, retrain=True):
     labels = np.zeros((10000,))
     counter = 0
     for i, (X, y) in enumerate(test_loader):
-        #print('\n\n')
-        #print(config.device)
-        X = X.to(config.device) # X.cuda() #
-        #print( X.dtype )
-        #print( X.is_cuda )
-        #print( X.to(config.device).is_cuda )
-        #print( torch.cuda.is_available() )
-        #print('\n\n')
+        # print('\n\n')
+        # print(config.device)
+        X = X.to(config.device)  # X.cuda() #
+        # print( X.dtype )
+        # print( X.is_cuda )
+        # print( X.to(config.device).is_cuda )
+        # print( torch.cuda.is_available() )
+        # print('\n\n')
         rep_i = f(X).view(-1, config.data.image_size * config.data.image_size * config.data.channels).data.cpu().numpy()
         representations[counter:(counter + rep_i.shape[0]), :] = rep_i
         labels[counter:(counter + rep_i.shape[0])] = y.data.cpu().numpy()

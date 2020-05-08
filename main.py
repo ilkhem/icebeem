@@ -228,8 +228,8 @@ def main():
         ii = np.where(res_cond[0]['lab'] < 5)[0]
         iinot = np.where(res_cond[0]['lab'] >= 5)[0]
 
-        for i in range(args.seed, args.nSims ):
-            for j in range(i + 1, args.nSims ):
+        for i in range(args.seed, args.nSims):
+            for j in range(i + 1, args.nSims):
                 mcc_strong_cond.append(
                     mean_corr_coef_out_of_sample(x=res_cond[i]['rep'][ii, :], y=res_cond[j]['rep'][ii, :],
                                                  x_test=res_cond[i]['rep'][iinot, :],
@@ -241,8 +241,16 @@ def main():
                 # mcc_strong_cond.append( mean_corr_coef( res_cond[i]['rep'], res_cond[j]['rep']) )
                 # mcc_strong_uncond.append( mean_corr_coef( res_uncond[i]['rep'], res_uncond[j]['rep']) )
 
-        print('\n\nStrong identifiability performance (i.e., direct MCC)')
-        print('Conditional: {}\t\tUnconditional: {}'.format(np.mean(mcc_strong_cond), np.mean(mcc_strong_uncond)))
+        # print('\n\nStrong identifiability performance (i.e., direct MCC)')
+        # print('Conditional: {}\t\tUnconditional: {}'.format(np.mean(mcc_strong_cond), np.mean(mcc_strong_uncond)))
+        print('Statistics for strong iden.:\tC\tU')
+        print('Mean:\t\t{}\t{}'.format(np.mean(mcc_strong_cond), np.mean(mcc_strong_uncond)))
+        print('Median:\t\t{}\t{}'.format(np.median(mcc_strong_cond), np.median(mcc_strong_uncond)))
+        cond_top5 = np.sort(mcc_strong_cond)[::-1][:5]
+        uncond_top5 = np.sort(mcc_strong_uncond)[::-1][:5]
+        print('Top 5:\t\t{}\t{}\n\t\t{}\t{}\n\t\t{}\t{}\n\t\t{}\t{}\n\t\t{}\t{}\n'.format(
+            cond_top5[0], uncond_top5[0], cond_top5[1], uncond_top5[1], cond_top5[2], uncond_top5[2], cond_top5[3],
+            uncond_top5[3], cond_top5[4], uncond_top5[4]))
 
         # save results:
         pickle.dump({'mcc_strong_cond': mcc_strong_cond, 'mcc_strong_uncond': mcc_strong_uncond},
@@ -262,8 +270,8 @@ def main():
         mcc_weak_uncond = []
 
         cca_dim = 20
-        for i in range(args.seed, args.nSims ):
-            for j in range(i + 1, args.nSims ):
+        for i in range(args.seed, args.nSims):
+            for j in range(i + 1, args.nSims):
                 cca = CCA(n_components=cca_dim)
                 cca.fit(res_cond[i]['rep'][ii, :], res_cond[j]['rep'][ii, :])
 
@@ -277,8 +285,14 @@ def main():
                 resbase = cca.transform(res_uncond[i]['rep'][iinot, :], res_uncond[j]['rep'][iinot, :])
                 mcc_weak_uncond.append(mean_corr_coef(resbase[0], resbase[1]))
 
-        print('\n\nWeak identifiability performance (i.e., MCC after CCA projection)')
-        print('Conditional: {}\t\tUnconditional: {}\n\n'.format(np.mean(mcc_weak_cond), np.mean(mcc_weak_uncond)))
+        print('Statistics for weak iden.:\tC\tU')
+        print('Mean:\t\t{}\t{}'.format(np.mean(mcc_weak_cond), np.mean(mcc_weak_uncond)))
+        print('Median:\t\t{}\t{}'.format(np.median(mcc_weak_cond), np.median(mcc_weak_uncond)))
+        cond_top5 = np.sort(mcc_weak_cond)[::-1][:5]
+        uncond_top5 = np.sort(mcc_weak_uncond)[::-1][:5]
+        print('Top 5:\t\t{}\t{}\n\t\t{}\t{}\n\t\t{}\t{}\n\t\t{}\t{}\n\t\t{}\t{}'.format(
+            cond_top5[0], uncond_top5[0], cond_top5[1], uncond_top5[1], cond_top5[2], uncond_top5[2], cond_top5[3],
+            uncond_top5[3], cond_top5[4], uncond_top5[4]))
 
         # save results:
         pickle.dump({'mcc_weak_cond': mcc_weak_cond, 'mcc_weak_uncond': mcc_weak_uncond},
