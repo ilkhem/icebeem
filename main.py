@@ -228,8 +228,8 @@ def main():
         ii = np.where(res_cond[0]['lab'] < 5)[0]
         iinot = np.where(res_cond[0]['lab'] >= 5)[0]
 
-        for i in range(args.seed, args.nSims + args.seed):
-            for j in range(i + 1, args.nSims + args.seed):
+        for i in range(args.seed, args.nSims ):
+            for j in range(i + 1, args.nSims ):
                 mcc_strong_cond.append(
                     mean_corr_coef_out_of_sample(x=res_cond[i]['rep'][ii, :], y=res_cond[j]['rep'][ii, :],
                                                  x_test=res_cond[i]['rep'][iinot, :],
@@ -253,15 +253,17 @@ def main():
         import warnings
         from sklearn.exceptions import ConvergenceWarning
         warnings.filterwarnings("ignore", category=ConvergenceWarning)
-        ii = np.where(res_cond[0]['lab'] < 5)[0]
-        iinot = np.where(res_cond[0]['lab'] >= 5)[0]
+        cutoff = 50 if args.dataset == 'CIFAR100' else 5
+        print('Cutoff: {}'.format(cutoff))
+        ii = np.where(res_cond[0]['lab'] < cutoff)[0]
+        iinot = np.where(res_cond[0]['lab'] >= cutoff)[0]
 
         mcc_weak_cond = []
         mcc_weak_uncond = []
 
         cca_dim = 20
-        for i in range(args.nSims):
-            for j in range(i + 1, args.nSims):
+        for i in range(args.seed, args.nSims ):
+            for j in range(i + 1, args.nSims ):
                 cca = CCA(n_components=cca_dim)
                 cca.fit(res_cond[i]['rep'][ii, :], res_cond[j]['rep'][ii, :])
 
