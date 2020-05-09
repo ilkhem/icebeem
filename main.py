@@ -246,6 +246,7 @@ def main():
         print('Statistics for strong iden.:\tC\tU')
         print('Mean:\t\t{}\t{}'.format(np.mean(mcc_strong_cond), np.mean(mcc_strong_uncond)))
         print('Median:\t\t{}\t{}'.format(np.median(mcc_strong_cond), np.median(mcc_strong_uncond)))
+        print('Std:\t\t{}\t{}'.format(np.std(mcc_strong_cond), np.std(mcc_strong_uncond)))
         cond_sorted = np.sort(mcc_strong_cond)[::-1]
         uncond_sorted = np.sort(mcc_strong_uncond)[::-1]
         print('Top 2:\t\t{}\t{}\n\t\t{}\t{}\nLast 2:\t\t{}\t{}\n\t\t{}\t{}'.format(
@@ -288,6 +289,7 @@ def main():
         print('Statistics for weak iden.:\tC\tU')
         print('Mean:\t\t{}\t{}'.format(np.mean(mcc_weak_cond), np.mean(mcc_weak_uncond)))
         print('Median:\t\t{}\t{}'.format(np.median(mcc_weak_cond), np.median(mcc_weak_uncond)))
+        print('Std:\t\t{}\t{}'.format(np.std(mcc_weak_cond), np.std(mcc_weak_uncond)))
         cond_sorted = np.sort(mcc_weak_cond)[::-1]
         uncond_sorted = np.sort(mcc_weak_uncond)[::-1]
         print('Top 2:\t\t{}\t{}\n\t\t{}\t{}\nLast 2:\t\t{}\t{}\n\t\t{}\t{}'.format(
