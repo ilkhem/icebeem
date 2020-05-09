@@ -8,7 +8,7 @@ import yaml
 
 from runners.real_data_runner import PreTrainer, semisupervised, transfer, cca_representations
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "2"
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 
 def parse():

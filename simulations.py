@@ -7,7 +7,7 @@ import yaml
 
 from runners.simulation_runner import run_icebeem_exp, run_ivae_exp, run_tcl_exp
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "2"
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 
 def parse_sim():
