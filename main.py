@@ -246,11 +246,11 @@ def main():
         print('Statistics for strong iden.:\tC\tU')
         print('Mean:\t\t{}\t{}'.format(np.mean(mcc_strong_cond), np.mean(mcc_strong_uncond)))
         print('Median:\t\t{}\t{}'.format(np.median(mcc_strong_cond), np.median(mcc_strong_uncond)))
-        cond_top5 = np.sort(mcc_strong_cond)[::-1][:5]
-        uncond_top5 = np.sort(mcc_strong_uncond)[::-1][:5]
-        print('Top 5:\t\t{}\t{}\n\t\t{}\t{}\n\t\t{}\t{}\n\t\t{}\t{}\n\t\t{}\t{}\n'.format(
-            cond_top5[0], uncond_top5[0], cond_top5[1], uncond_top5[1], cond_top5[2], uncond_top5[2], cond_top5[3],
-            uncond_top5[3], cond_top5[4], uncond_top5[4]))
+        cond_sorted = np.sort(mcc_strong_cond)[::-1]
+        uncond_sorted = np.sort(mcc_strong_uncond)[::-1]
+        print('Top 2:\t\t{}\t{}\n\t\t{}\t{}\nLast 2:\t\t{}\t{}\n\t\t{}\t{}'.format(
+            cond_sorted[0], uncond_sorted[0], cond_sorted[1], uncond_sorted[1], cond_sorted[-2], uncond_sorted[-2],
+            cond_sorted[-1], uncond_sorted[-1]))
 
         # save results:
         pickle.dump({'mcc_strong_cond': mcc_strong_cond, 'mcc_strong_uncond': mcc_strong_uncond},
@@ -288,11 +288,11 @@ def main():
         print('Statistics for weak iden.:\tC\tU')
         print('Mean:\t\t{}\t{}'.format(np.mean(mcc_weak_cond), np.mean(mcc_weak_uncond)))
         print('Median:\t\t{}\t{}'.format(np.median(mcc_weak_cond), np.median(mcc_weak_uncond)))
-        cond_top5 = np.sort(mcc_weak_cond)[::-1][:5]
-        uncond_top5 = np.sort(mcc_weak_uncond)[::-1][:5]
-        print('Top 5:\t\t{}\t{}\n\t\t{}\t{}\n\t\t{}\t{}\n\t\t{}\t{}\n\t\t{}\t{}'.format(
-            cond_top5[0], uncond_top5[0], cond_top5[1], uncond_top5[1], cond_top5[2], uncond_top5[2], cond_top5[3],
-            uncond_top5[3], cond_top5[4], uncond_top5[4]))
+        cond_sorted = np.sort(mcc_weak_cond)[::-1]
+        uncond_sorted = np.sort(mcc_weak_uncond)[::-1]
+        print('Top 2:\t\t{}\t{}\n\t\t{}\t{}\nLast 2:\t\t{}\t{}\n\t\t{}\t{}'.format(
+            cond_sorted[0], uncond_sorted[0], cond_sorted[1], uncond_sorted[1], cond_sorted[-2], uncond_sorted[-2],
+            cond_sorted[-1], uncond_sorted[-1]))
 
         # save results:
         pickle.dump({'mcc_weak_cond': mcc_weak_cond, 'mcc_weak_uncond': mcc_weak_uncond},
