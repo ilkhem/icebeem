@@ -67,7 +67,6 @@ def make_dirs(args):
 
 def main():
     args = parse()
-    make_dirs(args)
 
     with open(os.path.join('configs', args.config), 'r') as f:
         config = yaml.load(f)
@@ -75,6 +74,14 @@ def main():
     new_config.device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
     print(new_config)
 
+    if new_config.model.positive:
+        args.doc += 'p'
+    if new_config.model.positive:
+        args.doc += 'a'
+    if new_config.model.final_layer:
+        args.doc += str(new_config.model.feature_size)
+
+    make_dirs(args)
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)
 
