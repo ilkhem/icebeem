@@ -219,21 +219,28 @@ python main.py --config mnist.yaml --seed 42
 ```
 
 ___
-To run everything, you can use the following bash script:
+To run everything, you can use the following two step bash script:
 ```
 CONFIG_FILE=mnist.yaml
 sbatch --exclusive slurm_main.sbatch --config $CONFIG_FILE 
 for SIZE in 500 1000 2000 3000 4000 5000 6000
 do
-        sbatch --exclusive --array=0-4 slurm_main.sbatch --config $CONFIG_FILE --transfer --subsetSize $SIZE
         sbatch --exclusive --array=0-4 slurm_main.sbatch --config $CONFIG_FILE --transfer --subsetSize $SIZE --baseline
 done
-sbatch slurm_main.sbatch --config $CONFIG_FILE  --transfer --plot
 sbatch --exclusive slurm_main.sbatch --config $CONFIG_FILE  --baseline
-sbatch --exclusive slurm_main.sbatch --config $CONFIG_FILE  --semisupervised
-sbatch --exclusive slurm_main.sbatch --config $CONFIG_FILE  --semisupervised --baseline
 sbatch --exclusive --array=1-10 slurm_main.sbatch --config $CONFIG_FILE  --representation
 sbatch --exclusive --array=1-10 slurm_main.sbatch --config $CONFIG_FILE  --representation --baseline
-sbatch slurm_main.sbatch --config $CONFIG_FILE  --representation --plot
 ```
+And then (when all previous jobs finish)
+```
+CONFIG_FILE=mnist.yaml
+for SIZE in 500 1000 2000 3000 4000 5000 6000
+do
+        sbatch --exclusive --array=0-4 slurm_main.sbatch --config $CONFIG_FILE --transfer --subsetSize $SIZE
+done
+sbatch --exclusive slurm_main.sbatch --config $CONFIG_FILE  --semisupervised
+sbatch --exclusive slurm_main.sbatch --config $CONFIG_FILE  --semisupervised --baseline
+sbatch slurm_main.sbatch --config $CONFIG_FILE  --transfer --plot
+sbatch slurm_main.sbatch --config $CONFIG_FILE  --representation --plot
 
+```
