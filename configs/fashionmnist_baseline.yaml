@@ -1,22 +1,20 @@
-# config file for transfer learning example on CIFAR100
+# config file for transfer learning example on FashionMNIST
 
 training:
   batch_size: 63
-  n_epochs: 500000
-  n_iters: 5001
+  n_epochs: 15
+  n_iters: 200001
   ngpu: 1
-  snapshot_freq: 250
+  snapshot_freq: 50
   algo: 'dsm'
   anneal_power: 2.0
 
 data:
- dataset: "CIFAR100"
- image_size: 32
- channels: 3
- logit_transform: false
- random_flip: true
- random_state: 0
- split_size: .33
+  dataset: "FashionMNIST_transferBaseline"
+  image_size: 28
+  channels: 1
+  logit_transform: false
+  random_flip: false
 
 model:
   sigma_begin: 1
@@ -36,4 +34,4 @@ optim:
   beta1: 0.9
   amsgrad: false
 
-n_labels: 100
+n_labels: 8

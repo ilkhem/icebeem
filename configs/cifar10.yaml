@@ -1,4 +1,4 @@
-# config file for transfer learning example on MNIST
+# config file for transfer learning example on CIFAR10
 
 training:
   batch_size: 63
@@ -10,13 +10,6 @@ training:
   anneal_power: 2.0
 
 data:
-  ## mnist
-  # dataset: "MNIST"
-  # image_size: 28
-  # channels: 1
-  # logit_transform: false
-  # random_flip: false
- ## cifar10
  dataset: "CIFAR10"
  image_size: 32
  channels: 3
@@ -30,9 +23,6 @@ model:
   sigma_end: 0.01
   num_classes: 10
   batch_norm: false
-  ## configurations for CelebA, CIFAR10
-#  ngf: 128
-  ### configurations for MNIST
   ngf: 64
   final_layer: false
   feature_size: 20
