@@ -124,7 +124,7 @@ def get_dataset(args, config, test=False, rev=False, one_hot=True, subset=False,
         drop_last = True
         cond_size = total_labels - config.n_labels
     if subset:
-        id_range = list(range(args.subsetSize))
+        id_range = list(range(args.SubsetSize))
         dataset = torch.utils.data.Subset(dataset, id_range)
     if not no_collate:
         dataloader = DataLoader(dataset, batch_size=config.training.batch_size, shuffle=shuffle, num_workers=0,
@@ -155,7 +155,7 @@ def train(args, config, conditional=True):
     step = 0
     loss_track_epochs = []
     for epoch in range(config.training.n_epochs):
-        loss_vals = []
+        loss_track = []
         for i, (X, y) in enumerate(dataloader):
             step += 1
 
@@ -176,7 +176,7 @@ def train(args, config, conditional=True):
             optimizer.step()
 
             logging.info("step: {}, loss: {}, maxLabel: {}".format(step, loss.item(), y.max()))
-            loss_vals.append(loss.item())
+            loss_track.append(loss.item())
             loss_track_epochs.append(loss.item())
 
             if step >= config.training.n_iters:
@@ -210,16 +210,16 @@ def train(args, config, conditional=True):
         if config.data.dataset.lower() in ['mnist_transferbaseline', 'cifar10_transferbaseline',
                                            'fashionmnist_transferbaseline', 'cifar100_transferbaseline']:
             # save loss track during epoch for transfer baseline
-            pickle.dump(loss_vals,
-                        open(os.path.join(args.run, config.data.dataset + '_Baseline_Size' + str(
-                            args.subsetSize) + "_Seed" + str(args.seed) + '.p'), 'wb'))
+            pickle.dump(loss_track,
+                        open(os.path.join(args.output, config.data.dataset + '_Baseline_Size' + str(
+                            args.SubsetSize) + "_Seed" + str(args.seed) + '.p'), 'wb'))
 
     if config.data.dataset.lower() in ['mnist_transferbaseline', 'cifar10_transferbaseline',
                                        'fashionmnist_transferbaseline', 'cifar100_transferbaseline']:
         # save loss track during epoch for transfer baseline
         pickle.dump(loss_track_epochs,
-                    open(os.path.join(args.run, config.data.dataset + '_Baseline_epochs_Size' + str(
-                        args.subsetSize) + "_Seed" + str(args.seed) + '.p'), 'wb'))
+                    open(os.path.join(args.output, config.data.dataset + '_Baseline_epochs_Size' + str(
+                        args.SubsetSize) + "_Seed" + str(args.seed) + '.p'), 'wb'))
 
     # save final checkpoints for distrubution!
     enet, energy_net_finalLayer = energy_net.f, energy_net.g
@@ -280,10 +280,10 @@ def transfer(args, config):
             loss_track.append(loss.item())
             loss_track_epochs.append(loss.item())
 
-        pickle.dump(loss_track, open(os.path.join(args.run, DATASET.lower() + 'TransferCDSM_Size' + str(
+        pickle.dump(loss_track, open(os.path.join(args.output, DATASET.lower() + 'TransferCDSM_Size' + str(
             SUBSET_SIZE) + "_Seed" + str(SEED) + '.p'), 'wb'))
 
-    pickle.dump(loss_track_epochs, open(os.path.join(args.run, DATASET.lower() + 'TransferCDSM_epochs_Size' + str(
+    pickle.dump(loss_track_epochs, open(os.path.join(args.output, DATASET.lower() + 'TransferCDSM_epochs_Size' + str(
         SUBSET_SIZE) + "_Seed" + str(SEED) + '.p'), 'wb'))
 
 
@@ -427,7 +427,7 @@ def plot_representation(args):
 
     # save results:
     pickle.dump({'mcc_strong_cond': mcc_strong_cond, 'mcc_strong_uncond': mcc_strong_uncond},
-                open(args.dataset + '_srongMCC.p', 'wb'))
+                open(os.path.join(args.output, args.dataset + '_srongMCC.p', 'wb')))
 
     # no we compare representation identifiability for weaker case
 
@@ -468,7 +468,7 @@ def plot_representation(args):
 
     # save results:
     pickle.dump({'mcc_weak_cond': mcc_weak_cond, 'mcc_weak_uncond': mcc_weak_uncond},
-                open(args.dataset + '_weakMCC.p', 'wb'))
+                open(os.path.join(args.output, args.dataset + '_weakMCC.p', 'wb')))
 
 
 def plot_transfer(args):
@@ -487,11 +487,11 @@ def plot_transfer(args):
 
     # load transfer results
     for x in samplesSizes:
-        files = [f for f in os.listdir(args.run) if args.dataset.lower() + 'TransferCDSM_Size' + str(x) + '_' in f]
+        files = [f for f in os.listdir(args.output) if args.dataset.lower() + 'TransferCDSM_Size' + str(x) + '_' in f]
         for f in files:
             resTransfer[x].append(np.median(pickle.load(open(os.path.join(args.run, f), 'rb'))))
 
-        files = [f for f in os.listdir(args.run) if args.dataset + '_Baseline_Size' + str(x) + '_' in f]
+        files = [f for f in os.listdir(args.output) if args.dataset + '_Baseline_Size' + str(x) + '_' in f]
         for f in files:
             resBaseline[x].append(np.median(pickle.load(open(os.path.join(args.run, f), 'rb'))))
 

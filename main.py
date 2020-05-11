@@ -63,6 +63,8 @@ def make_dirs(args):
     os.makedirs(args.log, exist_ok=True)
     args.checkpoints = os.path.join(args.run, 'checkpoints', args.doc)
     os.makedirs(args.checkpoints, exist_ok=True)
+    args.output = os.path.join(args.run, 'output')
+    os.makedirs(args.output, exist_ok=True)
 
 
 def main():
