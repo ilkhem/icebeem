@@ -193,7 +193,7 @@ def main():
                 new_args.doc = args.doc + args.dataset + '_Representation' + str(new_args.seed)
                 print(new_args.doc)
                 make_dirs(new_args)
-                cca_representations(new_args, config, retrain=args.retrainNets)
+                cca_representations(new_args, config)
 
             # train unconditional EBMs
             for seed in range(args.seed, args.nSims + args.seed):
@@ -202,7 +202,7 @@ def main():
                 new_args.doc = args.doc + args.dataset + '_RepresentationBaseline' + str(new_args.seed)
                 print(new_args.doc)
                 make_dirs(new_args)
-                cca_representations(new_args, config, conditional=False, retrain=args.retrainNets)
+                cca_representations(new_args, config, conditional=False)
         else:
             print('not retraining')
 
