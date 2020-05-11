@@ -29,7 +29,7 @@ def parse():
     parser.add_argument('--representation', action='store_true',
                         help='Run CCA representation validation across multiple seeds')
 
-    parser.add_argument('--SubsetSize', type=int, default=6000,
+    parser.add_argument('--subsetSize', type=int, default=6000,
                         help='Number of data points per class to consider -- '
                              'only relevant for transfer learning if not run with --all flag')
     parser.add_argument('--all', action='store_true',
@@ -109,7 +109,7 @@ def main():
             new_args = argparse.Namespace(**vars(args))
             for n in [500, 1000, 2000, 3000, 4000, 5000, 6000]:
                 for seed in range(args.seed, args.nSims + args.seed):
-                    new_args.SubsetSize = n
+                    new_args.subsetSize = n
                     new_args.seed = seed
                     # change random seed
                     np.random.seed(seed)
@@ -124,7 +124,7 @@ def main():
             new_args = argparse.Namespace(**vars(args))
             for n in [500, 1000, 2000, 3000, 4000, 5000, 6000]:
                 for seed in range(args.seed, args.nSims + args.seed):
-                    new_args.SubsetSize = n
+                    new_args.subsetSize = n
                     new_args.seed = seed
                     new_args.doc = config.data.dataset.lower() + 'Baseline' + str(n)
                     make_dirs(new_args)
@@ -142,7 +142,7 @@ def main():
         config = dict2namespace(config_raw)
         config.device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
         if not args.all:
-            new_args.doc = args.doc + 'Baseline' + str(new_args.SubsetSize)
+            new_args.doc = args.doc + 'Baseline' + str(new_args.subsetSize)
             make_dirs(new_args)
             train(new_args, config)
 
@@ -151,7 +151,7 @@ def main():
                 for seed in range(args.seed, args.nSims + args.seed):
                     new_args.doc = args.doc + 'Baseline' + str(n)
                     make_dirs(new_args)
-                    new_args.SubsetSize = n
+                    new_args.subsetSize = n
                     new_args.seed = seed
                     # change random seed
                     np.random.seed(seed)

@@ -124,7 +124,7 @@ def get_dataset(args, config, test=False, rev=False, one_hot=True, subset=False,
         drop_last = True
         cond_size = total_labels - config.n_labels
     if subset:
-        id_range = list(range(args.SubsetSize))
+        id_range = list(range(args.subsetSize))
         dataset = torch.utils.data.Subset(dataset, id_range)
     if not no_collate:
         dataloader = DataLoader(dataset, batch_size=config.training.batch_size, shuffle=shuffle, num_workers=0,
@@ -212,14 +212,14 @@ def train(args, config, conditional=True):
             # save loss track during epoch for transfer baseline
             pickle.dump(loss_track,
                         open(os.path.join(args.output, config.data.dataset + '_Baseline_Size' + str(
-                            args.SubsetSize) + "_Seed" + str(args.seed) + '.p'), 'wb'))
+                            args.subsetSize) + "_Seed" + str(args.seed) + '.p'), 'wb'))
 
     if config.data.dataset.lower() in ['mnist_transferbaseline', 'cifar10_transferbaseline',
                                        'fashionmnist_transferbaseline', 'cifar100_transferbaseline']:
         # save loss track during epoch for transfer baseline
         pickle.dump(loss_track_epochs,
                     open(os.path.join(args.output, config.data.dataset + '_Baseline_epochs_Size' + str(
-                        args.SubsetSize) + "_Seed" + str(args.seed) + '.p'), 'wb'))
+                        args.subsetSize) + "_Seed" + str(args.seed) + '.p'), 'wb'))
 
     # save final checkpoints for distrubution!
     enet, energy_net_finalLayer = energy_net.f, energy_net.g
@@ -239,7 +239,7 @@ def transfer(args, config):
     once an icebeem is pretrained on some labels (0-7), we train only secondary network (g in our manuscript)
     on unseen labels 8-9 (these are new datasets)
     """
-    SUBSET_SIZE = args.SubsetSize
+    SUBSET_SIZE = args.subsetSize
     SEED = args.seed
     DATASET = config.data.dataset.upper()
     print('DATASET: ' + DATASET + ' SUBSET SIZE: ' + str(SUBSET_SIZE) + '\tSEED: ' + str(SEED))
