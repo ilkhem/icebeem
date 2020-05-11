@@ -13,8 +13,11 @@
 
 if [ -z ${SLURM_ARRAY_TASK_ID} ]
 then
-        SLURM_ARRAY_TASK_ID=0
+        echo "SLURM array variable not set"
+        python main.py "$@"
+else
+        echo "SLURM array variable is set"
+        echo "${SLURM_ARRAY_TASK_ID}"
+        python main.py --seed ${SLURM_ARRAY_TASK_ID} --nSims 1 "$@"
 fi
-echo "${SLURM_ARRAY_TASK_ID}"
-python main.py --seed ${SLURM_ARRAY_TASK_ID} --nSims 1 "$@"
 

@@ -167,3 +167,72 @@ Then, MCC statistics can be computed and visualized using:
 ```
 python main.py --config mnist.yaml --representation --plot
 ```
+
+## Using SLURM
+The bash script `slurm_main.sbatch` is a SLURM wrapper around `main.py` and allows to run multiple experiments in parallel
+on a SLURM equipped server. 
+You may have to change the `#SBATCH` configuration flags in the script according to your system.
+
+This script sets `--nSims` to `1`, and allows the user to select the seeds for which to run the experiments using the
+`--array` flag of `sbatch`. The rest of the arguments/flags can be passed as arguments of `slurm_main.sbatch`:
+```
+sbatch --array=some_seed_values slurm_main.sbatch --the_rest_of_the_arguments
+``` 
+
+### Examples
+
+A use case is to run the transfer learning experiments in parallel:
+```
+# we use the --exclusive flag because the experiments ue 6-7Go of gpu memory
+sbatch --exclusive --array=1-10 slurm_main.sbatch --config mnist.yaml --transfer --subsetSize 500
+```
+This is equivalent to running:
+```
+python main.py --config mnist.yaml --seed x --transfer --subsetSize 500
+```
+where `x` scans `[1-10]` for the value of the flag `--seed`. 
+Following this approach requires to run the script for the flag `--subsetSize` in `[500, 1000, 2000, 3000, 4000, 5000, 6000]`.
+
+___
+
+Another use case for the identifiability of representations experiment is:
+```
+# we use the --exclusive flag because the experiments ue 6-7Go of gpu memory
+sbatch --exclusive --array=42-51 slurm_main.sbatch --config mnist.yaml --representation
+```
+This is equivalent to:
+```
+python main.py --config mnist.yaml --seed 42 --nSims 10 --representation
+```
+with the added advantage that all seeds are run in parallel.
+
+___
+
+The script can also be used to run single seeds: if the `--array` flag is not set, then the seed value can be passed
+as an argument `--seed` to `slurm_main.batch`:
+```
+sbatch --exclusive slurm_main.sbatch --config mnist.yaml --seed 42
+```
+is equivalent to
+```
+python main.py --config mnist.yaml --seed 42
+```
+
+___
+To run everything, you can use the following bash script:
+```
+sbatch --exclusive slurm_main.sbatch --config mnist.yaml
+for Size in 500 1000 2000 3000 4000 5000 6000
+do
+        sbatch --exclusive --array=0-4 slurm_main.sbatch --config mnist.yaml --transfer --subsetSize $Size
+        sbatch --exclusive --array=0-4 slurm_main.sbatch --config mnist.yaml --transfer --subsetSize $Size --baseline
+done
+sbatch slurm_main.sbatch --config mnist.yaml --transfer --plot
+sbatch --exclusive slurm_main.sbatch --config mnist.yaml --baseline
+sbatch --exclusive slurm_main.sbatch --config mnist.yaml --semisupervised
+sbatch --exclusive slurm_main.sbatch --config mnist.yaml --semisupervised --baseline
+sbatch --exclusive --array=1-10 slurm_main.sbatch --config mnist.yaml --representation
+sbatch --exclusive --array=1-10 slurm_main.sbatch --config mnist.yaml --representation --baseline
+sbatch slurm_main.sbatch --config mnist.yaml --representation --plot
+```
+
