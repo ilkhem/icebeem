@@ -53,25 +53,26 @@ The results of each simulation is saved in the value of the flag `--run` (defula
 These experiments are run through the script `main.py`. Below are details on how to use the script. To learn about its arguments type `python main.py --help`:
 
 ```
-usage: main.py [-h] [--dataset DATASET] [--config CONFIG] [--run RUN] [--doc DOC] [--nSims NSIMS] [--SubsetSize SUBSETSIZE] [--seed SEED] [--all] [--baseline] [--semisupervised] [--transfer] [--plot]
+usage: main.py [-h] [--config CONFIG] [--run RUN] [--nSims NSIMS]
+               [--seed SEED] [--baseline] [--transfer] [--semisupervised]
+               [--representation] [--subsetSize SUBSETSIZE] [--all] [--plot]
 
 optional arguments:
   -h, --help            show this help message and exit
-  --dataset DATASET     Dataset to run experiments. Should be MNIST or CIFAR10, or FMNIST
   --config CONFIG       Path to the config file
   --run RUN             Path for saving running related data.
-  --doc DOC             A string for documentation purpose
   --nSims NSIMS         Number of simulations to run
-  --SubsetSize SUBSETSIZE
-                        Number of data points per class to consider -- only relevant for transfer learning
   --seed SEED           Random seed
-  --all                 Run transfer learning experiment for many seeds and subset sizes -- only relevant for transfer learning
   --baseline            Run the script for the baseline
-  --semisupervised      Run semi-supervised experiments
   --transfer            Run the transfer learning experiments after pretraining
-  --representation      Run experiments to verify identifiability of learnt representations
-  --retrainNets         Should EBMs be trained for representation experiments (omit to use pretrained networks)
-  --plot                Plot transfer learning experiment for the selected dataset
+  --semisupervised      Run semi-supervised experiments
+  --representation      Run CCA representation validation across multiple seeds
+  --subsetSize SUBSETSIZE
+                        Number of data points per class to consider -- only
+                        relevant for transfer learning if not run with --all flag
+  --all                 Run transfer learning experiment for many seeds and
+                        subset sizes -- only relevant for transfer learning
+  --plot                Plot selected experiment for the selected dataset
 ```
 
 All options and choice of dataset are passed through a configuration file under the `configs` folder.
@@ -87,6 +88,11 @@ to classify classes `n_labels-len(dset)`
 the dataset.
 
 Below, we explain how to call these functions using the `main.py` script to recreate the experiments from the manuscript.
+The experiments can be ran for:
+- MNIST: by setting the flag `--config` to `mnist.yaml`.
+- FashionMNIST: by setting the flag `--config` to `fashionmnist.yaml`.
+- CIFAR10: by setting the flag `--config` to `cifar10.yaml`.
+- CIFAR10: by setting the flag `--config` to `cifar100.yaml`.
 
 
 ### Transfer learning
@@ -102,22 +108,20 @@ To run the experiment on MNIST:
 
 ```
 # pretrain an ICE-BeeM on labels 0-7
-python main.py --config mnist.yaml --doc mnist
+python main.py --config mnist.yaml
 # fix f and only learn g on labels 8-9 for many different dataset sizes and different seeds
-python main.py --config mnist.yaml --doc mnist --transfer --all
+python main.py --config mnist.yaml --transfer --all
 # train an ICE-BeeM on labels 8-9 for many different dataset sizes and different seeds
-python main.py --config mnist.yaml --doc mnist --transfer --baseline --all
+python main.py --config mnist.yaml --transfer --baseline --all
 ```
 
 The results are saved in the value of the flag `--run` (defulat is `run/` folder). To plot the comparison for MNIST after running the steps above:
 
 ```
-python main.py --dataset MNIST --transfer --plot
+python main.py --config mnist.yaml --transfer --plot
 ```
 
 We also provide model checkpoints and experimental log to skip the training step.
-
-The same can be done on CIFAR-10 by changing the value of the flag `--config` to `cifar.yaml`. Also make sure to change the value of `--doc` not to overwrite the mnist checkpoints.
 
 ### Semi-supervised learning
 
@@ -130,18 +134,17 @@ We use the classification accuracy as a comparison metric.
 
 ```
 # pretrain an ICE-BeeM on labels 0-7 // same as first step in transfer learning exp
-python main.py --config mnist.yaml --doc mnist
+python main.py --config mnist.yaml
 # pretrain an unconditional EBM on labels 0-7
-python main.py --config mnist.yaml --doc mnist --baseline
+python main.py --config mnist.yaml --baseline
 # classify labels 8-9 using the pretrained ICE-BeeM
-python main.py --config mnist.yaml --doc mnist --semisupervised
+python main.py --config mnist.yaml --semisupervised
 # classify labels 8-9 using the pretrained unconditional EBM
-python main.py --config mnist.yaml --doc mnist --semisupervised --baseline
+python main.py --config mnist.yaml --semisupervised --baseline
 ```
 
 We also provide model checkpoints and experimental log to skip the training steps.
 
-The same can be done on CIFAR-10 by changing the value of the flag `--config` to `cifar.yaml` and FashioMNIST by changing the value of the flag `--dataset` to `FMNIST` and of the flag `--config` to `fashionmnist.yaml`. Also make sure to change the value of `--doc` not to overwrite the mnist checkpoints
 
 ### Identifiability of representations
 
@@ -159,8 +162,8 @@ python main.py --config mnist.yaml --nSims 10 --representation
 python main.py --config mnist.yaml --nSims 10 --representation --baseline
 ```
 
-Then, MCC statistics are computed and visualized using:
+Then, MCC statistics can be computed and visualized using:
 
 ```
-python main.py --dataset MNIST --representation --plot
+python main.py --config mnist.yaml --representation --plot
 ```
