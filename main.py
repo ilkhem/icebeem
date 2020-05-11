@@ -17,7 +17,6 @@ def parse():
 
     parser.add_argument('--config', type=str, default='mnist.yaml', help='Path to the config file')
     parser.add_argument('--run', type=str, default='run', help='Path for saving running related data.')
-    parser.add_argument('--doc', type=str, default='', help='A string for documentation purpose')
 
     parser.add_argument('--nSims', type=int, default=5, help='Number of simulations to run')
     parser.add_argument('--seed', type=int, default=0, help='Random seed')
@@ -39,9 +38,6 @@ def parse():
     parser.add_argument('--plot', action='store_true',
                         help='Plot selected experiment for the selected dataset')
 
-    parser.add_argument('--dataset', type=str, default='MNIST',
-                        help='(LEGACY) Dataset to run experiments. Should be MNIST or CIFAR10, FMNIST, or CIFAR100')
-
     args = parser.parse_args()
     return args
 
@@ -57,38 +53,36 @@ def dict2namespace(config):
     return namespace
 
 
-def make_dirs(args):
-    os.makedirs(args.run, exist_ok=True)
-    args.log = os.path.join(args.run, 'logs', args.doc)
-    os.makedirs(args.log, exist_ok=True)
-    args.checkpoints = os.path.join(args.run, 'checkpoints', args.doc)
-    os.makedirs(args.checkpoints, exist_ok=True)
-    args.output = os.path.join(args.run, 'output')
-    os.makedirs(args.output, exist_ok=True)
-
-
-def main():
-    args = parse()
-
-    with open(os.path.join('configs', args.config), 'r') as f:
-        config_raw = yaml.load(f)
-    config = dict2namespace(config_raw)
-    config.device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
-    print(config)
-    args.dataset = config.data.dataset
-
+def make_and_set_dirs(args, config):
+    """call after setting args.doc to set and create necessary folders"""
+    args.dataset = config.data.dataset.split('_')[0]  # take into account baseline datasets e.g.: mnist_transferBaseline
     if config.model.positive:
         args.doc += 'p'
     if config.model.augment:
         args.doc += 'a'
     if config.model.final_layer:
         args.doc += str(config.model.feature_size)
+    args.doc = os.path.join(args.dataset, args.doc)  # group experiments by dataset
+    os.makedirs(args.run, exist_ok=True)
+    args.log = os.path.join(args.run, 'logs', args.doc)
+    os.makedirs(args.log, exist_ok=True)
+    args.checkpoints = os.path.join(args.run, 'checkpoints', args.doc)
+    os.makedirs(args.checkpoints, exist_ok=True)
+    args.output = os.path.join(args.run, 'output', args.dataset)
+    os.makedirs(args.output, exist_ok=True)
 
-    make_dirs(args)
+
+def main():
+    args = parse()
+    # load config
+    with open(os.path.join('configs', args.config), 'r') as f:
+        config_raw = yaml.load(f)
+    config = dict2namespace(config_raw)
+    config.device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+    print(config)
+    # set random seeds
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)
-
-    # These are the possible combinations of flags:
 
     # TRANSFER LEARNING EXPERIMENTS
     # 1- no special flag: pretrain icebeem on 0-7 // --doc should be different between datasets
@@ -100,37 +94,54 @@ def main():
     # step 3 is only for debug and shouldn't be used in practice
 
     if not args.transfer and not args.semisupervised and not args.baseline and not args.plot and not args.representation:
+        print('Training an ICE-BeeM on {}'.format(config.data.dataset))
+        args.doc = 'icebeem'
+        make_and_set_dirs(args, config)
         train(args, config)
 
     if args.transfer and not args.baseline:
         if not args.all:
+            print(
+                'Transfer for {} - subset size: {} - seed: {}'.format(config.data.dataset, args.subsetSize, args.seed))
+            args.doc = 'icebeem'
+            make_and_set_dirs(args, config)
             transfer(args, config)
         else:
             new_args = argparse.Namespace(**vars(args))
             for n in [500, 1000, 2000, 3000, 4000, 5000, 6000]:
                 for seed in range(args.seed, args.nSims + args.seed):
+                    print('Transfer for {} - subset size: {} - seed: {}'.format(config.data.dataset, n, seed))
                     new_args.subsetSize = n
                     new_args.seed = seed
                     # change random seed
                     np.random.seed(seed)
                     torch.manual_seed(seed)
+                    new_args.doc = 'icebeem'
+                    make_and_set_dirs(new_args, config)
                     transfer(new_args, config)
 
-    if config.data.dataset in ["MNIST_transferBaseline", "CIFAR10_transferBaseline"]:
+    if config.data.dataset.lower() in ['mnist_transferbaseline', 'cifar10_transferbaseline',
+                                       'fashionmnist_transferbaseline', 'cifar100_transferbaseline']:
         # this is just here for debug, shouldn't be run, use --baseline --transfer instead
         if not args.all:
+            print('Transfer baseline for {} - subset size: {} - seed: {}'.format(config.data.dataset.split('_')[0],
+                                                                                 args.subsetSize, args.seed))
+            args.doc = os.path.join('transferBaseline', 'size{}_seed{}'.format(args.subsetSize, args.seed))
+            make_and_set_dirs(args, config)
             train(args, config)
         else:
             new_args = argparse.Namespace(**vars(args))
             for n in [500, 1000, 2000, 3000, 4000, 5000, 6000]:
                 for seed in range(args.seed, args.nSims + args.seed):
+                    print('Transfer baseline for {} - subset size: {} - seed: {}'.format(
+                        config.data.dataset.split('_')[0], n, seed))
                     new_args.subsetSize = n
                     new_args.seed = seed
-                    new_args.doc = config.data.dataset.lower() + 'Baseline' + str(n)
-                    make_dirs(new_args)
                     # change random seed
                     np.random.seed(seed)
                     torch.manual_seed(seed)
+                    new_args.doc = os.path.join('transferBaseline', 'size{}_seed{}'.format(n, seed))
+                    make_and_set_dirs(new_args, config)
                     train(new_args, config)
 
     if args.transfer and args.baseline:
@@ -142,25 +153,30 @@ def main():
         config = dict2namespace(config_raw)
         config.device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
         if not args.all:
-            new_args.doc = args.doc + 'Baseline' + str(new_args.subsetSize)
-            make_dirs(new_args)
+            print(
+                'Transfer baseline for {} - subset size: {} - seed: {}'.format(config.data.dataset.split('_')[0],
+                                                                               new_args.subsetSize, new_args.seed))
+            new_args.doc = os.path.join('transferBaseline', 'size{}_seed{}'.format(new_args.subsetSize, new_args.seed))
+            make_and_set_dirs(new_args, config)
             train(new_args, config)
-
         else:
             for n in [500, 1000, 2000, 3000, 4000, 5000, 6000]:
                 for seed in range(args.seed, args.nSims + args.seed):
-                    new_args.doc = args.doc + 'Baseline' + str(n)
-                    make_dirs(new_args)
+                    print('Transfer baseline for {} - subset size: {} - seed: {}'.format(
+                        config.data.dataset.split('_')[0], n, seed))
                     new_args.subsetSize = n
                     new_args.seed = seed
                     # change random seed
                     np.random.seed(seed)
                     torch.manual_seed(seed)
+                    new_args.doc = os.path.join('transferBaseline', 'size{}_seed{}'.format(n, seed))
+                    make_and_set_dirs(new_args, config)
                     train(new_args, config)
 
     # PLOTTING TRANSFER LEARNING
     # 1- just use of the flag --plot and --transfer AND NO other flag (except --config of course)
     if args.plot and not args.baseline and not args.semisupervised and args.transfer and not args.representation:
+        print('Plotting transfer experiment for {}'.format(config.data.dataset))
         plot_transfer(args)
 
     # SEMI-SUPERVISED EXPERIMENTS
@@ -171,19 +187,22 @@ def main():
     # 4- --semisupervised --baseline: classify 8-9 using unconditional ebm // --doc should be the same as from step 3-
 
     if args.baseline and not args.semisupervised and not args.transfer and not args.representation:
-        new_args = argparse.Namespace(**vars(args))
-        new_args.doc = args.doc + 'Baseline'
-        make_dirs(new_args)
-        train(new_args, config, conditional=False)
+        print('Training a baseline EBM on {}'.format(config.data.dataset))
+        args.doc = 'baseline'
+        make_and_set_dirs(args, config)
+        train(args, config, conditional=False)
 
     if args.semisupervised and not args.baseline:
+        print('Computing semi-supervised accuracy for ICE-BeeM on {}'.format(config.data.dataset))
+        args.doc = 'icebeem'
+        make_and_set_dirs(args, config)
         semisupervised(args, config)
 
     if args.semisupervised and args.baseline:
-        new_args = argparse.Namespace(**vars(args))
-        new_args.doc = args.doc + 'Baseline'
-        make_dirs(new_args)
-        semisupervised(new_args, config)
+        print('Computing semi-supervised accuracy for baseline EBM on {}'.format(config.data.dataset))
+        args.doc = 'baseline'
+        make_and_set_dirs(args, config)
+        semisupervised(args, config)
 
     # COMPARE QUALITY OF REPRESENTATIONS ON REAL DATA
     # 1- --representation: trains ICE-BeeM on train dataset, and save learnt rep of test data for
@@ -196,31 +215,31 @@ def main():
         config.n_labels = 10 if config.data.dataset.lower().split('_')[0] != 'cifar100' else 100
         if not args.baseline:
             for seed in range(args.seed, args.nSims + args.seed):
+                print('Learning representation for {} - seed: {}'.format(config.data.dataset, args.seed))
                 new_args = argparse.Namespace(**vars(args))
                 new_args.seed = seed
                 np.random.seed(args.seed)
                 torch.manual_seed(args.seed)
-                new_args.doc = args.doc + config.data.dataset + '_Representation' + str(new_args.seed)
-                print(new_args.doc)
-                make_dirs(new_args)
+                new_args.doc = os.path.join('representation', 'seed{}'.format(seed))
+                make_and_set_dirs(new_args, config)
                 cca_representations(new_args, config)
-
         else:
             # train unconditional EBMs
             for seed in range(args.seed, args.nSims + args.seed):
+                print('Learning baseline representation for {} - seed: {}'.format(config.data.dataset, args.seed))
                 new_args = argparse.Namespace(**vars(args))
                 new_args.seed = seed
                 np.random.seed(args.seed)
                 torch.manual_seed(args.seed)
-                new_args.doc = args.doc + config.data.dataset + '_RepresentationBaseline' + str(new_args.seed)
-                print(new_args.doc)
-                make_dirs(new_args)
+                new_args.doc = os.path.join('representationBaseline', 'seed{}'.format(seed))
+                make_and_set_dirs(new_args, config)
                 cca_representations(new_args, config, conditional=False)
 
     # PLOTTING REPRESENTATIONS BOXPLOT
     # 1- just use of the flag --plot and representation AND NO other flag (except --config of course) to
     # compute MCC before and after applying a CCA to the rep and display as boxplot
     if args.plot and not args.baseline and not args.semisupervised and not args.transfer and args.representation:
+        print('Plotting representation experiment for {}'.format(config.data.dataset))
         plot_representation(args)
 
 

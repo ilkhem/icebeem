@@ -1,10 +1,14 @@
-import logging
 import os
 import pickle
+import warnings
 
 import numpy as np
+import seaborn as sns
 import torch
 import torchvision.transforms as transforms
+from matplotlib import pyplot as plt
+from sklearn.cross_decomposition import CCA
+from sklearn.exceptions import ConvergenceWarning
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import scale
@@ -16,6 +20,7 @@ from torchvision.datasets import MNIST, CIFAR10, FashionMNIST, CIFAR100
 
 from data.utils import single_one_hot_encode
 from losses.dsm import dsm, cdsm
+from metrics.mcc import mean_corr_coef, mean_corr_coef_out_of_sample
 from models.ebm import ModularUnnormalizedConditionalEBM, ModularUnnormalizedEBM
 from models.nets import SimpleLinear
 from models.refinenet_dilated import RefineNetDilated
@@ -158,34 +163,32 @@ def train(args, config, conditional=True):
         loss_track = []
         for i, (X, y) in enumerate(dataloader):
             step += 1
-
-            # enet.train()
             energy_net.train()
             X = X.to(config.device)
             X = X / 256. * 255. + torch.rand_like(X) / 256.
             if config.data.logit_transform:
                 X = logit_transform(X)
-
+            # compute loss
             if conditional:
                 loss = cdsm(energy_net, X, y, sigma=0.01)
             else:
                 loss = dsm(energy_net, X, sigma=0.01)
-
+            # optimize
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
 
-            logging.info("step: {}, loss: {}, maxLabel: {}".format(step, loss.item(), y.max()))
             loss_track.append(loss.item())
             loss_track_epochs.append(loss.item())
 
             if step >= config.training.n_iters:
                 enet, energy_net_finalLayer = energy_net.f, energy_net.g
-                # save final checkpoints for distrubution!
+                # save final checkpoints for distribution!
                 states = [
                     enet.state_dict(),
                     optimizer.state_dict(),
                 ]
+                print('saving weights under: {}'.format(args.checkpoints))
                 torch.save(states, os.path.join(args.checkpoints, 'checkpoint_{}.pth'.format(step)))
                 torch.save(states, os.path.join(args.checkpoints, 'checkpoint.pth'))
                 torch.save([energy_net_finalLayer], os.path.join(args.checkpoints, 'finalLayerweights_.pth'))
@@ -217,6 +220,7 @@ def train(args, config, conditional=True):
     if config.data.dataset.lower() in ['mnist_transferbaseline', 'cifar10_transferbaseline',
                                        'fashionmnist_transferbaseline', 'cifar100_transferbaseline']:
         # save loss track during epoch for transfer baseline
+        print('saving loss track under: {}'.format(args.output))
         pickle.dump(loss_track_epochs,
                     open(os.path.join(args.output, config.data.dataset + '_Baseline_epochs_Size' + str(
                         args.subsetSize) + "_Seed" + str(args.seed) + '.p'), 'wb'))
@@ -227,6 +231,7 @@ def train(args, config, conditional=True):
         enet.state_dict(),
         optimizer.state_dict(),
     ]
+    print('saving weights under: {}'.format(args.checkpoints))
     torch.save(states, os.path.join(args.checkpoints, 'checkpoint_{}.pth'.format(step)))
     torch.save(states, os.path.join(args.checkpoints, 'checkpoint.pth'))
     torch.save([energy_net_finalLayer], os.path.join(args.checkpoints, 'finalLayerweights_.pth'))
@@ -239,19 +244,14 @@ def transfer(args, config):
     once an icebeem is pretrained on some labels (0-7), we train only secondary network (g in our manuscript)
     on unseen labels 8-9 (these are new datasets)
     """
-    SUBSET_SIZE = args.subsetSize
-    SEED = args.seed
-    DATASET = config.data.dataset.upper()
-    print('DATASET: ' + DATASET + ' SUBSET SIZE: ' + str(SUBSET_SIZE) + '\tSEED: ' + str(SEED))
-
     # load data
     test_loader, dataset, cond_size = get_dataset(args, config, test=True, rev=True, one_hot=True, subset=True)
     # load the feature network f
     ckpt_path = os.path.join(args.checkpoints, 'checkpoint.pth')
+    print('loading weights from: {}'.format(ckpt_path))
     states = torch.load(ckpt_path, map_location=config.device)
     f = RefineNetDilated(config).to(config.device)
     f.load_state_dict(states[0])
-    print('loaded energy network')
     # define the feature network g
     g = SimpleLinear(cond_size, f.output_size, bias=False).to(config.device)
     energy_net = ModularUnnormalizedConditionalEBM(f, g, augment=config.model.augment, positive=config.model.positive)
@@ -280,11 +280,12 @@ def transfer(args, config):
             loss_track.append(loss.item())
             loss_track_epochs.append(loss.item())
 
-        pickle.dump(loss_track, open(os.path.join(args.output, DATASET.lower() + 'TransferCDSM_Size' + str(
-            SUBSET_SIZE) + "_Seed" + str(SEED) + '.p'), 'wb'))
-
-    pickle.dump(loss_track_epochs, open(os.path.join(args.output, DATASET.lower() + 'TransferCDSM_epochs_Size' + str(
-        SUBSET_SIZE) + "_Seed" + str(SEED) + '.p'), 'wb'))
+        pickle.dump(loss_track, open(os.path.join(args.output, config.data.dataset.lower() + 'TransferCDSM_Size' + str(
+            args.subsetSize) + "_Seed" + str(args.seed) + '.p'), 'wb'))
+    print('saving loss track under: {}'.format(args.output))
+    pickle.dump(loss_track_epochs, open(os.path.join(args.output,
+                                                     config.data.dataset.lower() + 'TransferCDSM_epochs_Size' + str(
+                                                         args.subsetSize) + "_Seed" + str(args.seed) + '.p'), 'wb'))
 
 
 def semisupervised(args, config):
@@ -298,13 +299,14 @@ def semisupervised(args, config):
     test_loader, dataset, cond_size = get_dataset(args, config, test=True, rev=True, one_hot=False, subset=False)
     # load feature network f
     ckpt_path = os.path.join(args.checkpoints, 'checkpoint.pth')
+    print('loading weights from: {}'.format(ckpt_path))
     states = torch.load(ckpt_path, map_location=config.device)
     f = RefineNetDilated(config).to(config.device)
     f.load_state_dict(states[0])
-    print('loaded energy network')
 
+    # allow for multiple channels and distinct image sizes
     representations = np.zeros((10000,
-                                config.data.image_size * config.data.image_size * config.data.channels))  # allow for multiple channels and distinct image sizes
+                                config.data.image_size * config.data.image_size * config.data.channels))
     labels = np.zeros((10000,))
     counter = 0
     for i, (X, y) in enumerate(test_loader):
@@ -315,7 +317,6 @@ def semisupervised(args, config):
         counter += rep_i.shape[0]
     representations = representations[:counter, :]
     labels = labels[:counter]
-    print('loaded representations')
 
     labels -= 8
     rep_train, rep_test, lab_train, lab_test = train_test_split(scale(representations), labels, test_size=test_size,
@@ -336,18 +337,13 @@ def cca_representations(args, config, conditional=True):
 
     first we train the entire network, then we save the activations !
     """
-    DATASET = config.data.dataset.upper()
-    print('RUNNING REPRESENTATION EXPs ON DATASET: ' + DATASET)
-    if args.baseline: print('RUNNING BASELINES')
-
     # train the energy model on full train dataset and save feature maps
     train(args, config, conditional=conditional)
     # load test data
     test_loader, dataset, cond_size = get_dataset(args, config, test=True, one_hot=False, subset=False, shuffle=False)
-    print('loaded test data')
     # load feature mapts
-    ckpt_path = os.path.join(args.run, 'logs', args.doc, 'checkpoint.pth')
-    print(ckpt_path)
+    ckpt_path = os.path.join(args.checkpoints, 'checkpoint.pth')
+    print('loading weights from: {}'.format(ckpt_path))
     states = torch.load(ckpt_path, map_location=config.device)
     f = RefineNetDilated(config).to(config.device)
     f.load_state_dict(states[0])
@@ -365,29 +361,24 @@ def cca_representations(args, config, conditional=True):
     representations = representations[:counter, :]
     labels = labels[:counter]
 
+    print('saving test representations under: {}'.format(args.checkpoints))
     pickle.dump({'rep': representations, 'lab': labels},
-                open(os.path.join(args.run, 'logs', args.doc, 'test_representations.p'), 'wb'))
-    print('\ncomputed and saved representations over test data\n')
+                open(os.path.join(args.checkpoints, 'test_representations.p'), 'wb'))
 
 
 def plot_representation(args):
     # load in trained representations
-    import pickle
-    from metrics.mcc import mean_corr_coef, mean_corr_coef_out_of_sample
-    from sklearn.cross_decomposition import CCA
-    import warnings
-    from sklearn.exceptions import ConvergenceWarning
 
     res_cond = []
     res_uncond = []
     for seed in range(args.seed, args.nSims + args.seed):
-        path_cond = os.path.join(args.run, 'logs', args.doc + args.dataset + '_Representation' + str(seed),
-                                 'test_representations.p')
-        path_uncond = os.path.join(args.run, 'logs',
-                                   args.doc + args.dataset + '_RepresentationBaseline' + str(seed),
-                                   'test_representations.p')
-        res_cond.append(pickle.load(open(path_cond, 'rb')))
-        res_uncond.append(pickle.load(open(path_uncond, 'rb')))
+        path_cond = os.path.join(args.run, 'checkpoints', args.dataset, 'representation', 'seed{}'.format(seed))
+        print('loading conditional test representations from: {}'.format(path_cond))
+        path_uncond = os.path.join(args.run, 'checkpoints', args.dataset, 'representationBaseline',
+                                   'seed{}'.format(seed))
+        print('loading unconditional test representations from: {}'.format(path_uncond))
+        res_cond.append(pickle.load(open(os.path.join(path_cond, 'test_representations.p'), 'rb')))
+        res_uncond.append(pickle.load(open(os.path.join(path_uncond, 'test_representations.p'), 'rb')))
 
     # check things are in correct order
     assert np.max(np.abs(res_cond[0]['lab'] - res_cond[1]['lab'])) == 0
@@ -413,8 +404,6 @@ def plot_representation(args):
             # mcc_strong_cond.append( mean_corr_coef( res_cond[i]['rep'], res_cond[j]['rep']) )
             # mcc_strong_uncond.append( mean_corr_coef( res_uncond[i]['rep'], res_uncond[j]['rep']) )
 
-    # print('\n\nStrong identifiability performance (i.e., direct MCC)')
-    # print('Conditional: {}\t\tUnconditional: {}'.format(np.mean(mcc_strong_cond), np.mean(mcc_strong_uncond)))
     print('Statistics for strong iden.:\tC\tU')
     print('Mean:\t\t{}\t{}'.format(np.mean(mcc_strong_cond), np.mean(mcc_strong_uncond)))
     print('Median:\t\t{}\t{}'.format(np.median(mcc_strong_cond), np.median(mcc_strong_uncond)))
@@ -472,10 +461,6 @@ def plot_representation(args):
 
 
 def plot_transfer(args):
-    import pickle
-    from matplotlib import pyplot as plt
-    import seaborn as sns
-
     sns.set_style("whitegrid")
     sns.set_palette('deep')
 
