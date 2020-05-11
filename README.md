@@ -74,6 +74,21 @@ optional arguments:
   --plot                Plot transfer learning experiment for the selected dataset
 ```
 
+All options and choice of dataset are passed through a configuration file under the `configs` folder.
+There are 4 main functions of interest:
+- `train`: trains a (conditional) energy model on the dataset specified by the configuration file,
+only considering the labels `0-n_labels`, the latter being specified by the config file.
+- `transfer`: trains the secondary feature extractor **g** defining an ICE-BeeM on labels `n_labels-len(dset)`
+while keeping the feature extractor **f** fixed (after it was trained using `train`).
+- `semisupervised`: loads a feature extractor **f** from a (conditional) EBM pretrained on labels `0-n_labels` and uses it 
+to classify classes `n_labels-len(dset)`
+- `cca_representations`: trains a (conditional) energy model on a dataset (ignoring the `n_labels` field)
+, saves the feature network **f**, and uses it to compute and save the learnt representation on the test split of
+the dataset.
+
+Below, we explain how to call these functions using the `main.py` script to recreate the experiments from the manuscript.
+
+
 ### Transfer learning
 
 In this experiment, we compare:
@@ -87,22 +102,22 @@ To run the experiment on MNIST:
 
 ```
 # pretrain an ICE-BeeM on labels 0-7
-python main.py --dataset MNIST --config mnist.yaml --doc mnist
+python main.py --config mnist.yaml --doc mnist
 # fix f and only learn g on labels 8-9 for many different dataset sizes and different seeds
-python main.py --dataset MNIST --config mnist.yaml --doc mnist --transfer --all
+python main.py --config mnist.yaml --doc mnist --transfer --all
 # train an ICE-BeeM on labels 8-9 for many different dataset sizes and different seeds
-python main.py --dataset MNIST --config mnist.yaml --doc mnist --transfer --baseline --all
+python main.py --config mnist.yaml --doc mnist --transfer --baseline --all
 ```
 
 The results are saved in the value of the flag `--run` (defulat is `run/` folder). To plot the comparison for MNIST after running the steps above:
 
 ```
-python main.py --dataset MNIST --plot
+python main.py --dataset MNIST --transfer --plot
 ```
 
 We also provide model checkpoints and experimental log to skip the training step.
 
-The same can be done on CIFAR-10 by changing the value of the flag `--dataset` to `CIFAR10` and of the flag `--config` to `cifar.yaml`. Also make sure to change the value of `--doc` not to overwrite the mnist checkpoints.
+The same can be done on CIFAR-10 by changing the value of the flag `--config` to `cifar.yaml`. Also make sure to change the value of `--doc` not to overwrite the mnist checkpoints.
 
 ### Semi-supervised learning
 
@@ -114,33 +129,38 @@ In the semi-supervised learning experiment, we compare:
 We use the classification accuracy as a comparison metric.
 
 ```
-# pretrain an ICE-BeeM on labels 0-7
-python main.py --dataset MNIST --config mnist.yaml --doc mnist
+# pretrain an ICE-BeeM on labels 0-7 // same as first step in transfer learning exp
+python main.py --config mnist.yaml --doc mnist
 # pretrain an unconditional EBM on labels 0-7
-python main.py --dataset MNIST --config mnist.yaml --doc mnist --baseline
+python main.py --config mnist.yaml --doc mnist --baseline
 # classify labels 8-9 using the pretrained ICE-BeeM
-python main.py --dataset MNIST --config mnist.yaml --doc mnist --semisupervised
+python main.py --config mnist.yaml --doc mnist --semisupervised
 # classify labels 8-9 using the pretrained unconditional EBM
-python main.py --dataset MNIST --config mnist.yaml --doc mnist --semisupervised --baseline
+python main.py --config mnist.yaml --doc mnist --semisupervised --baseline
 ```
 
 We also provide model checkpoints and experimental log to skip the training steps.
 
-The same can be done on CIFAR-10 by changing the value of the flag `--dataset` to `CIFAR10` and of the flag `--config` to `cifar.yaml` and FashioMNIST by changing the value of the flag `--dataset` to `FMNIST` and of the flag `--config` to `fashionmnist.yaml`. Also make sure to change the value of `--doc` not to overwrite the mnist checkpoints
+The same can be done on CIFAR-10 by changing the value of the flag `--config` to `cifar.yaml` and FashioMNIST by changing the value of the flag `--dataset` to `FMNIST` and of the flag `--config` to `fashionmnist.yaml`. Also make sure to change the value of `--doc` not to overwrite the mnist checkpoints
 
 ### Identifiability of representations
 
 In these experiments we train multiple conditional and unconditional EBMs on various datasets and assess the identifiability of representations as discussed in Theorems 1-3. 
 
 These experiments therefore do the following:
- - train conditional and unconditional EBMs using different random initializations
- - study the learnt representations over held out test data. We compare the MCC over held out representations as well as MCC after linear transformation using CCA (this is akin to weak identifiability)
+ - Train conditional and unconditional EBMs using different random initializations on the full train split of the dataset.
+ - Study the learnt representations over held out test data. We compare the MCC over held out representations as well as MCC after linear transformation using CCA (this is akin to weak identifiability).
+
+To run the experiment on MNIST:
+```
+# train an ICE-BeeM on all labels, for different seeds
+python main.py --config mnist.yaml --nSims 10 --representation
+# train an unconditional EBM on all labels, for different seeds
+python main.py --config mnist.yaml --nSims 10 --representation --baseline
+```
+
+Then, MCC statistics are computed and visualized using:
 
 ```
-# run experiments for MNIST
-python3 main.py --dataset MNIST --nSims 5 --config mnist.yaml --representation --retrainNets
-
-# run experiments for FashionMNIST
-python3 main.py --dataset FashionMNIST --nSims 5 --config fashionmnist.yaml --representation --retrainNets
+python main.py --dataset MNIST --representation --plot
 ```
-

@@ -70,7 +70,7 @@ def get_dataset(args, config, test=False, rev=False, one_hot=True, subset=False,
     total_labels = 10 if config.data.dataset.lower().split('_')[0] != 'cifar100' else 100
     no_collate = total_labels == config.n_labels
     if config.data.dataset.lower() in ['mnist_transferbaseline', 'cifar10_transferbaseline',
-                                  'fashionmnist_transferbaseline', 'cifar100_transferbaseline']:
+                                       'fashionmnist_transferbaseline', 'cifar100_transferbaseline']:
         rev = True
         test = True
         subset = True
@@ -131,7 +131,7 @@ def get_dataset(args, config, test=False, rev=False, one_hot=True, subset=False,
                                 collate_fn=collate_helper, drop_last=drop_last)
     else:
         dataloader = DataLoader(dataset, batch_size=config.training.batch_size, shuffle=shuffle, num_workers=0,
-                                 drop_last=True)
+                                drop_last=True)
 
     return dataloader, dataset, cond_size
 
@@ -211,14 +211,14 @@ def train(args, config, conditional=True):
                                            'fashionmnist_transferbaseline', 'cifar100_transferbaseline']:
             # save loss track during epoch for transfer baseline
             pickle.dump(loss_vals,
-                        open(os.path.join(args.run, args.dataset + '_Baseline_Size' + str(
+                        open(os.path.join(args.run, config.data.dataset + '_Baseline_Size' + str(
                             args.subsetSize) + "_Seed" + str(args.seed) + '.p'), 'wb'))
 
     if config.data.dataset.lower() in ['mnist_transferbaseline', 'cifar10_transferbaseline',
                                        'fashionmnist_transferbaseline', 'cifar100_transferbaseline']:
         # save loss track during epoch for transfer baseline
         pickle.dump(loss_track_epochs,
-                    open(os.path.join(args.run, args.dataset + '_Baseline_epochs_Size' + str(
+                    open(os.path.join(args.run, config.data.dataset + '_Baseline_epochs_Size' + str(
                         args.subsetSize) + "_Seed" + str(args.seed) + '.p'), 'wb'))
 
     # save final checkpoints for distrubution!
@@ -241,7 +241,7 @@ def transfer(args, config):
     """
     SUBSET_SIZE = args.SubsetSize
     SEED = args.seed
-    DATASET = args.dataset.upper()
+    DATASET = config.data.dataset.upper()
     print('DATASET: ' + DATASET + ' SUBSET SIZE: ' + str(SUBSET_SIZE) + '\tSEED: ' + str(SEED))
 
     # load data
@@ -336,45 +336,27 @@ def cca_representations(args, config, conditional=True):
 
     first we train the entire network, then we save the activations !
     """
-
-    DATASET = args.dataset.upper()
-    retrain = args.retrainNets
-
+    DATASET = config.data.dataset.upper()
     print('RUNNING REPRESENTATION EXPs ON DATASET: ' + DATASET)
     if args.baseline: print('RUNNING BASELINES')
 
-    # overwrite n_labels to full dataset
-    config.n_labels = 10 if config.data.dataset.lower().split('_')[0] != 'cifar100' else 100
-
-    # change random seed
-    np.random.seed(args.seed)
-    torch.manual_seed(args.seed)
-
-    # this will be used to reload the network later
-    ckpt_path = os.path.join(args.run, 'logs', args.doc, 'checkpoint.pth')
-    print(ckpt_path)
-
-    print(args)
-    if retrain:
-        print('training networks ..')
-        train(args, config, conditional=conditional)
-
-    # finally, save learnt representations
-    states = torch.load(ckpt_path, map_location=config.device)
-    f = RefineNetDilated(config).to(config.device)
-    # f = torch.nn.DataParallel(f)
-    f.load_state_dict(states[0])
-
-    # load data
+    # train the energy model on full train dataset and save feature maps
+    train(args, config, conditional=conditional)
+    # load test data
     test_loader, dataset, cond_size = get_dataset(args, config, test=True, one_hot=False, subset=False, shuffle=False)
     print('loaded test data')
+    # load feature mapts
+    ckpt_path = os.path.join(args.run, 'logs', args.doc, 'checkpoint.pth')
+    print(ckpt_path)
+    states = torch.load(ckpt_path, map_location=config.device)
+    f = RefineNetDilated(config).to(config.device)
+    f.load_state_dict(states[0])
 
-    # allow for multiple channels and distinct image sizes
+    # compute and save test features
     representations = np.zeros((10000, config.data.image_size * config.data.image_size * config.data.channels))
     labels = np.zeros((10000,))
     counter = 0
     for i, (X, y) in enumerate(test_loader):
-
         X = X.to(config.device)
         rep_i = f(X).view(-1, config.data.image_size * config.data.image_size * config.data.channels).data.cpu().numpy()
         representations[counter:(counter + rep_i.shape[0]), :] = rep_i
@@ -383,7 +365,151 @@ def cca_representations(args, config, conditional=True):
     representations = representations[:counter, :]
     labels = labels[:counter]
 
-    import pickle
     pickle.dump({'rep': representations, 'lab': labels},
                 open(os.path.join(args.run, 'logs', args.doc, 'test_representations.p'), 'wb'))
     print('\ncomputed and saved representations over test data\n')
+
+
+def plot_representation(args):
+    # load in trained representations
+    import pickle
+    from metrics.mcc import mean_corr_coef, mean_corr_coef_out_of_sample
+    from sklearn.cross_decomposition import CCA
+    import warnings
+    from sklearn.exceptions import ConvergenceWarning
+
+    res_cond = []
+    res_uncond = []
+    for seed in range(args.seed, args.nSims + args.seed):
+        path_cond = os.path.join(args.run, 'logs', args.doc + args.dataset + '_Representation' + str(seed),
+                                 'test_representations.p')
+        path_uncond = os.path.join(args.run, 'logs',
+                                   args.doc + args.dataset + '_RepresentationBaseline' + str(seed),
+                                   'test_representations.p')
+        res_cond.append(pickle.load(open(path_cond, 'rb')))
+        res_uncond.append(pickle.load(open(path_uncond, 'rb')))
+
+    # check things are in correct order
+    assert np.max(np.abs(res_cond[0]['lab'] - res_cond[1]['lab'])) == 0
+    assert np.max(np.abs(res_uncond[0]['lab'] - res_uncond[1]['lab'])) == 0
+    assert np.max(np.abs(res_cond[0]['lab'] - res_uncond[0]['lab'])) == 0
+
+    # now we compare representation identifiability (strong case)
+    mcc_strong_cond = []
+    mcc_strong_uncond = []
+    ii = np.where(res_cond[0]['lab'] < 5)[0]
+    iinot = np.where(res_cond[0]['lab'] >= 5)[0]
+
+    for i in range(args.seed, args.nSims):
+        for j in range(i + 1, args.nSims):
+            mcc_strong_cond.append(
+                mean_corr_coef_out_of_sample(x=res_cond[i]['rep'][ii, :], y=res_cond[j]['rep'][ii, :],
+                                             x_test=res_cond[i]['rep'][iinot, :],
+                                             y_test=res_cond[j]['rep'][iinot, :]))
+            mcc_strong_uncond.append(
+                mean_corr_coef_out_of_sample(x=res_uncond[i]['rep'][ii, :], y=res_uncond[j]['rep'][ii, :],
+                                             x_test=res_uncond[i]['rep'][iinot, :],
+                                             y_test=res_uncond[j]['rep'][iinot, :]))
+            # mcc_strong_cond.append( mean_corr_coef( res_cond[i]['rep'], res_cond[j]['rep']) )
+            # mcc_strong_uncond.append( mean_corr_coef( res_uncond[i]['rep'], res_uncond[j]['rep']) )
+
+    # print('\n\nStrong identifiability performance (i.e., direct MCC)')
+    # print('Conditional: {}\t\tUnconditional: {}'.format(np.mean(mcc_strong_cond), np.mean(mcc_strong_uncond)))
+    print('Statistics for strong iden.:\tC\tU')
+    print('Mean:\t\t{}\t{}'.format(np.mean(mcc_strong_cond), np.mean(mcc_strong_uncond)))
+    print('Median:\t\t{}\t{}'.format(np.median(mcc_strong_cond), np.median(mcc_strong_uncond)))
+    print('Std:\t\t{}\t{}'.format(np.std(mcc_strong_cond), np.std(mcc_strong_uncond)))
+    cond_sorted = np.sort(mcc_strong_cond)[::-1]
+    uncond_sorted = np.sort(mcc_strong_uncond)[::-1]
+    print('Top 2:\t\t{}\t{}\n\t\t{}\t{}\nLast 2:\t\t{}\t{}\n\t\t{}\t{}'.format(
+        cond_sorted[0], uncond_sorted[0], cond_sorted[1], uncond_sorted[1], cond_sorted[-2], uncond_sorted[-2],
+        cond_sorted[-1], uncond_sorted[-1]))
+
+    # save results:
+    pickle.dump({'mcc_strong_cond': mcc_strong_cond, 'mcc_strong_uncond': mcc_strong_uncond},
+                open(args.dataset + '_srongMCC.p', 'wb'))
+
+    # no we compare representation identifiability for weaker case
+
+    warnings.filterwarnings("ignore", category=ConvergenceWarning)
+    cutoff = 50 if args.dataset == 'CIFAR100' else 5
+    print('Cutoff: {}'.format(cutoff))
+    ii = np.where(res_cond[0]['lab'] < cutoff)[0]
+    iinot = np.where(res_cond[0]['lab'] >= cutoff)[0]
+
+    mcc_weak_cond = []
+    mcc_weak_uncond = []
+
+    cca_dim = 20
+    for i in range(args.seed, args.nSims):
+        for j in range(i + 1, args.nSims):
+            cca = CCA(n_components=cca_dim)
+            cca.fit(res_cond[i]['rep'][ii, :], res_cond[j]['rep'][ii, :])
+
+            res = cca.transform(res_cond[i]['rep'][iinot, :], res_cond[j]['rep'][iinot, :])
+            mcc_weak_cond.append(mean_corr_coef(res[0], res[1]))
+
+            # now repeat on the baseline!
+            ccabase = CCA(n_components=cca_dim)
+            ccabase.fit(res_uncond[i]['rep'][ii, :], res_uncond[j]['rep'][ii, :])
+
+            resbase = cca.transform(res_uncond[i]['rep'][iinot, :], res_uncond[j]['rep'][iinot, :])
+            mcc_weak_uncond.append(mean_corr_coef(resbase[0], resbase[1]))
+
+    print('Statistics for weak iden.:\tC\tU')
+    print('Mean:\t\t{}\t{}'.format(np.mean(mcc_weak_cond), np.mean(mcc_weak_uncond)))
+    print('Median:\t\t{}\t{}'.format(np.median(mcc_weak_cond), np.median(mcc_weak_uncond)))
+    print('Std:\t\t{}\t{}'.format(np.std(mcc_weak_cond), np.std(mcc_weak_uncond)))
+    cond_sorted = np.sort(mcc_weak_cond)[::-1]
+    uncond_sorted = np.sort(mcc_weak_uncond)[::-1]
+    print('Top 2:\t\t{}\t{}\n\t\t{}\t{}\nLast 2:\t\t{}\t{}\n\t\t{}\t{}'.format(
+        cond_sorted[0], uncond_sorted[0], cond_sorted[1], uncond_sorted[1], cond_sorted[-2], uncond_sorted[-2],
+        cond_sorted[-1], uncond_sorted[-1]))
+
+    # save results:
+    pickle.dump({'mcc_weak_cond': mcc_weak_cond, 'mcc_weak_uncond': mcc_weak_uncond},
+                open(args.dataset + '_weakMCC.p', 'wb'))
+
+
+def plot_transfer(args):
+    import pickle
+    from matplotlib import pyplot as plt
+    import seaborn as sns
+
+    sns.set_style("whitegrid")
+    sns.set_palette('deep')
+
+    # collect results for transfer learning
+    samplesSizes = [500, 1000, 2000, 3000, 5000, 6000]
+
+    resTransfer = {x: [] for x in samplesSizes}
+    resBaseline = {x: [] for x in samplesSizes}
+
+    # load transfer results
+    for x in samplesSizes:
+        files = [f for f in os.listdir(args.run) if args.dataset.lower() + 'TransferCDSM_Size' + str(x) + '_' in f]
+        for f in files:
+            resTransfer[x].append(np.median(pickle.load(open(os.path.join(args.run, f), 'rb'))))
+
+        files = [f for f in os.listdir(args.run) if args.dataset + '_Baseline_Size' + str(x) + '_' in f]
+        for f in files:
+            resBaseline[x].append(np.median(pickle.load(open(os.path.join(args.run, f), 'rb'))))
+
+        print(
+            'Transfer: ' + str(np.median(resTransfer[x]) * 1e4) + '\tBaseline: ' + str(np.median(resBaseline[x]) * 1e4))
+
+    resTsd = np.array([np.std(resTransfer[x]) * 1e4 for x in samplesSizes])
+
+    resT = np.array([np.median(resTransfer[x]) * 1e4 for x in samplesSizes])
+    resBas = np.array([np.median(resBaseline[x]) * 1e4 for x in samplesSizes])
+
+    f, (ax1) = plt.subplots(1, 1, figsize=(4, 4))
+    ax1.plot(samplesSizes, resT, label='Transfer', linewidth=2, color=sns.color_palette()[2])
+    ax1.fill_between(samplesSizes, resT + 2 * resTsd, resT - 2 * resTsd, alpha=.25, color=sns.color_palette()[2])
+    ax1.plot(samplesSizes, resBas, label='Baseline', linewidth=2, color=sns.color_palette()[4])
+    ax1.legend()
+    ax1.set_xlabel('Train dataset size')
+    ax1.set_ylabel('DSM Objective (scaled)')
+    ax1.set_title('Conditional DSM Objective')
+    f.tight_layout()
+    plt.savefig(os.path.join(args.run, 'transfer_{}.pdf'.format(args.dataset.lower())))
