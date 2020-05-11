@@ -49,236 +49,207 @@ def my_collate_rev(batch, nSeg=8, one_hot=False, total_labels=10):
     return default_collate(modified_batch)
 
 
-class PreTrainer:
-    """
-    This class trains an ICEBEEM or an unconditional EBM on a subset of MNIST, CIFAR, or FMNIST for some specific
-    labels.
-    For instance, for our transfer learning experiments, we want pretrain an icebeem on labels 0-7.
-    This is done using this class.
-    As a comparison, we want to train an icebeem on 8-9, for varying subset size, and this class allows that
-    """
+def get_optimizer(config, parameters):
+    if config.optim.optimizer == 'Adam':
+        return optim.Adam(parameters, lr=config.optim.lr, weight_decay=config.optim.weight_decay,
+                          betas=(config.optim.beta1, 0.999), amsgrad=config.optim.amsgrad)
+    elif config.optim.optimizer == 'RMSProp':
+        return optim.RMSprop(parameters, lr=config.optim.lr, weight_decay=config.optim.weight_decay)
+    elif config.optim.optimizer == 'SGD':
+        return optim.SGD(parameters, lr=config.optim.lr, momentum=0.9)
+    else:
+        raise NotImplementedError('Optimizer {} not understood.'.format(config.optim.optimizer))
 
-    def __init__(self, args, config):
-        self.args = args
-        self.config = config
-        self.nSeg = config.n_labels
-        self.seed = args.seed
-        self.subsetSize = args.SubsetSize  # subset size, only for baseline transfer learning, otherwise ignored!
-        print('Number of segments: ' + str(self.nSeg))
 
-    def get_optimizer(self, parameters):
-        if self.config.optim.optimizer == 'Adam':
-            return optim.Adam(parameters, lr=self.config.optim.lr, weight_decay=self.config.optim.weight_decay,
-                              betas=(self.config.optim.beta1, 0.999), amsgrad=self.config.optim.amsgrad)
-        elif self.config.optim.optimizer == 'RMSProp':
-            return optim.RMSprop(parameters, lr=self.config.optim.lr, weight_decay=self.config.optim.weight_decay)
-        elif self.config.optim.optimizer == 'SGD':
-            return optim.SGD(parameters, lr=self.config.optim.lr, momentum=0.9)
-        else:
-            raise NotImplementedError('Optimizer {} not understood.'.format(self.config.optim.optimizer))
+def logit_transform(image, lam=1e-6):
+    image = lam + (1 - 2 * lam) * image
+    return torch.log(image) - torch.log1p(-image)
 
-    def logit_transform(self, image, lam=1e-6):
-        image = lam + (1 - 2 * lam) * image
-        return torch.log(image) - torch.log1p(-image)
 
-    def train(self, conditional=True):
-        if conditional:
-            print('USING CONDITIONAL DSM')
+def get_dataset(args, config):
+    if config.data.random_flip is False:
+        tran_transform = test_transform = transforms.Compose([
+            transforms.Resize(config.data.image_size),
+            transforms.ToTensor()
+        ])
+    else:
+        tran_transform = transforms.Compose([
+            transforms.Resize(config.data.image_size),
+            transforms.RandomHorizontalFlip(p=0.5),
+            transforms.ToTensor()
+        ])
+        test_transform = transforms.Compose([
+            transforms.Resize(config.data.image_size),
+            transforms.ToTensor()
+        ])
+    total_labels = 10 if config.data.dataset.upper() != 'CIFAR100' else 100
+    target_transform = lambda label: single_one_hot_encode(label, n_labels=total_labels)
 
-        if self.config.data.random_flip is False:
-            tran_transform = test_transform = transforms.Compose([
-                transforms.Resize(self.config.data.image_size),
-                transforms.ToTensor()
-            ])
-        else:
-            tran_transform = transforms.Compose([
-                transforms.Resize(self.config.data.image_size),
-                transforms.RandomHorizontalFlip(p=0.5),
-                transforms.ToTensor()
-            ])
-            test_transform = transforms.Compose([
-                transforms.Resize(self.config.data.image_size),
-                transforms.ToTensor()
-            ])
-        total_labels = 10 if self.config.data.dataset.upper() != 'CIFAR100' else 100
-        target_transform = lambda label: single_one_hot_encode(label, n_labels=total_labels)
+    if config.data.dataset == 'CIFAR10':
+        dataset = CIFAR10(os.path.join(args.run, 'datasets'), train=True, download=True,
+                          transform=tran_transform, target_transform=target_transform)
 
-        if self.config.data.dataset == 'CIFAR10':
-            dataset = CIFAR10(os.path.join(self.args.run, 'datasets'), train=True, download=True,
-                              transform=tran_transform, target_transform=target_transform)
+    elif config.data.dataset == 'MNIST':
+        print('RUNNING REDUCED MNIST')
+        dataset = MNIST(os.path.join(args.run, 'datasets'), train=True, download=True,
+                        transform=tran_transform, target_transform=target_transform)
 
-        elif self.config.data.dataset == 'MNIST':
-            print('RUNNING REDUCED MNIST')
-            dataset = MNIST(os.path.join(self.args.run, 'datasets'), train=True, download=True,
-                            transform=tran_transform, target_transform=target_transform)
-
-        elif self.config.data.dataset == 'FashionMNIST':
-            dataset = FashionMNIST(os.path.join(self.args.run, 'datasets'), train=True, download=True,
-                                   transform=tran_transform, target_transform=target_transform)
-
-        elif self.config.data.dataset == 'CIFAR100':
-            print('running CIFAR100')
-            dataset = CIFAR100(os.path.join(self.args.run, 'datasets'), train=True, download=True,
+    elif config.data.dataset == 'FashionMNIST':
+        dataset = FashionMNIST(os.path.join(args.run, 'datasets'), train=True, download=True,
                                transform=tran_transform, target_transform=target_transform)
 
-        # BASELINE
-        elif self.config.data.dataset == 'MNIST_transferBaseline':
-            # use same dataset as transfer_nets.py
-            # we can also use the train dataset since the digits are unseen anyway
-            dataset = MNIST(os.path.join(self.args.run, 'datasets'), train=False, download=True,
-                            transform=test_transform, target_transform=target_transform)
-            print('TRANSFER BASELINES !! Subset size: ' + str(self.subsetSize))
+    elif config.data.dataset == 'CIFAR100':
+        print('running CIFAR100')
+        dataset = CIFAR100(os.path.join(args.run, 'datasets'), train=True, download=True,
+                           transform=tran_transform, target_transform=target_transform)
 
-        elif self.config.data.dataset == 'CIFAR10_transferBaseline':
-            # use same dataset as transfer_nets.py
-            # we can also use the train dataset since the digits are unseen anyway
-            dataset = CIFAR10(os.path.join(self.args.run, 'datasets'), train=False, download=True,
-                              transform=test_transform, target_transform=target_transform)
-            print('TRANSFER BASELINES !! Subset size: ' + str(self.subsetSize))
+    # BASELINE
+    elif config.data.dataset == 'MNIST_transferBaseline':
+        # use same dataset as transfer_nets.py
+        # we can also use the train dataset since the digits are unseen anyway
+        dataset = MNIST(os.path.join(args.run, 'datasets'), train=False, download=True,
+                        transform=test_transform, target_transform=target_transform)
+        print('TRANSFER BASELINES !! Subset size: ' + str(args.subsetSize))
 
-        elif self.config.data.dataset == 'FashionMNIST_transferBaseline':
-            # use same dataset as transfer_nets.py
-            # we can also use the train dataset since the digits are unseen anyway
-            dataset = FashionMNIST(os.path.join(self.args.run, 'datasets'), train=False, download=True,
-                                   transform=test_transform, target_transform=target_transform)
-            print('TRANSFER BASELINES !! Subset size: ' + str(self.subsetSize))
+    elif config.data.dataset == 'CIFAR10_transferBaseline':
+        # use same dataset as transfer_nets.py
+        # we can also use the train dataset since the digits are unseen anyway
+        dataset = CIFAR10(os.path.join(args.run, 'datasets'), train=False, download=True,
+                          transform=test_transform, target_transform=target_transform)
+        print('TRANSFER BASELINES !! Subset size: ' + str(args.subsetSize))
 
-        else:
-            raise ValueError('Unknown config dataset {}'.format(self.config.data.dataset))
+    elif config.data.dataset == 'FashionMNIST_transferBaseline':
+        # use same dataset as transfer_nets.py
+        # we can also use the train dataset since the digits are unseen anyway
+        dataset = FashionMNIST(os.path.join(args.run, 'datasets'), train=False, download=True,
+                               transform=test_transform, target_transform=target_transform)
+        print('TRANSFER BASELINES !! Subset size: ' + str(args.subsetSize))
 
-        # apply collation
-        if self.config.data.dataset in ['MNIST', 'CIFAR10', 'FashionMNIST', 'CIFAR100']:
-            collate_helper = lambda batch: my_collate(batch, nSeg=self.nSeg, one_hot=True)
-            print('Subset size: ' + str(self.subsetSize))
-            id_range = list(range(self.subsetSize))
-            dataset = torch.utils.data.Subset(dataset, id_range)
-            dataloader = DataLoader(dataset, batch_size=self.config.training.batch_size, shuffle=True, num_workers=0,
-                                    collate_fn=collate_helper)
-            cond_size = self.nSeg
+    else:
+        raise ValueError('Unknown config dataset {}'.format(config.data.dataset))
 
-        elif self.config.data.dataset in ['MNIST_transferBaseline', 'CIFAR10_transferBaseline',
-                                          'FashionMNIST_transferBaseline']:
-            # trains a model on only digits 8,9 from scratch
-            collate_helper = lambda batch: my_collate_rev(batch, nSeg=self.nSeg, one_hot=True,
-                                                          total_labels=total_labels)
-            print('Subset size: ' + str(self.subsetSize))
-            id_range = list(range(self.subsetSize))
-            dataset = torch.utils.data.Subset(dataset, id_range)
-            dataloader = DataLoader(dataset, batch_size=self.config.training.batch_size, shuffle=True, num_workers=0,
-                                    drop_last=True, collate_fn=collate_helper)
-            cond_size = total_labels - self.nSeg
-            print('loaded reduced subset')
-        else:
-            raise ValueError('Unknown config dataset {}'.format(self.config.data.dataset))
+    # apply collation
+    if config.data.dataset in ['MNIST', 'CIFAR10', 'FashionMNIST', 'CIFAR100']:
+        collate_helper = lambda batch: my_collate(batch, nSeg=config.n_labels, one_hot=True)
+        print('Subset size: ' + str(args.subsetSize))
+        id_range = list(range(args.subsetSize))
+        dataset = torch.utils.data.Subset(dataset, id_range)
+        dataloader = DataLoader(dataset, batch_size=config.training.batch_size, shuffle=True, num_workers=0,
+                                collate_fn=collate_helper)
+        cond_size = config.n_labels
 
-        # self.config.input_dim = self.config.data.image_size ** 2 * self.config.data.channels
+    elif config.data.dataset in ['MNIST_transferBaseline', 'CIFAR10_transferBaseline',
+                                      'FashionMNIST_transferBaseline']:
+        # trains a model on only digits 8,9 from scratch
+        collate_helper = lambda batch: my_collate_rev(batch, nSeg=config.n_labels, one_hot=True,
+                                                      total_labels=total_labels)
+        print('Subset size: ' + str(args.subsetSize))
+        id_range = list(range(args.subsetSize))
+        dataset = torch.utils.data.Subset(dataset, id_range)
+        dataloader = DataLoader(dataset, batch_size=config.training.batch_size, shuffle=True, num_workers=0,
+                                drop_last=True, collate_fn=collate_helper)
+        cond_size = total_labels - config.n_labels
+        print('loaded reduced subset')
+    else:
+        raise ValueError('Unknown config dataset {}'.format(config.data.dataset))
 
-        # # define the g network
-        # energy_net_finalLayer = torch.ones((self.config.data.image_size * self.config.data.image_size, self.nSeg)).to(
-        #     self.config.device)
-        # energy_net_finalLayer.requires_grad_()
-        #
-        # # define the f network
-        # enet = RefineNetDilated(self.config).to(self.config.device)
-        # enet = torch.nn.DataParallel(enet)
+    return dataloader, dataset, cond_size
 
-        if conditional:
-            f = RefineNetDilated(self.config).to(self.config.device)
-            # g = nn.Linear(cond_size, f.output_size, bias=False).to(self.config.device)
-            g = SimpleLinear(cond_size, f.output_size, bias=False).to(self.config.device)
-            energy_net = ModularUnnormalizedConditionalEBM(f, g,
-                                                           augment=self.config.model.augment,
-                                                           positive=self.config.model.positive)
-        else:
-            f = RefineNetDilated(self.config).to(self.config.device)
-            energy_net = ModularUnnormalizedEBM(f)
 
-        # training
-        # optimizer = self.get_optimizer(list(enet.parameters()) + [energy_net_finalLayer])
-        optimizer = self.get_optimizer(energy_net.parameters())
-        step = 0
-        loss_track_epochs = []
-        for epoch in range(self.config.training.n_epochs):
-            loss_vals = []
-            for i, (X, y) in enumerate(dataloader):
-                step += 1
+def train(args, config, conditional=True):
+    # load dataset
+    dataloader, dataset, cond_size = get_dataset(args, config)
+    # define the energy model
+    if conditional:
+        f = RefineNetDilated(config).to(config.device)
+        g = SimpleLinear(cond_size, f.output_size, bias=False).to(config.device)
+        energy_net = ModularUnnormalizedConditionalEBM(f, g,
+                                                       augment=config.model.augment,
+                                                       positive=config.model.positive)
+    else:
+        f = RefineNetDilated(config).to(config.device)
+        energy_net = ModularUnnormalizedEBM(f)
+    # get optimizer
+    optimizer = get_optimizer(config, energy_net.parameters())
+    # train
+    step = 0
+    loss_track_epochs = []
+    for epoch in range(config.training.n_epochs):
+        loss_vals = []
+        for i, (X, y) in enumerate(dataloader):
+            step += 1
 
-                # enet.train()
-                energy_net.train()
-                X = X.to(self.config.device)
-                X = X / 256. * 255. + torch.rand_like(X) / 256.
-                if self.config.data.logit_transform:
-                    X = self.logit_transform(X)
+            # enet.train()
+            energy_net.train()
+            X = X.to(config.device)
+            X = X / 256. * 255. + torch.rand_like(X) / 256.
+            if config.data.logit_transform:
+                X = logit_transform(X)
 
-                # y -= y.min()  # need to ensure its zero centered !
-                # if conditional:
-                #     loss = conditional_dsm(enet, X, y, energy_net_finalLayer, sigma=0.01)
-                # else:
-                #     loss = dsm(enet, X, sigma=0.01)
-                if conditional:
-                    loss = cdsm(energy_net, X, y, sigma=0.01)
-                else:
-                    loss = dsm(energy_net, X, sigma=0.01)
+            if conditional:
+                loss = cdsm(energy_net, X, y, sigma=0.01)
+            else:
+                loss = dsm(energy_net, X, sigma=0.01)
 
-                optimizer.zero_grad()
-                loss.backward()
-                optimizer.step()
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
 
-                logging.info("step: {}, loss: {}, maxLabel: {}".format(step, loss.item(), y.max()))
-                loss_vals.append(loss.item())
-                loss_track_epochs.append(loss.item())
+            logging.info("step: {}, loss: {}, maxLabel: {}".format(step, loss.item(), y.max()))
+            loss_vals.append(loss.item())
+            loss_track_epochs.append(loss.item())
 
-                if step >= self.config.training.n_iters:
-                    enet, energy_net_finalLayer = energy_net.f, energy_net.g
-                    # save final checkpoints for distrubution!
-                    states = [
-                        enet.state_dict(),
-                        optimizer.state_dict(),
-                    ]
-                    torch.save(states, os.path.join(self.args.checkpoints, 'checkpoint_{}.pth'.format(step)))
-                    torch.save(states, os.path.join(self.args.checkpoints, 'checkpoint.pth'))
-                    torch.save([energy_net_finalLayer], os.path.join(self.args.checkpoints, 'finalLayerweights_.pth'))
-                    pickle.dump(energy_net_finalLayer,
-                                open(os.path.join(self.args.checkpoints, 'finalLayerweights.p'), 'wb'))
-                    return 0
+            if step >= config.training.n_iters:
+                enet, energy_net_finalLayer = energy_net.f, energy_net.g
+                # save final checkpoints for distrubution!
+                states = [
+                    enet.state_dict(),
+                    optimizer.state_dict(),
+                ]
+                torch.save(states, os.path.join(args.checkpoints, 'checkpoint_{}.pth'.format(step)))
+                torch.save(states, os.path.join(args.checkpoints, 'checkpoint.pth'))
+                torch.save([energy_net_finalLayer], os.path.join(args.checkpoints, 'finalLayerweights_.pth'))
+                pickle.dump(energy_net_finalLayer,
+                            open(os.path.join(args.checkpoints, 'finalLayerweights.p'), 'wb'))
+                return 0
 
-                if step % self.config.training.snapshot_freq == 0:
-                    enet, energy_net_finalLayer = energy_net.f, energy_net.g
-                    print('checkpoint at step: {}'.format(step))
-                    # save checkpoint for transfer learning! !
-                    torch.save([energy_net_finalLayer], os.path.join(self.args.log, 'finalLayerweights_.pth'))
-                    pickle.dump(energy_net_finalLayer,
-                                open(os.path.join(self.args.log, 'finalLayerweights.p'), 'wb'))
-                    states = [
-                        enet.state_dict(),
-                        optimizer.state_dict(),
-                    ]
-                    torch.save(states, os.path.join(self.args.log, 'checkpoint_{}.pth'.format(step)))
-                    torch.save(states, os.path.join(self.args.log, 'checkpoint.pth'))
+            if step % config.training.snapshot_freq == 0:
+                enet, energy_net_finalLayer = energy_net.f, energy_net.g
+                print('checkpoint at step: {}'.format(step))
+                # save checkpoint for transfer learning! !
+                torch.save([energy_net_finalLayer], os.path.join(args.log, 'finalLayerweights_.pth'))
+                pickle.dump(energy_net_finalLayer,
+                            open(os.path.join(args.log, 'finalLayerweights.p'), 'wb'))
+                states = [
+                    enet.state_dict(),
+                    optimizer.state_dict(),
+                ]
+                torch.save(states, os.path.join(args.log, 'checkpoint_{}.pth'.format(step)))
+                torch.save(states, os.path.join(args.log, 'checkpoint.pth'))
 
-            if self.config.data.dataset in ['MNIST_transferBaseline', 'CIFAR10_transferBaseline']:
-                # save loss track during epoch for transfer baseline
-                pickle.dump(loss_vals,
-                            open(os.path.join(self.args.run, self.args.dataset + '_Baseline_Size' + str(
-                                self.subsetSize) + "_Seed" + str(self.seed) + '.p'), 'wb'))
-
-        if self.config.data.dataset in ['MNIST_transferBaseline', 'CIFAR10_transferBaseline']:
+        if config.data.dataset in ['MNIST_transferBaseline', 'CIFAR10_transferBaseline']:
             # save loss track during epoch for transfer baseline
-            pickle.dump(loss_track_epochs,
-                        open(os.path.join(self.args.run, self.args.dataset + '_Baseline_epochs_Size' + str(
-                            self.subsetSize) + "_Seed" + str(self.seed) + '.p'), 'wb'))
+            pickle.dump(loss_vals,
+                        open(os.path.join(args.run, args.dataset + '_Baseline_Size' + str(
+                            args.subsetSize) + "_Seed" + str(args.seed) + '.p'), 'wb'))
 
-        # save final checkpoints for distrubution!
-        enet, energy_net_finalLayer = energy_net.f, energy_net.g
-        states = [
-            enet.state_dict(),
-            optimizer.state_dict(),
-        ]
-        torch.save(states, os.path.join(self.args.checkpoints, 'checkpoint_{}.pth'.format(step)))
-        torch.save(states, os.path.join(self.args.checkpoints, 'checkpoint.pth'))
-        torch.save([energy_net_finalLayer], os.path.join(self.args.checkpoints, 'finalLayerweights_.pth'))
-        pickle.dump(energy_net_finalLayer,
-                    open(os.path.join(self.args.checkpoints, 'finalLayerweights.p'), 'wb'))
+    if config.data.dataset in ['MNIST_transferBaseline', 'CIFAR10_transferBaseline']:
+        # save loss track during epoch for transfer baseline
+        pickle.dump(loss_track_epochs,
+                    open(os.path.join(args.run, args.dataset + '_Baseline_epochs_Size' + str(
+                        args.subsetSize) + "_Seed" + str(args.seed) + '.p'), 'wb'))
+
+    # save final checkpoints for distrubution!
+    enet, energy_net_finalLayer = energy_net.f, energy_net.g
+    states = [
+        enet.state_dict(),
+        optimizer.state_dict(),
+    ]
+    torch.save(states, os.path.join(args.checkpoints, 'checkpoint_{}.pth'.format(step)))
+    torch.save(states, os.path.join(args.checkpoints, 'checkpoint.pth'))
+    torch.save([energy_net_finalLayer], os.path.join(args.checkpoints, 'finalLayerweights_.pth'))
+    pickle.dump(energy_net_finalLayer,
+                open(os.path.join(args.checkpoints, 'finalLayerweights.p'), 'wb'))
 
 
 def transfer(args, config):
@@ -467,8 +438,7 @@ def cca_representations(args, config, conditional=True, retrain=True):
     print(new_args)
     if retrain:
         print('training networks ..')
-        runner = PreTrainer(new_args, new_config)
-        runner.train(conditional=conditional)
+        train(new_args, new_config, conditional=conditional)
 
     # finally, save learnt representations
     states = torch.load(ckpt_path, map_location=config.device)
