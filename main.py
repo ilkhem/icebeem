@@ -6,7 +6,7 @@ import numpy as np
 import torch
 import yaml
 
-from runners.real_data_runner import PreTrainer, semisupervised, transfer, cca_representations
+from runners.real_data_runner import train, semisupervised, transfer, cca_representations
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
@@ -15,7 +15,7 @@ def parse():
     parser = argparse.ArgumentParser(description='')
 
     parser.add_argument('--dataset', type=str, default='MNIST',
-                        help='Dataset to run experiments. Should be MNIST or CIFAR10, or FMNIST')
+                        help='Dataset to run experiments. Should be MNIST or CIFAR10, FMNIST, or CIFAR100')
     parser.add_argument('--config', type=str, default='mnist.yaml', help='Path to the config file')
     parser.add_argument('--run', type=str, default='run', help='Path for saving running related data.')
     parser.add_argument('--doc', type=str, default='', help='A string for documentation purpose')
@@ -69,17 +69,17 @@ def main():
     args = parse()
 
     with open(os.path.join('configs', args.config), 'r') as f:
-        config = yaml.load(f)
-    new_config = dict2namespace(config)
-    new_config.device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
-    print(new_config)
+        config_raw = yaml.load(f)
+    config = dict2namespace(config_raw)
+    config.device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+    print(config)
 
-    if new_config.model.positive:
+    if config.model.positive:
         args.doc += 'p'
-    if new_config.model.positive:
+    if config.model.augment:
         args.doc += 'a'
-    if new_config.model.final_layer:
-        args.doc += str(new_config.model.feature_size)
+    if config.model.final_layer:
+        args.doc += str(config.model.feature_size)
 
     make_dirs(args)
     np.random.seed(args.seed)
@@ -96,12 +96,11 @@ def main():
     # and the script will perform the loop
 
     if not args.transfer and not args.semisupervised and not args.baseline and not args.plot and not args.representation:
-        runner = PreTrainer(args, new_config)
-        runner.train()
+        train(args, config)
 
     if args.transfer and not args.baseline:
         if not args.all:
-            transfer(args, new_config)
+            transfer(args, config)
         else:
             new_args = argparse.Namespace(**vars(args))
             for n in [500, 1000, 2000, 3000, 4000, 5000, 6000]:
@@ -111,13 +110,12 @@ def main():
                     # change random seed
                     np.random.seed(seed)
                     torch.manual_seed(seed)
-                    transfer(new_args, new_config)
+                    transfer(new_args, config)
 
-    if new_config.data.dataset in ["MNIST_transferBaseline", "CIFAR10_transferBaseline"]:
+    if config.data.dataset in ["MNIST_transferBaseline", "CIFAR10_transferBaseline"]:
         # this is just here for debug, shouldn't be run, use --baseline --transfer instead
         if not args.all:
-            runner = PreTrainer(args, new_config)
-            runner.train()
+            train(args, config)
         else:
             new_args = argparse.Namespace(**vars(args))
             for n in [500, 1000, 2000, 3000, 4000, 5000, 6000]:
@@ -129,22 +127,21 @@ def main():
                     # change random seed
                     np.random.seed(seed)
                     torch.manual_seed(seed)
-                    runner = PreTrainer(new_args, new_config)
-                    runner.train()
+                    train(new_args, config)
 
     if args.transfer and args.baseline:
         # update args and config
         new_args = argparse.Namespace(**vars(args))
         new_args.config = os.path.splitext(args.config)[0] + '_baseline' + os.path.splitext(args.config)[1]
         with open(os.path.join('configs', new_args.config), 'r') as f:
-            config = yaml.load(f)
-        new_config = dict2namespace(config)
-        new_config.device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+            config_raw = yaml.load(f)
+        config = dict2namespace(config_raw)
+        config.device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
         if not args.all:
             new_args.doc = args.doc + 'Baseline' + str(new_args.SubsetSize)
             make_dirs(new_args)
-            runner = PreTrainer(new_args, new_config)
-            runner.train()
+            train(new_args, config)
+
         else:
             for n in [500, 1000, 2000, 3000, 4000, 5000, 6000]:
                 for seed in range(args.seed, args.nSims + args.seed):
@@ -155,8 +152,8 @@ def main():
                     # change random seed
                     np.random.seed(seed)
                     torch.manual_seed(seed)
-                    runner = PreTrainer(new_args, new_config)
-                    runner.train()
+                    train(new_args, config)
+
 
     # SEMI-SUPERVISED EXPERIMENTS
     # 1- no special flag: pretrain icebeem on 0-7 // same as 1- above
@@ -169,17 +166,16 @@ def main():
         new_args = argparse.Namespace(**vars(args))
         new_args.doc = args.doc + 'Baseline'
         make_dirs(new_args)
-        runner = PreTrainer(new_args, new_config)
-        runner.train(conditional=False)
+        train(new_args, config, conditional=False)
 
     if args.semisupervised and not args.baseline:
-        semisupervised(args, new_config)
+        semisupervised(args, config)
 
     if args.semisupervised and args.baseline:
         new_args = argparse.Namespace(**vars(args))
         new_args.doc = args.doc + 'Baseline'
         make_dirs(new_args)
-        semisupervised(new_args, new_config)
+        semisupervised(new_args, config)
 
     # COMPARE QUALITY OF REPRESENTATIONS ON REAL DATA
     # 1- --retrainNets --representation: trains both icebeem and unconditional ebm on dataset, and save learnt rep for
@@ -197,7 +193,7 @@ def main():
                 new_args.doc = args.doc + args.dataset + '_Representation' + str(new_args.seed)
                 print(new_args.doc)
                 make_dirs(new_args)
-                cca_representations(new_args, new_config, retrain=args.retrainNets)
+                cca_representations(new_args, config, retrain=args.retrainNets)
 
             # train unconditional EBMs
             for seed in range(args.seed, args.nSims + args.seed):
@@ -206,7 +202,7 @@ def main():
                 new_args.doc = args.doc + args.dataset + '_RepresentationBaseline' + str(new_args.seed)
                 print(new_args.doc)
                 make_dirs(new_args)
-                cca_representations(new_args, new_config, conditional=False, retrain=args.retrainNets)
+                cca_representations(new_args, config, conditional=False, retrain=args.retrainNets)
         else:
             print('not retraining')
 
