@@ -99,7 +99,7 @@ def main():
         make_and_set_dirs(args, config)
         train(args, config)
 
-    if args.transfer and not args.baseline:
+    if args.transfer and not args.baseline and not args.plot:
         if not args.all:
             print(
                 'Transfer for {} - subset size: {} - seed: {}'.format(config.data.dataset, args.subsetSize, args.seed))
@@ -144,7 +144,7 @@ def main():
                     make_and_set_dirs(new_args, config)
                     train(new_args, config)
 
-    if args.transfer and args.baseline:
+    if args.transfer and args.baseline and not args.plot:
         # update args and config
         new_args = argparse.Namespace(**vars(args))
         new_args.config = os.path.splitext(args.config)[0] + '_baseline' + os.path.splitext(args.config)[1]
@@ -186,19 +186,19 @@ def main():
     # DIFFERENT FROM WHEN RUN FOR ICEBEEM
     # 4- --semisupervised --baseline: classify 8-9 using unconditional ebm // --doc should be the same as from step 3-
 
-    if args.baseline and not args.semisupervised and not args.transfer and not args.representation:
+    if args.baseline and not args.semisupervised and not args.transfer and not args.representation and not args.plot:
         print('Training a baseline EBM on {}'.format(config.data.dataset))
         args.doc = 'baseline'
         make_and_set_dirs(args, config)
         train(args, config, conditional=False)
 
-    if args.semisupervised and not args.baseline:
+    if args.semisupervised and not args.baseline and not args.plot:
         print('Computing semi-supervised accuracy for ICE-BeeM on {}'.format(config.data.dataset))
         args.doc = 'icebeem'
         make_and_set_dirs(args, config)
         semisupervised(args, config)
 
-    if args.semisupervised and args.baseline:
+    if args.semisupervised and args.baseline and not args.plot:
         print('Computing semi-supervised accuracy for baseline EBM on {}'.format(config.data.dataset))
         args.doc = 'baseline'
         make_and_set_dirs(args, config)
@@ -210,7 +210,7 @@ def main():
     # 2- --representation --baseline: trains unconditional EBM on train dataset, and save learnt rep of test data for
     # different seeds
 
-    if args.representation:
+    if args.representation and not args.plot:
         # overwrite n_labels to full dataset
         config.n_labels = 10 if config.data.dataset.lower().split('_')[0] != 'cifar100' else 100
         if not args.baseline:
