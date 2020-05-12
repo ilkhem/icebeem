@@ -474,11 +474,11 @@ def plot_transfer(args):
     for x in samplesSizes:
         files = [f for f in os.listdir(args.output) if args.dataset.lower() + 'TransferCDSM_Size' + str(x) + '_' in f]
         for f in files:
-            resTransfer[x].append(np.median(pickle.load(open(os.path.join(args.run, f), 'rb'))))
+            resTransfer[x].append(np.median(pickle.load(open(os.path.join(args.output, f), 'rb'))))
 
         files = [f for f in os.listdir(args.output) if args.dataset + '_Baseline_Size' + str(x) + '_' in f]
         for f in files:
-            resBaseline[x].append(np.median(pickle.load(open(os.path.join(args.run, f), 'rb'))))
+            resBaseline[x].append(np.median(pickle.load(open(os.path.join(args.output, f), 'rb'))))
 
         print(
             'Transfer: ' + str(np.median(resTransfer[x]) * 1e4) + '\tBaseline: ' + str(np.median(resBaseline[x]) * 1e4))

@@ -56,13 +56,17 @@ def dict2namespace(config):
 def make_and_set_dirs(args, config):
     """call after setting args.doc to set and create necessary folders"""
     args.dataset = config.data.dataset.split('_')[0]  # take into account baseline datasets e.g.: mnist_transferBaseline
-    if config.model.positive:
-        args.doc += 'p'
-    if config.model.augment:
-        args.doc += 'a'
-    if config.model.final_layer:
-        args.doc += str(config.model.feature_size)
-    args.doc = os.path.join(args.dataset, args.doc)  # group experiments by dataset
+    try:
+        if config.model.positive:
+            args.doc += 'p'
+        if config.model.augment:
+            args.doc += 'a'
+        if config.model.final_layer:
+            args.doc += str(config.model.feature_size)
+        args.doc = os.path.join(args.dataset, args.doc)  # group experiments by dataset
+    except AttributeError:
+        # args has no attribute doc
+        args.doc = args.dataset
     os.makedirs(args.run, exist_ok=True)
     args.log = os.path.join(args.run, 'logs', args.doc)
     os.makedirs(args.log, exist_ok=True)
@@ -177,6 +181,7 @@ def main():
     # 1- just use of the flag --plot and --transfer AND NO other flag (except --config of course)
     if args.plot and not args.baseline and not args.semisupervised and args.transfer and not args.representation:
         print('Plotting transfer experiment for {}'.format(config.data.dataset))
+        make_and_set_dirs(args, config)
         plot_transfer(args)
 
     # SEMI-SUPERVISED EXPERIMENTS
@@ -240,6 +245,7 @@ def main():
     # compute MCC before and after applying a CCA to the rep and display as boxplot
     if args.plot and not args.baseline and not args.semisupervised and not args.transfer and args.representation:
         print('Plotting representation experiment for {}'.format(config.data.dataset))
+        make_and_set_dirs(args, config)
         plot_representation(args)
 
 

@@ -11,6 +11,7 @@
 #
 #SBATCH --gres=gpu:1
 
+echo $CUDA_VISIBLE_DEVICES
 if [ -z ${SLURM_ARRAY_TASK_ID} ]
 then
         echo "SLURM array variable not set"
