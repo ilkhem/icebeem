@@ -7,9 +7,6 @@ import yaml
 
 from runners.simulation_runner import run_icebeem_exp, run_ivae_exp, run_tcl_exp
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
-
-
 def parse_sim():
     parser = argparse.ArgumentParser(description='')
     parser.add_argument('--dataset', type=str, default='TCL', help='Dataset to run experiments. Should be TCL or IMCA')
@@ -53,7 +50,7 @@ if __name__ == '__main__':
         import seaborn as sns
         import numpy as np
 
-        # 
+        #
         marker_dict = {'ICEBEEM': 'v', 'iVAE': 'o', 'TCL': 's'}
         line_dict = {'ICEBEEM': 'solid', 'iVAE': '--', 'TCL': ':'}
         legend_dict = {'ICEBEEM': 'ICE-BeeM', 'iVAE': 'iVAE', 'TCL': 'TCL'}

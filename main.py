@@ -9,9 +9,6 @@ import yaml
 from runners.real_data_runner import train, semisupervised, transfer, cca_representations, plot_transfer, \
     plot_representation
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
-
-
 def parse():
     parser = argparse.ArgumentParser(description='')
 
@@ -96,6 +93,12 @@ def make_and_set_dirs(args, config):
 
 
 def main():
+    if torch.cuda.is_available():
+        dev = torch.cuda.device_count() - 1
+        print("Running on gpu:{}".format(dev))
+        torch.cuda.set_device(dev)
+    else:
+        print("Running on cpu")
     args = parse()
     # load config
     with open(os.path.join('configs', args.config), 'r') as f:
