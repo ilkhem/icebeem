@@ -222,22 +222,22 @@ ___
 To run everything, you can use the following two step bash script:
 ```
 CONFIG_FILE=mnist.yaml
-sbatch --exclusive=user slurm_main.sbatch --config $CONFIG_FILE 
+sbatch --exclusive slurm_main.sbatch --config $CONFIG_FILE 
+sbatch --exclusive slurm_main.sbatch --config $CONFIG_FILE  --baseline
 for SIZE in 500 1000 2000 3000 4000 5000 6000
 do
-        sbatch --exclusive=user --array=0-4 slurm_main.sbatch --config $CONFIG_FILE --transfer --subsetSize $SIZE --baseline
+        sbatch --exclusive --array=0-4 slurm_main.sbatch --config $CONFIG_FILE --transfer --subsetSize $SIZE --baseline
 done
-sbatch --exclusive=user slurm_main.sbatch --config $CONFIG_FILE  --baseline
-sbatch --exclusive=user --array=0-9 slurm_main.sbatch --config $CONFIG_FILE  --representation
-sbatch --exclusive=user --array=0-9 slurm_main.sbatch --config $CONFIG_FILE  --representation --baseline
+sbatch --exclusive --array=0-9 slurm_main.sbatch --config $CONFIG_FILE  --representation
+sbatch --exclusive --array=0-9 slurm_main.sbatch --config $CONFIG_FILE  --representation --baseline
 ```
 And then (when all previous jobs finish)
 ```
 CONFIG_FILE=mnist.yaml
 for SIZE in 500 1000 2000 3000 4000 5000 6000
 do
-        sbatch --exclusive=user --array=0-4 slurm_main.sbatch --config $CONFIG_FILE --transfer --subsetSize $SIZE
+        sbatch --exclusive --array=0-4 slurm_main.sbatch --config $CONFIG_FILE --transfer --subsetSize $SIZE
 done
-sbatch --exclusive=user slurm_main.sbatch --config $CONFIG_FILE  --semisupervised
-sbatch --exclusive=user slurm_main.sbatch --config $CONFIG_FILE  --semisupervised --baseline
+sbatch --exclusive slurm_main.sbatch --config $CONFIG_FILE  --semisupervised
+sbatch --exclusive slurm_main.sbatch --config $CONFIG_FILE  --semisupervised --baseline
 ```
