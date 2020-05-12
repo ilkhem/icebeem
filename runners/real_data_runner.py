@@ -139,7 +139,7 @@ def get_dataset(args, config, test=False, rev=False, one_hot=True, subset=False,
     else:
         dataloader = DataLoader(dataset, batch_size=config.training.batch_size, shuffle=shuffle, num_workers=0)
 
-    print('DEBUG: len(dset) {} type(dset) {}'.format(len(dataset), type(dataset)))
+    # print('DEBUG: len(dset) {} type(dset) {}'.format(len(dataset), type(dataset)))
 
     return dataloader, dataset, cond_size
 
