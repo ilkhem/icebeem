@@ -80,6 +80,7 @@ def main():
     args = parse()
     # load config
     with open(os.path.join('configs', args.config), 'r') as f:
+        print('loading config file: {}'.format(os.path.join('configs', args.config)))
         config_raw = yaml.load(f)
     config = dict2namespace(config_raw)
     config.device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
@@ -153,6 +154,7 @@ def main():
         new_args = argparse.Namespace(**vars(args))
         new_args.config = os.path.splitext(args.config)[0] + '_baseline' + os.path.splitext(args.config)[1]
         with open(os.path.join('configs', new_args.config), 'r') as f:
+            print('loading baseline config file: {}'.format(os.path.join('configs', new_args.config)))
             config_raw = yaml.load(f)
         config = dict2namespace(config_raw)
         config.device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')

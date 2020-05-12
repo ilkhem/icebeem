@@ -76,10 +76,12 @@ def get_dataset(args, config, test=False, rev=False, one_hot=True, subset=False,
     no_collate = total_labels == config.n_labels
     if config.data.dataset.lower() in ['mnist_transferbaseline', 'cifar10_transferbaseline',
                                        'fashionmnist_transferbaseline', 'cifar100_transferbaseline']:
+        print('loading baseline transfer dataset')
         rev = True
         test = True
         subset = True
         no_collate = False
+    print('DEBUG: rev {} test {} subset {} no_collate {} one_hot {}'.format(rev, test, subset, no_collate, one_hot))
 
     if config.data.random_flip is False:
         transform = transforms.Compose([
@@ -122,21 +124,22 @@ def get_dataset(args, config, test=False, rev=False, one_hot=True, subset=False,
     if not rev:
         collate_helper = lambda batch: my_collate(batch, nSeg=config.n_labels, one_hot=one_hot)
         cond_size = config.n_labels
-        drop_last = False
+        # drop_last = False
     else:
         collate_helper = lambda batch: my_collate_rev(batch, nSeg=config.n_labels, one_hot=one_hot,
                                                       total_labels=total_labels)
-        drop_last = True
+        # drop_last = True
         cond_size = total_labels - config.n_labels
     if subset:
         id_range = list(range(args.subsetSize))
         dataset = torch.utils.data.Subset(dataset, id_range)
     if not no_collate:
         dataloader = DataLoader(dataset, batch_size=config.training.batch_size, shuffle=shuffle, num_workers=0,
-                                collate_fn=collate_helper, drop_last=drop_last)
+                                collate_fn=collate_helper)
     else:
-        dataloader = DataLoader(dataset, batch_size=config.training.batch_size, shuffle=shuffle, num_workers=0,
-                                drop_last=True)
+        dataloader = DataLoader(dataset, batch_size=config.training.batch_size, shuffle=shuffle, num_workers=0)
+
+    print('DEBUG: len(dset) {} type(dset) {}'.format(len(dataset), type(dataset)))
 
     return dataloader, dataset, cond_size
 
