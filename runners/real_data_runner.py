@@ -124,22 +124,23 @@ def get_dataset(args, config, test=False, rev=False, one_hot=True, subset=False,
     if not rev:
         collate_helper = lambda batch: my_collate(batch, nSeg=config.n_labels, one_hot=one_hot)
         cond_size = config.n_labels
-        # drop_last = False
+        drop_last = False
     else:
         collate_helper = lambda batch: my_collate_rev(batch, nSeg=config.n_labels, one_hot=one_hot,
                                                       total_labels=total_labels)
-        # drop_last = True
+        drop_last = True
         cond_size = total_labels - config.n_labels
     if subset:
         id_range = list(range(args.subsetSize))
         dataset = torch.utils.data.Subset(dataset, id_range)
     if not no_collate:
         dataloader = DataLoader(dataset, batch_size=config.training.batch_size, shuffle=shuffle, num_workers=0,
-                                collate_fn=collate_helper)
+                                collate_fn=collate_helper, drop_last=drop_last)
     else:
-        dataloader = DataLoader(dataset, batch_size=config.training.batch_size, shuffle=shuffle, num_workers=0)
+        dataloader = DataLoader(dataset, batch_size=config.training.batch_size, shuffle=shuffle, num_workers=0,
+                                drop_last=drop_last)
 
-    # print('DEBUG: len(dset) {} type(dset) {}'.format(len(dataset), type(dataset)))
+    # print('DEBUG: len(dset) {} type(dse t) {}'.format(len(dataset), type(dataset)))
 
     return dataloader, dataset, cond_size
 
@@ -371,44 +372,82 @@ def cca_representations(args, config, conditional=True):
 
 
 def plot_representation(args):
-    # load in trained representations
+    if len(os.listdir(args.output)) < 2:
+        # MCC values haven't been computed yet
+        # load in trained representations
+        res_cond = []
+        res_uncond = []
+        for f in os.listdir(args.checkpoints):
+            print('loading conditional test representations from: {}'.format(f))
+            res_cond.append(pickle.load(open(os.path.join(f, 'test_representations.p'), 'rb')))
 
-    res_cond = []
-    res_uncond = []
-    for seed in range(args.seed, args.nSims + args.seed):
-        # path_cond = os.path.join(args.run, 'checkpoints', args.dataset, 'representation', 'seed{}'.format(seed))
-        path_cond = os.path.join(args.checkpoints, 'seed{}'.format(seed))
-        print('loading conditional test representations from: {}'.format(path_cond))
-        # path_uncond = os.path.join(args.run, 'checkpoints', args.dataset, 'representationBaseline',
-        #                            'seed{}'.format(seed))
-        path_uncond = os.path.join(args.checkpoints_baseline, 'seed{}'.format(seed))
-        print('loading unconditional test representations from: {}'.format(path_uncond))
-        res_cond.append(pickle.load(open(os.path.join(path_cond, 'test_representations.p'), 'rb')))
-        res_uncond.append(pickle.load(open(os.path.join(path_uncond, 'test_representations.p'), 'rb')))
+        for f_baseline in os.listdir(args.checkpoints_baseline):
+            print('loading unconditional test representations from: {}'.format(f_baseline))
+            res_uncond.append(pickle.load(open(os.path.join(f_baseline, 'test_representations.p'), 'rb')))
 
-    # check things are in correct order
-    assert np.max(np.abs(res_cond[0]['lab'] - res_cond[1]['lab'])) == 0
-    assert np.max(np.abs(res_uncond[0]['lab'] - res_uncond[1]['lab'])) == 0
-    assert np.max(np.abs(res_cond[0]['lab'] - res_uncond[0]['lab'])) == 0
+        # check things are in correct order
+        assert np.max(np.abs(res_cond[0]['lab'] - res_cond[1]['lab'])) == 0
+        assert np.max(np.abs(res_uncond[0]['lab'] - res_uncond[1]['lab'])) == 0
+        assert np.max(np.abs(res_cond[0]['lab'] - res_uncond[0]['lab'])) == 0
 
-    # now we compare representation identifiability (strong case)
-    mcc_strong_cond = []
-    mcc_strong_uncond = []
-    ii = np.where(res_cond[0]['lab'] < 5)[0]
-    iinot = np.where(res_cond[0]['lab'] >= 5)[0]
+        # now we compare representation identifiability (strong case)
+        mcc_strong_cond = []
+        mcc_strong_uncond = []
+        ii = np.where(res_cond[0]['lab'] < 5)[0]
+        iinot = np.where(res_cond[0]['lab'] >= 5)[0]
 
-    for i in range(args.seed, args.nSims):
-        for j in range(i + 1, args.nSims):
-            mcc_strong_cond.append(
-                mean_corr_coef_out_of_sample(x=res_cond[i]['rep'][ii, :], y=res_cond[j]['rep'][ii, :],
-                                             x_test=res_cond[i]['rep'][iinot, :],
-                                             y_test=res_cond[j]['rep'][iinot, :]))
-            mcc_strong_uncond.append(
-                mean_corr_coef_out_of_sample(x=res_uncond[i]['rep'][ii, :], y=res_uncond[j]['rep'][ii, :],
-                                             x_test=res_uncond[i]['rep'][iinot, :],
-                                             y_test=res_uncond[j]['rep'][iinot, :]))
-            # mcc_strong_cond.append( mean_corr_coef( res_cond[i]['rep'], res_cond[j]['rep']) )
-            # mcc_strong_uncond.append( mean_corr_coef( res_uncond[i]['rep'], res_uncond[j]['rep']) )
+        for i in range(args.seed, args.nSims):
+            for j in range(i + 1, args.nSims):
+                mcc_strong_cond.append(
+                    mean_corr_coef_out_of_sample(x=res_cond[i]['rep'][ii, :], y=res_cond[j]['rep'][ii, :],
+                                                 x_test=res_cond[i]['rep'][iinot, :],
+                                                 y_test=res_cond[j]['rep'][iinot, :]))
+                mcc_strong_uncond.append(
+                    mean_corr_coef_out_of_sample(x=res_uncond[i]['rep'][ii, :], y=res_uncond[j]['rep'][ii, :],
+                                                 x_test=res_uncond[i]['rep'][iinot, :],
+                                                 y_test=res_uncond[j]['rep'][iinot, :]))
+                # mcc_strong_cond.append( mean_corr_coef( res_cond[i]['rep'], res_cond[j]['rep']) )
+                # mcc_strong_uncond.append( mean_corr_coef( res_uncond[i]['rep'], res_uncond[j]['rep']) )
+
+        # save results:
+        pickle.dump({'mcc_strong_cond': mcc_strong_cond, 'mcc_strong_uncond': mcc_strong_uncond},
+                    open(os.path.join(args.output, 'strongMCC.p', 'wb')))
+
+        # no we compare representation identifiability for weaker case
+
+        warnings.filterwarnings("ignore", category=ConvergenceWarning)
+        cutoff = 50 if args.dataset == 'CIFAR100' else 5
+        print('Cutoff: {}'.format(cutoff))
+        ii = np.where(res_cond[0]['lab'] < cutoff)[0]
+        iinot = np.where(res_cond[0]['lab'] >= cutoff)[0]
+
+        mcc_weak_cond = []
+        mcc_weak_uncond = []
+
+        cca_dim = 20
+        for i in range(args.seed, args.nSims):
+            for j in range(i + 1, args.nSims):
+                cca = CCA(n_components=cca_dim)
+                cca.fit(res_cond[i]['rep'][ii, :], res_cond[j]['rep'][ii, :])
+
+                res = cca.transform(res_cond[i]['rep'][iinot, :], res_cond[j]['rep'][iinot, :])
+                mcc_weak_cond.append(mean_corr_coef(res[0], res[1]))
+
+                # now repeat on the baseline!
+                ccabase = CCA(n_components=cca_dim)
+                ccabase.fit(res_uncond[i]['rep'][ii, :], res_uncond[j]['rep'][ii, :])
+
+                resbase = cca.transform(res_uncond[i]['rep'][iinot, :], res_uncond[j]['rep'][iinot, :])
+                mcc_weak_uncond.append(mean_corr_coef(resbase[0], resbase[1]))
+
+        # save results:
+        pickle.dump({'mcc_weak_cond': mcc_weak_cond, 'mcc_weak_uncond': mcc_weak_uncond},
+                    open(os.path.join(args.output, 'weakMCC.p', 'wb')))
+    else:
+        mcc_strong = pickle.load(open(os.path.join(args.output, 'strongMCC.p'), 'rb'))
+        mcc_strong_cond, mcc_strong_uncond = mcc_strong['mcc_strong_cond'], mcc_strong['mcc_strong_uncond']
+        mcc_weak = pickle.load(open(os.path.join(args.output, 'weakMCC.p'), 'rb'))
+        mcc_weak_cond, mcc_weak_uncond = mcc_weak['mcc_weak_cond'], mcc_weak['mcc_weak_uncond']
 
     print('Statistics for strong iden.:\tC\tU')
     print('Mean:\t\t{}\t{}'.format(np.mean(mcc_strong_cond), np.mean(mcc_strong_uncond)))
@@ -420,37 +459,6 @@ def plot_representation(args):
         cond_sorted[0], uncond_sorted[0], cond_sorted[1], uncond_sorted[1], cond_sorted[-2], uncond_sorted[-2],
         cond_sorted[-1], uncond_sorted[-1]))
 
-    # save results:
-    pickle.dump({'mcc_strong_cond': mcc_strong_cond, 'mcc_strong_uncond': mcc_strong_uncond},
-                open(os.path.join(args.output, 'strongMCC.p', 'wb')))
-
-    # no we compare representation identifiability for weaker case
-
-    warnings.filterwarnings("ignore", category=ConvergenceWarning)
-    cutoff = 50 if args.dataset == 'CIFAR100' else 5
-    print('Cutoff: {}'.format(cutoff))
-    ii = np.where(res_cond[0]['lab'] < cutoff)[0]
-    iinot = np.where(res_cond[0]['lab'] >= cutoff)[0]
-
-    mcc_weak_cond = []
-    mcc_weak_uncond = []
-
-    cca_dim = 20
-    for i in range(args.seed, args.nSims):
-        for j in range(i + 1, args.nSims):
-            cca = CCA(n_components=cca_dim)
-            cca.fit(res_cond[i]['rep'][ii, :], res_cond[j]['rep'][ii, :])
-
-            res = cca.transform(res_cond[i]['rep'][iinot, :], res_cond[j]['rep'][iinot, :])
-            mcc_weak_cond.append(mean_corr_coef(res[0], res[1]))
-
-            # now repeat on the baseline!
-            ccabase = CCA(n_components=cca_dim)
-            ccabase.fit(res_uncond[i]['rep'][ii, :], res_uncond[j]['rep'][ii, :])
-
-            resbase = cca.transform(res_uncond[i]['rep'][iinot, :], res_uncond[j]['rep'][iinot, :])
-            mcc_weak_uncond.append(mean_corr_coef(resbase[0], resbase[1]))
-
     print('Statistics for weak iden.:\tC\tU')
     print('Mean:\t\t{}\t{}'.format(np.mean(mcc_weak_cond), np.mean(mcc_weak_uncond)))
     print('Median:\t\t{}\t{}'.format(np.median(mcc_weak_cond), np.median(mcc_weak_uncond)))
@@ -461,9 +469,27 @@ def plot_representation(args):
         cond_sorted[0], uncond_sorted[0], cond_sorted[1], uncond_sorted[1], cond_sorted[-2], uncond_sorted[-2],
         cond_sorted[-1], uncond_sorted[-1]))
 
-    # save results:
-    pickle.dump({'mcc_weak_cond': mcc_weak_cond, 'mcc_weak_uncond': mcc_weak_uncond},
-                open(os.path.join(args.output, 'weakMCC.p', 'wb')))
+    # plot boxplot
+    sns.set_style("whitegrid")
+    sns.set_palette('deep')
+    data = [mcc_weak_cond, mcc_weak_uncond, mcc_strong_cond, mcc_strong_uncond]
+    labels = ['weak cond', 'weak uncond', 'strong cond', 'strong uncond']
+    colours = [sns.color_palette()[2], sns.color_palette()[4], sns.color_palette()[2], sns.color_palette()[4]]
+    fig, ax = plt.subplots()
+    bp = ax.boxplot(data, whis=1.5)
+    for i in range(len(colours)):
+        plt.setp(bp['boxes'][i], color=colours[i])
+        plt.setp(bp['whiskers'][2 * i], color=colours[i])
+        plt.setp(bp['whiskers'][2 * i + 1], color=colours[i])
+        plt.setp(bp['caps'][2 * i], color=colours[i])
+        plt.setp(bp['caps'][2 * i + 1], color=colours[i])
+        plt.setp(bp['fliers'][i], color=colours[i], marker='D')
+    ax.set_xlim(0.5, len(data) + 0.5)
+    ax.set_xticklabels(labels, rotation=45, fontsize=9)
+    ax.set_ylabel('MCC out of sample')
+    ax.set_title('Quality of representations on {}'.format(args.dataset))
+    fig.tight_layout()
+    plt.savefig(os.path.join(args.run, 'representation_{}.pdf'.format(args.dataset.lower())))
 
 
 def plot_transfer(args):
