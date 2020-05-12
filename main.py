@@ -119,7 +119,7 @@ def main():
 
     if not args.transfer and not args.semisupervised and not args.baseline and not args.plot and not args.representation:
         print('Training an ICE-BeeM on {}'.format(config.data.dataset))
-        args.doc = 'icebeem'
+        args.doc = 'transfer'
         make_and_set_dirs(args, config)
         train(args, config)
 
@@ -220,19 +220,19 @@ def main():
 
     if args.baseline and not args.semisupervised and not args.transfer and not args.representation and not args.plot:
         print('Training a baseline EBM on {}'.format(config.data.dataset))
-        args.doc = 'baseline'
+        args.doc = 'semisupervisedBaseline'
         make_and_set_dirs(args, config)
         train(args, config, conditional=False)
 
     if args.semisupervised and not args.baseline and not args.plot:
         print('Computing semi-supervised accuracy for ICE-BeeM on {}'.format(config.data.dataset))
-        args.doc = 'icebeem'
+        args.doc = 'transfer'  # first step of semi-supervised learning is the same as first step in transfer learning
         make_and_set_dirs(args, config)
         semisupervised(args, config)
 
     if args.semisupervised and args.baseline and not args.plot:
         print('Computing semi-supervised accuracy for baseline EBM on {}'.format(config.data.dataset))
-        args.doc = 'baseline'
+        args.doc = 'semisupervisedBaseline'
         make_and_set_dirs(args, config)
         semisupervised(args, config)
 
