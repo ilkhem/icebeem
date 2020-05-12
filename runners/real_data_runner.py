@@ -218,7 +218,6 @@ def train(args, config, conditional=True):
             # save loss track during epoch for transfer baseline
             pickle.dump(loss_track,
                         open(os.path.join(args.output,
-                                          'transferBaseline',
                                           'size{}_seed{}.p'.format(args.subsetSize, args.seed)), 'wb'))
 
     if config.data.dataset.lower() in ['mnist_transferbaseline', 'cifar10_transferbaseline',
@@ -227,7 +226,6 @@ def train(args, config, conditional=True):
         print('saving loss track under: {}'.format(args.output))
         pickle.dump(loss_track_epochs,
                     open(os.path.join(args.output,
-                                      'transferBaseline',
                                       'all_epochs_SIZE{}_SEED{}.p'.format(args.subsetSize, args.seed)), 'wb'))
 
     # save final checkpoints for distrubution!
@@ -287,12 +285,10 @@ def transfer(args, config):
 
         pickle.dump(loss_track,
                     open(os.path.join(args.output,
-                                      'transfer',
                                       'size{}_seed{}.p'.format(args.subsetSize, args.seed)), 'wb'))
     print('saving loss track under: {}'.format(args.output))
     pickle.dump(loss_track_epochs,
                 open(os.path.join(args.output,
-                                  'transfer',
                                   'all_epochs_SIZE{}_SEED{}.p'.format(args.subsetSize, args.seed)), 'wb'))
 
 
@@ -380,10 +376,12 @@ def plot_representation(args):
     res_cond = []
     res_uncond = []
     for seed in range(args.seed, args.nSims + args.seed):
-        path_cond = os.path.join(args.run, 'checkpoints', args.dataset, 'representation', 'seed{}'.format(seed))
+        # path_cond = os.path.join(args.run, 'checkpoints', args.dataset, 'representation', 'seed{}'.format(seed))
+        path_cond = os.path.join(args.checkpoints, 'seed{}'.format(seed))
         print('loading conditional test representations from: {}'.format(path_cond))
-        path_uncond = os.path.join(args.run, 'checkpoints', args.dataset, 'representationBaseline',
-                                   'seed{}'.format(seed))
+        # path_uncond = os.path.join(args.run, 'checkpoints', args.dataset, 'representationBaseline',
+        #                            'seed{}'.format(seed))
+        path_uncond = os.path.join(args.checkpoints_baseline, 'seed{}'.format(seed))
         print('loading unconditional test representations from: {}'.format(path_uncond))
         res_cond.append(pickle.load(open(os.path.join(path_cond, 'test_representations.p'), 'rb')))
         res_uncond.append(pickle.load(open(os.path.join(path_uncond, 'test_representations.p'), 'rb')))
@@ -424,7 +422,7 @@ def plot_representation(args):
 
     # save results:
     pickle.dump({'mcc_strong_cond': mcc_strong_cond, 'mcc_strong_uncond': mcc_strong_uncond},
-                open(os.path.join(args.output, args.dataset + '_srongMCC.p', 'wb')))
+                open(os.path.join(args.output, 'strongMCC.p', 'wb')))
 
     # no we compare representation identifiability for weaker case
 
@@ -465,7 +463,7 @@ def plot_representation(args):
 
     # save results:
     pickle.dump({'mcc_weak_cond': mcc_weak_cond, 'mcc_weak_uncond': mcc_weak_uncond},
-                open(os.path.join(args.output, args.dataset + '_weakMCC.p', 'wb')))
+                open(os.path.join(args.output, 'weakMCC.p', 'wb')))
 
 
 def plot_transfer(args):
@@ -480,11 +478,11 @@ def plot_transfer(args):
 
     # load transfer results
     for x in samplesSizes:
-        files = [f for f in os.listdir(os.path.join(args.output, 'transfer')) if 'size{}'.format(x) in f]
+        files = [f for f in os.listdir(args.output) if 'size{}'.format(x) in f]
         for f in files:
             resTransfer[x].append(np.median(pickle.load(open(os.path.join(args.output, f), 'rb'))))
 
-        files = [f for f in os.listdir(os.path.join(args.output, 'transferBaseline')) if 'size{}'.format(x) in f]
+        files = [f for f in os.listdir(args.output_baseline) if 'size{}'.format(x) in f]
         for f in files:
             resBaseline[x].append(np.median(pickle.load(open(os.path.join(args.output, f), 'rb'))))
 

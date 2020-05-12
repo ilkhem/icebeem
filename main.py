@@ -56,7 +56,7 @@ def dict2namespace(config):
 def make_and_set_dirs(args, config):
     """call after setting args.doc to set and create necessary folders"""
     args.dataset = config.data.dataset.split('_')[0]  # take into account baseline datasets e.g.: mnist_transferBaseline
-    try:
+    if 'doc' in vars(args).keys():
         if config.model.positive:
             args.doc += 'p'
         if config.model.augment:
@@ -64,16 +64,35 @@ def make_and_set_dirs(args, config):
         if config.model.final_layer:
             args.doc += str(config.model.feature_size)
         args.doc = os.path.join(args.dataset, args.doc)  # group experiments by dataset
-    except AttributeError:
+    else:
         # args has no attribute doc
         args.doc = args.dataset
+    if 'doc2' in vars(args).keys():
+        # add second level doc folder
+        args.doc2 = os.path.join(args.doc, args.doc2)
+    else:
+        # if not defined, set to level 1 doc
+        args.doc2 = args.doc
     os.makedirs(args.run, exist_ok=True)
-    args.log = os.path.join(args.run, 'logs', args.doc)
+    args.log = os.path.join(args.run, 'logs', args.doc2)
     os.makedirs(args.log, exist_ok=True)
-    args.checkpoints = os.path.join(args.run, 'checkpoints', args.doc)
+    args.checkpoints = os.path.join(args.run, 'checkpoints', args.doc2)
     os.makedirs(args.checkpoints, exist_ok=True)
-    args.output = os.path.join(args.run, 'output', args.dataset)
+    args.output = os.path.join(args.run, 'output', args.doc)
     os.makedirs(args.output, exist_ok=True)
+
+    if 'doc_baseline' in vars(args).keys():
+        if config.model.positive:
+            args.doc_baseline += 'p'
+        if config.model.augment:
+            args.doc_baseline += 'a'
+        if config.model.final_layer:
+            args.doc_baseline += str(config.model.feature_size)
+        args.doc_baseline = os.path.join(args.dataset, args.doc_baseline)
+        args.checkpoints_baseline = os.path.join(args.run, 'checkpoints', args.doc_baseline)
+        os.makedirs(args.checkpoints, exist_ok=True)
+        args.output_baseline = os.path.join(args.run, 'output', args.doc_baseline)
+        os.makedirs(args.output, exist_ok=True)
 
 
 def main():
@@ -108,7 +127,7 @@ def main():
         if not args.all:
             print(
                 'Transfer for {} - subset size: {} - seed: {}'.format(config.data.dataset, args.subsetSize, args.seed))
-            args.doc = 'icebeem'
+            args.doc = 'transfer'
             make_and_set_dirs(args, config)
             transfer(args, config)
         else:
@@ -121,7 +140,7 @@ def main():
                     # change random seed
                     np.random.seed(seed)
                     torch.manual_seed(seed)
-                    new_args.doc = 'icebeem'
+                    new_args.doc = 'transfer'
                     make_and_set_dirs(new_args, config)
                     transfer(new_args, config)
 
@@ -131,7 +150,8 @@ def main():
         if not args.all:
             print('Transfer baseline for {} - subset size: {} - seed: {}'.format(config.data.dataset.split('_')[0],
                                                                                  args.subsetSize, args.seed))
-            args.doc = os.path.join('transferBaseline', 'size{}_seed{}'.format(args.subsetSize, args.seed))
+            args.doc = 'transferBaseline'
+            args.doc2 = 'size{}_seed{}'.format(args.subsetSize, args.seed)
             make_and_set_dirs(args, config)
             train(args, config)
         else:
@@ -145,7 +165,8 @@ def main():
                     # change random seed
                     np.random.seed(seed)
                     torch.manual_seed(seed)
-                    new_args.doc = os.path.join('transferBaseline', 'size{}_seed{}'.format(n, seed))
+                    new_args.doc = 'transferBaseline'
+                    new_args.doc2 = 'size{}_seed{}'.format(n, seed)
                     make_and_set_dirs(new_args, config)
                     train(new_args, config)
 
@@ -162,7 +183,8 @@ def main():
             print(
                 'Transfer baseline for {} - subset size: {} - seed: {}'.format(config.data.dataset.split('_')[0],
                                                                                new_args.subsetSize, new_args.seed))
-            new_args.doc = os.path.join('transferBaseline', 'size{}_seed{}'.format(new_args.subsetSize, new_args.seed))
+            new_args.doc = 'transferBaseline'
+            new_args.doc2 = 'size{}_seed{}'.format(args.subsetSize, args.seed)
             make_and_set_dirs(new_args, config)
             train(new_args, config)
         else:
@@ -175,7 +197,8 @@ def main():
                     # change random seed
                     np.random.seed(seed)
                     torch.manual_seed(seed)
-                    new_args.doc = os.path.join('transferBaseline', 'size{}_seed{}'.format(n, seed))
+                    new_args.doc = 'transferBaseline'
+                    new_args.doc2 = 'size{}_seed{}'.format(n, seed)
                     make_and_set_dirs(new_args, config)
                     train(new_args, config)
 
@@ -183,6 +206,8 @@ def main():
     # 1- just use of the flag --plot and --transfer AND NO other flag (except --config of course)
     if args.plot and not args.baseline and not args.semisupervised and args.transfer and not args.representation:
         print('Plotting transfer experiment for {}'.format(config.data.dataset))
+        args.doc = 'transfer'
+        args.doc_baseline = 'transferBaseline'
         make_and_set_dirs(args, config)
         plot_transfer(args)
 
@@ -227,7 +252,8 @@ def main():
                 new_args.seed = seed
                 np.random.seed(args.seed)
                 torch.manual_seed(args.seed)
-                new_args.doc = os.path.join('representation', 'seed{}'.format(seed))
+                new_args.doc = 'representation'
+                new_args.doc2 = 'seed{}'.format(seed)
                 make_and_set_dirs(new_args, config)
                 cca_representations(new_args, config)
         else:
@@ -238,7 +264,8 @@ def main():
                 new_args.seed = seed
                 np.random.seed(args.seed)
                 torch.manual_seed(args.seed)
-                new_args.doc = os.path.join('representationBaseline', 'seed{}'.format(seed))
+                new_args.doc = 'representationBaseline'
+                new_args.doc2 = 'seed{}'.format(seed)
                 make_and_set_dirs(new_args, config)
                 cca_representations(new_args, config, conditional=False)
 
@@ -247,6 +274,8 @@ def main():
     # compute MCC before and after applying a CCA to the rep and display as boxplot
     if args.plot and not args.baseline and not args.semisupervised and not args.transfer and args.representation:
         print('Plotting representation experiment for {}'.format(config.data.dataset))
+        args.doc = 'representation'
+        args.doc_baseline = 'representationBaseline'
         make_and_set_dirs(args, config)
         plot_representation(args)
 
