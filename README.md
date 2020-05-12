@@ -184,7 +184,7 @@ sbatch --array=some_seed_values slurm_main.sbatch --the_rest_of_the_arguments
 A use case is to run the transfer learning experiments in parallel:
 ```
 # we use the --exclusive flag because the experiments ue 6-7Go of gpu memory
-sbatch --exclusive --array=1-10 slurm_main.sbatch --config mnist.yaml --transfer --subsetSize 500
+sbatch --exclusive=user --array=1-10 slurm_main.sbatch --config mnist.yaml --transfer --subsetSize 500
 ```
 This is equivalent to running:
 ```
@@ -198,7 +198,7 @@ ___
 Another use case for the identifiability of representations experiment is:
 ```
 # we use the --exclusive flag because the experiments ue 6-7Go of gpu memory
-sbatch --exclusive --array=42-51 slurm_main.sbatch --config mnist.yaml --representation
+sbatch --exclusive=user --array=42-51 slurm_main.sbatch --config mnist.yaml --representation
 ```
 This is equivalent to:
 ```
@@ -211,7 +211,7 @@ ___
 The script can also be used to run single seeds: if the `--array` flag is not set, then the seed value can be passed
 as an argument `--seed` to `slurm_main.batch`:
 ```
-sbatch --exclusive slurm_main.sbatch --config mnist.yaml --seed 42
+sbatch --exclusive=user slurm_main.sbatch --config mnist.yaml --seed 42
 ```
 is equivalent to
 ```
@@ -222,25 +222,22 @@ ___
 To run everything, you can use the following two step bash script:
 ```
 CONFIG_FILE=mnist.yaml
-sbatch --exclusive slurm_main.sbatch --config $CONFIG_FILE 
+sbatch --exclusive=user slurm_main.sbatch --config $CONFIG_FILE 
 for SIZE in 500 1000 2000 3000 4000 5000 6000
 do
-        sbatch --exclusive --array=0-4 slurm_main.sbatch --config $CONFIG_FILE --transfer --subsetSize $SIZE --baseline
+        sbatch --exclusive=user --array=0-4 slurm_main.sbatch --config $CONFIG_FILE --transfer --subsetSize $SIZE --baseline
 done
-sbatch --exclusive slurm_main.sbatch --config $CONFIG_FILE  --baseline
-sbatch --exclusive --array=1-10 slurm_main.sbatch --config $CONFIG_FILE  --representation
-sbatch --exclusive --array=1-10 slurm_main.sbatch --config $CONFIG_FILE  --representation --baseline
+sbatch --exclusive=user slurm_main.sbatch --config $CONFIG_FILE  --baseline
+sbatch --exclusive=user --array=0-9 slurm_main.sbatch --config $CONFIG_FILE  --representation
+sbatch --exclusive=user --array=0-9 slurm_main.sbatch --config $CONFIG_FILE  --representation --baseline
 ```
 And then (when all previous jobs finish)
 ```
 CONFIG_FILE=mnist.yaml
 for SIZE in 500 1000 2000 3000 4000 5000 6000
 do
-        sbatch --exclusive --array=0-4 slurm_main.sbatch --config $CONFIG_FILE --transfer --subsetSize $SIZE
+        sbatch --exclusive=user --array=0-4 slurm_main.sbatch --config $CONFIG_FILE --transfer --subsetSize $SIZE
 done
-sbatch --exclusive slurm_main.sbatch --config $CONFIG_FILE  --semisupervised
-sbatch --exclusive slurm_main.sbatch --config $CONFIG_FILE  --semisupervised --baseline
-sbatch slurm_main.sbatch --config $CONFIG_FILE  --transfer --plot
-sbatch slurm_main.sbatch --config $CONFIG_FILE  --representation --plot
-
+sbatch --exclusive=user slurm_main.sbatch --config $CONFIG_FILE  --semisupervised
+sbatch --exclusive=user slurm_main.sbatch --config $CONFIG_FILE  --semisupervised --baseline
 ```
