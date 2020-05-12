@@ -217,16 +217,18 @@ def train(args, config, conditional=True):
                                            'fashionmnist_transferbaseline', 'cifar100_transferbaseline']:
             # save loss track during epoch for transfer baseline
             pickle.dump(loss_track,
-                        open(os.path.join(args.output, config.data.dataset + '_Baseline_Size' + str(
-                            args.subsetSize) + "_Seed" + str(args.seed) + '.p'), 'wb'))
+                        open(os.path.join(args.output,
+                                          'transferBaseline',
+                                          'size{}_seed{}.p'.format(args.subsetSize, args.seed)), 'wb'))
 
     if config.data.dataset.lower() in ['mnist_transferbaseline', 'cifar10_transferbaseline',
                                        'fashionmnist_transferbaseline', 'cifar100_transferbaseline']:
         # save loss track during epoch for transfer baseline
         print('saving loss track under: {}'.format(args.output))
         pickle.dump(loss_track_epochs,
-                    open(os.path.join(args.output, config.data.dataset + '_Baseline_epochs_Size' + str(
-                        args.subsetSize) + "_Seed" + str(args.seed) + '.p'), 'wb'))
+                    open(os.path.join(args.output,
+                                      'transferBaseline',
+                                      'all_epochs_SIZE{}_SEED{}.p'.format(args.subsetSize, args.seed)), 'wb'))
 
     # save final checkpoints for distrubution!
     enet, energy_net_finalLayer = energy_net.f, energy_net.g
@@ -283,12 +285,15 @@ def transfer(args, config):
             loss_track.append(loss.item())
             loss_track_epochs.append(loss.item())
 
-        pickle.dump(loss_track, open(os.path.join(args.output, config.data.dataset.lower() + 'TransferCDSM_Size' + str(
-            args.subsetSize) + "_Seed" + str(args.seed) + '.p'), 'wb'))
+        pickle.dump(loss_track,
+                    open(os.path.join(args.output,
+                                      'transfer',
+                                      'size{}_seed{}.p'.format(args.subsetSize, args.seed)), 'wb'))
     print('saving loss track under: {}'.format(args.output))
-    pickle.dump(loss_track_epochs, open(os.path.join(args.output,
-                                                     config.data.dataset.lower() + 'TransferCDSM_epochs_Size' + str(
-                                                         args.subsetSize) + "_Seed" + str(args.seed) + '.p'), 'wb'))
+    pickle.dump(loss_track_epochs,
+                open(os.path.join(args.output,
+                                  'transfer',
+                                  'all_epochs_SIZE{}_SEED{}.p'.format(args.subsetSize, args.seed)), 'wb'))
 
 
 def semisupervised(args, config):
@@ -475,11 +480,11 @@ def plot_transfer(args):
 
     # load transfer results
     for x in samplesSizes:
-        files = [f for f in os.listdir(args.output) if args.dataset.lower() + 'TransferCDSM_Size' + str(x) + '_' in f]
+        files = [f for f in os.listdir(os.path.join(args.output, 'transfer')) if 'size{}'.format(x) in f]
         for f in files:
             resTransfer[x].append(np.median(pickle.load(open(os.path.join(args.output, f), 'rb'))))
 
-        files = [f for f in os.listdir(args.output) if args.dataset + '_Baseline_Size' + str(x) + '_' in f]
+        files = [f for f in os.listdir(os.path.join(args.output, 'transferBaseline')) if 'size{}'.format(x) in f]
         for f in files:
             resBaseline[x].append(np.median(pickle.load(open(os.path.join(args.output, f), 'rb'))))
 
