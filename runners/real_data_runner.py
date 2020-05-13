@@ -378,12 +378,14 @@ def plot_representation(args):
         res_cond = []
         res_uncond = []
         for f in os.listdir(args.checkpoints):
-            print('loading conditional test representations from: {}'.format(f))
-            res_cond.append(pickle.load(open(os.path.join(f, 'test_representations.p'), 'rb')))
+            print('loading conditional test representations from: {}'.format(os.path.join(args.checkpoints, f)))
+            res_cond.append(pickle.load(open(os.path.join(args.checkpoints, f, 'test_representations.p'), 'rb')))
 
         for f_baseline in os.listdir(args.checkpoints_baseline):
-            print('loading unconditional test representations from: {}'.format(f_baseline))
-            res_uncond.append(pickle.load(open(os.path.join(f_baseline, 'test_representations.p'), 'rb')))
+            print('loading unconditional test representations from: {}'.format(
+                os.path.join(args.checkpoints_baseline, f_baseline)))
+            res_uncond.append(
+                pickle.load(open(os.path.join(args.checkpoints_baseline, f_baseline, 'test_representations.p'), 'rb')))
 
         # check things are in correct order
         assert np.max(np.abs(res_cond[0]['lab'] - res_cond[1]['lab'])) == 0
