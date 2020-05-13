@@ -18,40 +18,12 @@ from torch.utils.data import DataLoader
 from torch.utils.data.dataloader import default_collate
 from torchvision.datasets import MNIST, CIFAR10, FashionMNIST, CIFAR100
 
-from data.utils import single_one_hot_encode
+from data.utils import single_one_hot_encode, single_one_hot_encode_rev
 from losses.dsm import dsm, cdsm
 from metrics.mcc import mean_corr_coef, mean_corr_coef_out_of_sample
 from models.ebm import ModularUnnormalizedConditionalEBM, ModularUnnormalizedEBM
 from models.nets import SimpleLinear
 from models.refinenet_dilated import RefineNetDilated
-
-
-def my_collate(batch, nSeg=8, one_hot=False, total_labels=10):
-    modified_batch = []
-    for item in batch:
-        image, label = item
-        if one_hot:
-            idx = np.nonzero(label)[0]
-            if idx in range(nSeg):
-                modified_batch.append((image, label[:nSeg]))
-        else:
-            if label in range(nSeg):
-                modified_batch.append(item)
-    return default_collate(modified_batch)
-
-
-def my_collate_rev(batch, nSeg=8, one_hot=False, total_labels=10):
-    modified_batch = []
-    for item in batch:
-        image, label = item
-        if one_hot:
-            idx = np.nonzero(label)[0]
-            if idx in range(nSeg, total_labels):
-                modified_batch.append((image, label[nSeg:]))
-        else:
-            if label in range(nSeg, total_labels):
-                modified_batch.append(item)
-    return default_collate(modified_batch)
 
 
 def get_optimizer(config, parameters):
@@ -73,15 +45,15 @@ def logit_transform(image, lam=1e-6):
 
 def get_dataset(args, config, test=False, rev=False, one_hot=True, subset=False, shuffle=True):
     total_labels = 10 if config.data.dataset.lower().split('_')[0] != 'cifar100' else 100
-    no_collate = total_labels == config.n_labels
+    reduce_labels = total_labels != config.n_labels
     if config.data.dataset.lower() in ['mnist_transferbaseline', 'cifar10_transferbaseline',
                                        'fashionmnist_transferbaseline', 'cifar100_transferbaseline']:
         print('loading baseline transfer dataset')
         rev = True
-        test = True
+        test = False
         subset = True
-        no_collate = False
-    print('DEBUG: rev {} test {} subset {} no_collate {} one_hot {}'.format(rev, test, subset, no_collate, one_hot))
+        reduce_labels = True
+    print('[DEBUG] rev {} test {} subset {} no_collate {} one_hot {}'.format(rev, test, subset, reduce_labels, one_hot))
 
     if config.data.random_flip is False:
         transform = transforms.Compose([
@@ -101,47 +73,38 @@ def get_dataset(args, config, test=False, rev=False, one_hot=True, subset=False,
                 transforms.ToTensor()
             ])
 
-    if one_hot:
-        target_transform = lambda label: single_one_hot_encode(label, n_labels=total_labels)
-    else:
-        target_transform = lambda label: label
-
     if config.data.dataset.lower().split('_')[0] == 'mnist':
-        dataset = MNIST(os.path.join(args.run, 'datasets'), train=not test, download=True,
-                        transform=transform, target_transform=target_transform)
+        dataset = MNIST(os.path.join(args.run, 'datasets'), train=not test, download=True, transform=transform)
     elif config.data.dataset.lower().split('_')[0] in ['fashionmnist', 'fmnist']:
-        dataset = FashionMNIST(os.path.join(args.run, 'datasets'), train=not test, download=True,
-                               transform=transform, target_transform=target_transform)
+        dataset = FashionMNIST(os.path.join(args.run, 'datasets'), train=not test, download=True, transform=transform)
     elif config.data.dataset.lower().split('_')[0] == 'cifar10':
-        dataset = CIFAR10(os.path.join(args.run, 'datasets'), train=not test, download=True,
-                          transform=transform, target_transform=target_transform)
+        dataset = CIFAR10(os.path.join(args.run, 'datasets'), train=not test, download=True, transform=transform)
     elif config.data.dataset.lower().split('_')[0] == 'cifar100':
-        dataset = CIFAR100(os.path.join(args.run, 'datasets'), train=not test, download=True,
-                           transform=transform, target_transform=target_transform)
+        dataset = CIFAR100(os.path.join(args.run, 'datasets'), train=not test, download=True, transform=transform)
     else:
         raise ValueError('Unknown config dataset {}'.format(config.data.dataset))
 
     if not rev:
-        collate_helper = lambda batch: my_collate(batch, nSeg=config.n_labels, one_hot=one_hot)
+        labels_to_consider = np.arange(config.n_labels)
+        target_transform = lambda label: single_one_hot_encode(label, n_labels=config.n_labels)
         cond_size = config.n_labels
-        drop_last = False
+
     else:
-        collate_helper = lambda batch: my_collate_rev(batch, nSeg=config.n_labels, one_hot=one_hot,
-                                                      total_labels=total_labels)
-        drop_last = True
+        labels_to_consider = np.arange(config.n_labels, total_labels)
+        target_transform = lambda label: single_one_hot_encode_rev(label, start_label=config.n_labels,
+                                                                   n_labels=total_labels)
         cond_size = total_labels - config.n_labels
+    if reduce_labels:
+        idx = np.any([dataset.targets.numpy() == i for i in labels_to_consider], axis=0).nonzero()
+        dataset.targets = dataset.targets[idx]
+        dataset.data = dataset.data[idx]
+    if one_hot:
+        dataset.target_transform = target_transform
     if subset:
-        id_range = list(range(args.subsetSize))
-        dataset = torch.utils.data.Subset(dataset, id_range)
-    if not no_collate:
-        dataloader = DataLoader(dataset, batch_size=config.training.batch_size, shuffle=shuffle, num_workers=0,
-                                collate_fn=collate_helper, drop_last=drop_last)
-    else:
-        dataloader = DataLoader(dataset, batch_size=config.training.batch_size, shuffle=shuffle, num_workers=0,
-                                drop_last=drop_last)
+        dataset = torch.utils.data.Subset(dataset, np.arange(args.subsetSize))
+    dataloader = DataLoader(dataset, batch_size=config.training.batch_size, shuffle=shuffle, num_workers=0)
 
-    # print('DEBUG: len(dset) {} type(dse t) {}'.format(len(dataset), type(dataset)))
-
+    print('[DEBUG] len(dset) {}'.format(len(dataset)))
     return dataloader, dataset, cond_size
 
 
@@ -249,7 +212,7 @@ def transfer(args, config):
     on unseen labels 8-9 (these are new datasets)
     """
     # load data
-    test_loader, dataset, cond_size = get_dataset(args, config, test=True, rev=True, one_hot=True, subset=True)
+    dataloader, dataset, cond_size = get_dataset(args, config, test=False, rev=True, one_hot=True, subset=True)
     # load the feature network f
     ckpt_path = os.path.join(args.checkpoints, 'checkpoint.pth')
     print('loading weights from: {}'.format(ckpt_path))
@@ -269,7 +232,7 @@ def transfer(args, config):
     for epoch in range(eCount):
         print('epoch: ' + str(epoch))
         loss_track = []
-        for i, (X, y) in enumerate(test_loader):
+        for i, (X, y) in enumerate(dataloader):
             step += 1
 
             X = X.to(config.device)
@@ -301,7 +264,7 @@ def semisupervised(args, config):
     class_model = LinearSVC  # LogisticRegression
     test_size = config.data.split_size
     # load data
-    test_loader, dataset, cond_size = get_dataset(args, config, test=True, rev=True, one_hot=False, subset=False)
+    dataloader, dataset, cond_size = get_dataset(args, config, test=True, rev=True, one_hot=False, subset=False)
     # load feature network f
     ckpt_path = os.path.join(args.checkpoints, 'checkpoint.pth')
     print('loading weights from: {}'.format(ckpt_path))
@@ -314,7 +277,7 @@ def semisupervised(args, config):
                                 config.data.image_size * config.data.image_size * config.data.channels))
     labels = np.zeros((10000,))
     counter = 0
-    for i, (X, y) in enumerate(test_loader):
+    for i, (X, y) in enumerate(dataloader):
         X = X.to(config.device)
         rep_i = f(X).view(-1, config.data.image_size * config.data.image_size * config.data.channels).data.cpu().numpy()
         representations[counter:(counter + rep_i.shape[0]), :] = rep_i
@@ -345,7 +308,7 @@ def cca_representations(args, config, conditional=True):
     # train the energy model on full train dataset and save feature maps
     train(args, config, conditional=conditional)
     # load test data
-    test_loader, dataset, cond_size = get_dataset(args, config, test=True, one_hot=False, subset=False, shuffle=False)
+    dataloader, dataset, cond_size = get_dataset(args, config, test=True, one_hot=False, subset=False, shuffle=False)
     # load feature mapts
     ckpt_path = os.path.join(args.checkpoints, 'checkpoint.pth')
     print('loading weights from: {}'.format(ckpt_path))
@@ -357,7 +320,7 @@ def cca_representations(args, config, conditional=True):
     representations = np.zeros((10000, config.data.image_size * config.data.image_size * config.data.channels))
     labels = np.zeros((10000,))
     counter = 0
-    for i, (X, y) in enumerate(test_loader):
+    for i, (X, y) in enumerate(dataloader):
         X = X.to(config.device)
         rep_i = f(X).view(-1, config.data.image_size * config.data.image_size * config.data.channels).data.cpu().numpy()
         representations[counter:(counter + rep_i.shape[0]), :] = rep_i
