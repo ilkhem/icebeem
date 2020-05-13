@@ -413,7 +413,7 @@ def plot_representation(args):
 
         # save results:
         pickle.dump({'mcc_strong_cond': mcc_strong_cond, 'mcc_strong_uncond': mcc_strong_uncond},
-                    open(os.path.join(args.output, 'strongMCC.p', 'wb')))
+                    open(os.path.join(args.output, 'strongMCC.p'), 'wb'))
 
         # no we compare representation identifiability for weaker case
 
@@ -444,7 +444,7 @@ def plot_representation(args):
 
         # save results:
         pickle.dump({'mcc_weak_cond': mcc_weak_cond, 'mcc_weak_uncond': mcc_weak_uncond},
-                    open(os.path.join(args.output, 'weakMCC.p', 'wb')))
+                    open(os.path.join(args.output, 'weakMCC.p'), 'wb'))
     else:
         mcc_strong = pickle.load(open(os.path.join(args.output, 'strongMCC.p'), 'rb'))
         mcc_strong_cond, mcc_strong_uncond = mcc_strong['mcc_strong_cond'], mcc_strong['mcc_strong_uncond']
