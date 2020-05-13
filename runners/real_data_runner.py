@@ -510,7 +510,7 @@ def plot_transfer(args):
 
         files = [f for f in os.listdir(args.output_baseline) if 'size{}'.format(x) in f]
         for f in files:
-            resBaseline[x].append(np.median(pickle.load(open(os.path.join(args.output, f), 'rb'))))
+            resBaseline[x].append(np.median(pickle.load(open(os.path.join(args.output_baseline, f), 'rb'))))
 
         print(
             'Transfer: ' + str(np.median(resTransfer[x]) * 1e4) + '\tBaseline: ' + str(np.median(resBaseline[x]) * 1e4))
