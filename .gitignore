@@ -133,11 +133,13 @@ tags
 *DS_Store
 ._*
 
-datasets/* 
-results/* 
-datasets_test/* 
-*.gz 
+datasets/*
+results/*
+datasets_test/*
+*.gz
 *.p
 log/*
 run/
 *.pdf
+
+slurm_log/
