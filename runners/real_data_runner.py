@@ -338,7 +338,7 @@ def cca_representations(args, config, conditional=True):
                 open(os.path.join(args.checkpoints, 'test_representations.p'), 'wb'))
 
 
-def plot_representation(args):
+def plot_representation(args, config):
     if len(os.listdir(args.output)) < 2:
         # MCC values haven't been computed yet
         # load in trained representations
@@ -458,10 +458,17 @@ def plot_representation(args):
     ax.set_ylabel('MCC out of sample')
     ax.set_title('Quality of representations on {}'.format(args.dataset))
     fig.tight_layout()
-    plt.savefig(os.path.join(args.run, 'representation_{}.pdf'.format(args.dataset.lower())))
+    file_name = 'representation_'
+    if config.model.positive:
+        file_name += 'p_'
+    if config.model.augment:
+        file_name += 'a_'
+    if config.model.final_layer:
+        file_name += str(config.model.feature_size) + '_'
+    plt.savefig(os.path.join(args.run, file_name + '{}.pdf'.format(args.dataset.lower())))
 
 
-def plot_transfer(args):
+def plot_transfer(args, config):
     sns.set_style("whitegrid")
     sns.set_palette('deep')
 
@@ -498,4 +505,11 @@ def plot_transfer(args):
     ax1.set_ylabel('DSM Objective (scaled)')
     ax1.set_title('Conditional DSM Objective')
     f.tight_layout()
-    plt.savefig(os.path.join(args.run, 'transfer_{}.pdf'.format(args.dataset.lower())))
+    file_name = 'transfer_'
+    if config.model.positive:
+        file_name += 'p_'
+    if config.model.augment:
+        file_name += 'a_'
+    if config.model.final_layer:
+        file_name += str(config.model.feature_size) + '_'
+    plt.savefig(os.path.join(args.run, file_name + '{}.pdf'.format(args.dataset.lower())))

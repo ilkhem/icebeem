@@ -212,7 +212,7 @@ def main():
         args.doc = 'transfer'
         args.doc_baseline = 'transferBaseline'
         make_and_set_dirs(args, config)
-        plot_transfer(args)
+        plot_transfer(args, config)
 
     # SEMI-SUPERVISED EXPERIMENTS
     # 1- no special flag: pretrain icebeem on 0-7 // same as 1- above
