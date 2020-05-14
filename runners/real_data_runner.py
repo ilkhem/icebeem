@@ -84,6 +84,10 @@ def get_dataset(args, config, test=False, rev=False, one_hot=True, subset=False,
     else:
         raise ValueError('Unknown config dataset {}'.format(config.data.dataset))
 
+    if type(dataset.targets) is list:
+        # CIFAR10 and CIFAR100 store targets as list, unlike (F)MNIST which uses torch.Tensor
+        dataset.targets = torch.Tensor(dataset.targets)
+
     if not rev:
         labels_to_consider = np.arange(config.n_labels)
         target_transform = lambda label: single_one_hot_encode(label, n_labels=config.n_labels)
