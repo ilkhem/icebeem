@@ -36,4 +36,4 @@ optim:
   beta1: 0.9
   amsgrad: false
 
-n_labels: 95
+n_labels: 85
