@@ -86,7 +86,7 @@ def get_dataset(args, config, test=False, rev=False, one_hot=True, subset=False,
 
     if type(dataset.targets) is list:
         # CIFAR10 and CIFAR100 store targets as list, unlike (F)MNIST which uses torch.Tensor
-        dataset.targets = torch.Tensor(dataset.targets)
+        dataset.targets = np.array(dataset.targets)
 
     if not rev:
         labels_to_consider = np.arange(config.n_labels)
@@ -99,7 +99,7 @@ def get_dataset(args, config, test=False, rev=False, one_hot=True, subset=False,
                                                                    n_labels=total_labels)
         cond_size = total_labels - config.n_labels
     if reduce_labels:
-        idx = np.any([dataset.targets.numpy() == i for i in labels_to_consider], axis=0).nonzero()
+        idx = np.any([np.array(dataset.targets) == i for i in labels_to_consider], axis=0).nonzero()
         dataset.targets = dataset.targets[idx]
         dataset.data = dataset.data[idx]
     if one_hot:
