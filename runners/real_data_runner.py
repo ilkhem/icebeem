@@ -276,17 +276,16 @@ def semisupervised(args, config):
     f.load_state_dict(states[0])
 
     # allow for multiple channels and distinct image sizes
-    representations = np.zeros((10000,
-                                config.data.image_size * config.data.image_size * config.data.channels))
+    representations = np.zeros((10000, f.output_size))
     labels = np.zeros((10000,))
     counter = 0
     for i, (X, y) in enumerate(dataloader):
         X = X.to(config.device)
-        rep_i = f(X).view(-1, config.data.image_size * config.data.image_size * config.data.channels).data.cpu().numpy()
-        representations[counter:(counter + rep_i.shape[0]), :] = rep_i
+        rep_i = f(X).view(-1, f.output_size).data.cpu().numpy()
+        representations[counter:(counter + rep_i.shape[0])] = rep_i
         labels[counter:(counter + rep_i.shape[0])] = y.data.cpu().numpy()
         counter += rep_i.shape[0]
-    representations = representations[:counter, :]
+    representations = representations[:counter]
     labels = labels[:counter]
 
     labels -= 8
@@ -320,16 +319,16 @@ def cca_representations(args, config, conditional=True):
     f.load_state_dict(states[0])
 
     # compute and save test features
-    representations = np.zeros((10000, config.data.image_size * config.data.image_size * config.data.channels))
+    representations = np.zeros((10000, f.output_size))
     labels = np.zeros((10000,))
     counter = 0
     for i, (X, y) in enumerate(dataloader):
         X = X.to(config.device)
-        rep_i = f(X).view(-1, config.data.image_size * config.data.image_size * config.data.channels).data.cpu().numpy()
-        representations[counter:(counter + rep_i.shape[0]), :] = rep_i
+        rep_i = f(X).view(-1, f.output_size).data.cpu().numpy()
+        representations[counter:(counter + rep_i.shape[0])] = rep_i
         labels[counter:(counter + rep_i.shape[0])] = y.data.cpu().numpy()
         counter += rep_i.shape[0]
-    representations = representations[:counter, :]
+    representations = representations[:counter]
     labels = labels[:counter]
 
     print('saving test representations under: {}'.format(args.checkpoints))
