@@ -15,7 +15,6 @@ from sklearn.preprocessing import scale
 from sklearn.svm import LinearSVC
 from torch import optim
 from torch.utils.data import DataLoader
-from torch.utils.data.dataloader import default_collate
 from torchvision.datasets import MNIST, CIFAR10, FashionMNIST, CIFAR100
 
 from data.utils import single_one_hot_encode, single_one_hot_encode_rev
@@ -465,7 +464,7 @@ def plot_representation(args, config):
         file_name += 'a_'
     if config.model.final_layer:
         file_name += str(config.model.feature_size) + '_'
-    plt.savefig(os.path.join(args.run, file_name + '{}.pdf'.format(args.dataset.lower())))
+    plt.savefig(os.path.join(args.run, '{}{}.pdf'.format(file_name, args.dataset.lower())))
 
 
 def plot_transfer(args, config):
@@ -512,4 +511,4 @@ def plot_transfer(args, config):
         file_name += 'a_'
     if config.model.final_layer:
         file_name += str(config.model.feature_size) + '_'
-    plt.savefig(os.path.join(args.run, file_name + '{}.pdf'.format(args.dataset.lower())))
+    plt.savefig(os.path.join(args.run, file_name + '{}{}.pdf'.format(file_name, args.dataset.lower())))

@@ -9,6 +9,7 @@ import yaml
 from runners.real_data_runner import train, semisupervised, transfer, cca_representations, plot_transfer, \
     plot_representation
 
+
 def parse():
     parser = argparse.ArgumentParser(description='')
 
@@ -280,7 +281,7 @@ def main():
         args.doc = 'representation'
         args.doc_baseline = 'representationBaseline'
         make_and_set_dirs(args, config)
-        plot_representation(args)
+        plot_representation(args, config)
 
 
 if __name__ == '__main__':
