@@ -511,4 +511,4 @@ def plot_transfer(args, config):
         file_name += 'a_'
     if config.model.final_layer:
         file_name += str(config.model.feature_size) + '_'
-    plt.savefig(os.path.join(args.run, file_name + '{}{}.pdf'.format(file_name, args.dataset.lower())))
+    plt.savefig(os.path.join(args.run, '{}{}.pdf'.format(file_name, args.dataset.lower())))
