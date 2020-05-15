@@ -81,7 +81,7 @@ There are 4 main functions of interest:
 only considering the labels `0-n_labels`, the latter being specified by the config file.
 - `transfer`: trains the secondary feature extractor **g** defining an ICE-BeeM on labels `n_labels-len(dset)`
 while keeping the feature extractor **f** fixed (after it was trained using `train`).
-- `semisupervised`: loads a feature extractor **f** from a (conditional) EBM pretrained on labels `0-n_labels` and uses it 
+- `semisupervised`: loads a feature extractor **f** from a (conditional) EBM pretrained on labels `0-n_labels` and uses it
 to classify classes `n_labels-len(dset)`
 - `cca_representations`: trains a (conditional) energy model on a dataset (ignoring the `n_labels` field)
 , saves the feature network **f**, and uses it to compute and save the learnt representation on the test split of
@@ -99,10 +99,10 @@ The experiments can be ran for:
 
 In this experiment, we compare:
 
-- Training an ICE-BeeM **f**.**g** on labels 0-7, then fixing **f** and learning only **g** on new unseen labels 8-9. 
+- Training an ICE-BeeM **f**.**g** on labels 0-7, then fixing **f** and learning only **g** on new unseen labels 8-9.
 - Training an ICE-BeeM **f**.**g** directly on labels 8-9.
 
-The idea is to see whether the feature extractor **f** can learn meaningful representations from similar datasets, especially when the size of the dataset is small. We use the denoising dcore matching (DSM) loss as a comparison metric (lower is better). 
+The idea is to see whether the feature extractor **f** can learn meaningful representations from similar datasets, especially when the size of the dataset is small. We use the denoising dcore matching (DSM) loss as a comparison metric (lower is better).
 
 To run the experiment on MNIST:
 
@@ -148,7 +148,7 @@ We also provide model checkpoints and experimental log to skip the training step
 
 ### Identifiability of representations
 
-In these experiments we train multiple conditional and unconditional EBMs on various datasets and assess the identifiability of representations as discussed in Theorems 1-3. 
+In these experiments we train multiple conditional and unconditional EBMs on various datasets and assess the identifiability of representations as discussed in Theorems 1-3.
 
 These experiments therefore do the following:
  - Train conditional and unconditional EBMs using different random initializations on the full train split of the dataset.
@@ -170,35 +170,33 @@ python main.py --config mnist.yaml --representation --plot
 
 ## Using SLURM
 The bash script `slurm_main.sbatch` is a SLURM wrapper around `main.py` and allows to run multiple experiments in parallel
-on a SLURM equipped server. 
+on a SLURM equipped server.
 You may have to change the `#SBATCH` configuration flags in the script according to your system.
 
 This script sets `--nSims` to `1`, and allows the user to select the seeds for which to run the experiments using the
 `--array` flag of `sbatch`. The rest of the arguments/flags can be passed as arguments of `slurm_main.sbatch`:
 ```
 sbatch --array=some_seed_values slurm_main.sbatch --the_rest_of_the_arguments
-``` 
+```
 
 ### Examples
 
 A use case is to run the transfer learning experiments in parallel:
 ```
-# we use the --exclusive flag because the experiments ue 6-7Go of gpu memory
-sbatch --exclusive=user --array=1-10 slurm_main.sbatch --config mnist.yaml --transfer --subsetSize 500
+sbatch --array=1-10 slurm_main.sbatch --config mnist.yaml --transfer --subsetSize 500
 ```
 This is equivalent to running:
 ```
 python main.py --config mnist.yaml --seed x --transfer --subsetSize 500
 ```
-where `x` scans `[1-10]` for the value of the flag `--seed`. 
+where `x` scans `[1-10]` for the value of the flag `--seed`.
 Following this approach requires to run the script for the flag `--subsetSize` in `[500, 1000, 2000, 3000, 4000, 5000, 6000]`.
 
 ___
 
 Another use case for the identifiability of representations experiment is:
 ```
-# we use the --exclusive flag because the experiments ue 6-7Go of gpu memory
-sbatch --exclusive=user --array=42-51 slurm_main.sbatch --config mnist.yaml --representation
+sbatch --array=42-51 slurm_main.sbatch --config mnist.yaml --representation
 ```
 This is equivalent to:
 ```
@@ -211,7 +209,7 @@ ___
 The script can also be used to run single seeds: if the `--array` flag is not set, then the seed value can be passed
 as an argument `--seed` to `slurm_main.batch`:
 ```
-sbatch --exclusive=user slurm_main.sbatch --config mnist.yaml --seed 42
+sbatch slurm_main.sbatch --config mnist.yaml --seed 42
 ```
 is equivalent to
 ```
@@ -222,22 +220,22 @@ ___
 To run everything, you can use the following two step bash script:
 ```
 CONFIG_FILE=mnist.yaml
-sbatch --exclusive slurm_main.sbatch --config $CONFIG_FILE 
-sbatch --exclusive slurm_main.sbatch --config $CONFIG_FILE  --baseline
+sbatch slurm_main.sbatch --config $CONFIG_FILE
+sbatch slurm_main.sbatch --config $CONFIG_FILE  --baseline
 for SIZE in 500 1000 2000 3000 4000 5000 6000
 do
-        sbatch --exclusive --array=0-4 slurm_main.sbatch --config $CONFIG_FILE --transfer --subsetSize $SIZE --baseline
+        sbatch --array=0-4 slurm_main.sbatch --config $CONFIG_FILE --transfer --subsetSize $SIZE --baseline
 done
-sbatch --exclusive --array=0-9 slurm_main.sbatch --config $CONFIG_FILE  --representation
-sbatch --exclusive --array=0-9 slurm_main.sbatch --config $CONFIG_FILE  --representation --baseline
+sbatch --array=0-9 slurm_main.sbatch --config $CONFIG_FILE  --representation
+sbatch --array=0-9 slurm_main.sbatch --config $CONFIG_FILE  --representation --baseline
 ```
 And then (when all previous jobs finish)
 ```
 CONFIG_FILE=mnist.yaml
 for SIZE in 500 1000 2000 3000 4000 5000 6000
 do
-        sbatch --exclusive --array=0-4 slurm_main.sbatch --config $CONFIG_FILE --transfer --subsetSize $SIZE
+        sbatch --array=0-4 slurm_main.sbatch --config $CONFIG_FILE --transfer --subsetSize $SIZE
 done
-sbatch --exclusive slurm_main.sbatch --config $CONFIG_FILE  --semisupervised
-sbatch --exclusive slurm_main.sbatch --config $CONFIG_FILE  --semisupervised --baseline
+sbatch slurm_main.sbatch --config $CONFIG_FILE  --semisupervised
+sbatch slurm_main.sbatch --config $CONFIG_FILE  --semisupervised --baseline
 ```
