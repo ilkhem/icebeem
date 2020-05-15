@@ -337,14 +337,114 @@ def cca_representations(args, config, conditional=True):
 
 
 def plot_representation(args, config):
-    if len(os.listdir(args.output)) < 2:
+    def compute_strong_mcc(res, ii, iinot):
+        mcc_strong_in = []
+        mcc_strong_out = []
+        for i, res_i in enumerate(res):
+            for j, res_j in enumerate(res):
+                if j > i:
+                    # in sample
+                    mcc_strong_in.append(
+                        mean_corr_coef(x=res_i['rep'], y=res_j['rep']))
+                    # out of sample
+                    mcc_strong_out.append(
+                        mean_corr_coef_out_of_sample(x=res_i['rep'][ii], y=res_j['rep'][ii],
+                                                     x_test=res_i['rep'][iinot],
+                                                     y_test=res_j['rep'][iinot]))
+        return mcc_strong_in, mcc_strong_out
+
+    def compute_weak_mcc(res, ii, iinot, cca_dim=20):
+        mcc_weak_in = []
+        mcc_weak_out = []
+        for i, res_i in enumerate(res):
+            for j, res_j in enumerate(res):
+                if j > i:
+                    # in sample
+                    cca = CCA(n_components=cca_dim)
+                    res_in = cca.fit_transform(res_i['rep'], res_j['rep'])
+                    mcc_weak_in.append(mean_corr_coef(res_in[0], res_in[1]))
+                    # out of sample
+                    cca = CCA(n_components=cca_dim)
+                    cca.fit(res_i['rep'][ii], res_j['rep'][ii])
+                    res_out = cca.transform(res_i['rep'][iinot], res_i['rep'][iinot])
+                    mcc_weak_out.append(mean_corr_coef(res_out[0], res_out[1]))
+        return mcc_weak_in, mcc_weak_out
+
+    def check_saved():
+        strong_keys = ['mcc_strong_cond_in', 'mcc_strong_cond_out', 'mcc_strong_uncond_in', 'mcc_strong_uncond_out']
+        weak_keys = ['mcc_weak_cond_in', 'mcc_weak_cond_out', 'mcc_weak_uncond_in', 'mcc_weak_uncond_out']
+        try:
+            mcc_strong = pickle.load(open(os.path.join(args.output, 'strongMCC.p'), 'rb'))
+            for key in strong_keys:
+                if key not in mcc_strong.keys():
+                    # file exists but is old and doesn't have all fields
+                    return False
+        except:
+            # file doesn't exist
+            return False
+        try:
+            mcc_weak = pickle.load(open(os.path.join(args.output, 'weakMCC.p'), 'rb'))
+            for key in weak_keys:
+                if key not in mcc_weak.keys():
+                    # file exists but is old and doesn't have all fields
+                    return False
+        except:
+            # file doesn't exist
+            return False
+        print('Loading saved MCCs')
+        return True
+
+    def print_stats(res_cond, res_uncond, title=''):
+        print('Statistics for {}:\tC\tU'.format(title))
+        print('Mean:\t\t{}\t{}'.format(np.mean(res_cond), np.mean(res_uncond)))
+        print('Median:\t\t{}\t{}'.format(np.median(res_cond), np.median(res_uncond)))
+        print('Std:\t\t{}\t{}'.format(np.std(res_cond), np.std(res_uncond)))
+        cond_sorted = np.sort(res_cond)[::-1]
+        uncond_sorted = np.sort(res_uncond)[::-1]
+        print('Top 2:\t\t{}\t{}\n\t\t{}\t{}\nLast 2:\t\t{}\t{}\n\t\t{}\t{}'.format(
+            cond_sorted[0], uncond_sorted[0], cond_sorted[1], uncond_sorted[1], cond_sorted[-2], uncond_sorted[-2],
+            cond_sorted[-1], uncond_sorted[-1]))
+
+    def boxplot(res_strong_cond, res_strong_uncond, res_weak_cond, res_weak_uncond, ylabel='in sample', filename_ext='in'):
+        sns.set_style("whitegrid")
+        sns.set_palette('deep')
+        data = [res_weak_cond, res_weak_uncond, res_strong_cond, res_strong_uncond]
+        labels = ['weak cond', 'weak uncond', 'strong cond', 'strong uncond']
+        colours = [sns.color_palette()[2], sns.color_palette()[4], sns.color_palette()[2], sns.color_palette()[4]]
+        fig, ax = plt.subplots()
+        bp = ax.boxplot(data, whis=1.5)
+        for i in range(len(colours)):
+            plt.setp(bp['boxes'][i], color=colours[i])
+            plt.setp(bp['whiskers'][2 * i], color=colours[i])
+            plt.setp(bp['whiskers'][2 * i + 1], color=colours[i])
+            plt.setp(bp['caps'][2 * i], color=colours[i])
+            plt.setp(bp['caps'][2 * i + 1], color=colours[i])
+            plt.setp(bp['fliers'][i], color=colours[i], marker='D')
+        ax.set_xlim(0.5, len(data) + 0.5)
+        ax.set_xticklabels(labels, rotation=45, fontsize=9)
+        ax.set_ylabel('MCC {}'.format(ylabel))
+        ax.set_title('Quality of representations on {}'.format(args.dataset))
+        fig.tight_layout()
+        file_name = 'representation_'
+        if config.model.positive:
+            file_name += 'p_'
+        if config.model.augment:
+            file_name += 'a_'
+        if config.model.final_layer:
+            file_name += str(config.model.feature_size) + '_'
+        plt.savefig(os.path.join(args.run, '{}{}_{}.pdf'.format(file_name, args.dataset.lower(), filename_ext)))
+
+    if not check_saved():
+        print('Computing MCCs')
         # MCC values haven't been computed yet
         # load in trained representations
         res_cond = []
         res_uncond = []
         for f in os.listdir(args.checkpoints):
-            print('loading conditional test representations from: {}'.format(os.path.join(args.checkpoints, f)))
-            res_cond.append(pickle.load(open(os.path.join(args.checkpoints, f, 'test_representations.p'), 'rb')))
+            print('loading conditional test representations from: {}'.format(
+                os.path.join(args.checkpoints, f)))
+            res_cond.append(
+                pickle.load(open(os.path.join(args.checkpoints, f, 'test_representations.p'), 'rb')))
 
         for f_baseline in os.listdir(args.checkpoints_baseline):
             print('loading unconditional test representations from: {}'.format(
@@ -357,113 +457,46 @@ def plot_representation(args, config):
         assert np.max(np.abs(res_uncond[0]['lab'] - res_uncond[1]['lab'])) == 0
         assert np.max(np.abs(res_cond[0]['lab'] - res_uncond[0]['lab'])) == 0
 
-        # now we compare representation identifiability (strong case)
-        mcc_strong_cond = []
-        mcc_strong_uncond = []
-        ii = np.where(res_cond[0]['lab'] < 5)[0]
-        iinot = np.where(res_cond[0]['lab'] >= 5)[0]
-
-        for i in range(args.seed, args.nSims):
-            for j in range(i + 1, args.nSims):
-                mcc_strong_cond.append(
-                    mean_corr_coef_out_of_sample(x=res_cond[i]['rep'][ii, :], y=res_cond[j]['rep'][ii, :],
-                                                 x_test=res_cond[i]['rep'][iinot, :],
-                                                 y_test=res_cond[j]['rep'][iinot, :]))
-                mcc_strong_uncond.append(
-                    mean_corr_coef_out_of_sample(x=res_uncond[i]['rep'][ii, :], y=res_uncond[j]['rep'][ii, :],
-                                                 x_test=res_uncond[i]['rep'][iinot, :],
-                                                 y_test=res_uncond[j]['rep'][iinot, :]))
-                # mcc_strong_cond.append( mean_corr_coef( res_cond[i]['rep'], res_cond[j]['rep']) )
-                # mcc_strong_uncond.append( mean_corr_coef( res_uncond[i]['rep'], res_uncond[j]['rep']) )
-
-        # save results:
-        pickle.dump({'mcc_strong_cond': mcc_strong_cond, 'mcc_strong_uncond': mcc_strong_uncond},
-                    open(os.path.join(args.output, 'strongMCC.p'), 'wb'))
-
-        # no we compare representation identifiability for weaker case
-
-        warnings.filterwarnings("ignore", category=ConvergenceWarning)
+        # preparation
         cutoff = 50 if args.dataset == 'CIFAR100' else 5
-        print('Cutoff: {}'.format(cutoff))
-        ii = np.where(res_cond[0]['lab'] < cutoff)[0]
-        iinot = np.where(res_cond[0]['lab'] >= cutoff)[0]
+        ii = np.where(res_cond[0]['lab'] < cutoff)[0]  # in sample points to learn from
+        iinot = np.where(res_cond[0]['lab'] >= cutoff)[0]  # out of sample points
 
-        mcc_weak_cond = []
-        mcc_weak_uncond = []
-
-        cca_dim = 20
-        for i in range(args.seed, args.nSims):
-            for j in range(i + 1, args.nSims):
-                cca = CCA(n_components=cca_dim)
-                cca.fit(res_cond[i]['rep'][ii, :], res_cond[j]['rep'][ii, :])
-
-                res = cca.transform(res_cond[i]['rep'][iinot, :], res_cond[j]['rep'][iinot, :])
-                mcc_weak_cond.append(mean_corr_coef(res[0], res[1]))
-
-                # now repeat on the baseline!
-                ccabase = CCA(n_components=cca_dim)
-                ccabase.fit(res_uncond[i]['rep'][ii, :], res_uncond[j]['rep'][ii, :])
-
-                resbase = cca.transform(res_uncond[i]['rep'][iinot, :], res_uncond[j]['rep'][iinot, :])
-                mcc_weak_uncond.append(mean_corr_coef(resbase[0], resbase[1]))
+        # compare representation identifiability (strong case)
+        mcc_strong_cond_in, mcc_strong_cond_out = compute_strong_mcc(res_cond, ii, iinot)
+        mcc_strong_uncond_in, mcc_strong_uncond_out = compute_strong_mcc(res_uncond, ii, iinot)
+        # compare representation identifiability (weaker case)
+        mcc_weak_cond_in, mcc_weak_cond_out = compute_weak_mcc(res_cond, ii, iinot)
+        mcc_weak_uncond_in, mcc_weak_uncond_out = compute_weak_mcc(res_uncond, ii, iinot)
 
         # save results:
-        pickle.dump({'mcc_weak_cond': mcc_weak_cond, 'mcc_weak_uncond': mcc_weak_uncond},
+        pickle.dump({'mcc_strong_cond_in': mcc_strong_cond_in, 'mcc_strong_cond_out': mcc_strong_cond_out,
+                     'mcc_strong_uncond_in': mcc_strong_uncond_in, 'mcc_strong_uncond_out': mcc_strong_uncond_out},
+                    open(os.path.join(args.output, 'strongMCC.p'), 'wb'))
+        pickle.dump({'mcc_weak_cond_in': mcc_weak_cond_in, 'mcc_weak_cond_out': mcc_weak_cond_out,
+                     'mcc_weak_uncond_in': mcc_weak_uncond_in, 'mcc_weak_uncond_out': mcc_weak_uncond_out},
                     open(os.path.join(args.output, 'weakMCC.p'), 'wb'))
     else:
         mcc_strong = pickle.load(open(os.path.join(args.output, 'strongMCC.p'), 'rb'))
-        mcc_strong_cond, mcc_strong_uncond = mcc_strong['mcc_strong_cond'], mcc_strong['mcc_strong_uncond']
+        mcc_strong_cond_in, mcc_strong_uncond_in = mcc_strong['mcc_strong_cond_in'], mcc_strong[
+            'mcc_strong_uncond_in']
+        mcc_strong_cond_out, mcc_strong_uncond_out = mcc_strong['mcc_strong_cond_out'], mcc_strong[
+            'mcc_strong_uncond_out']
         mcc_weak = pickle.load(open(os.path.join(args.output, 'weakMCC.p'), 'rb'))
-        mcc_weak_cond, mcc_weak_uncond = mcc_weak['mcc_weak_cond'], mcc_weak['mcc_weak_uncond']
+        mcc_weak_cond_in, mcc_weak_uncond_in = mcc_weak['mcc_weak_cond_in'], mcc_weak['mcc_weak_uncond_in']
+        mcc_weak_cond_out, mcc_weak_uncond_out = mcc_weak['mcc_weak_cond_out'], mcc_weak['mcc_weak_uncond_out']
 
-    print('Statistics for strong iden.:\tC\tU')
-    print('Mean:\t\t{}\t{}'.format(np.mean(mcc_strong_cond), np.mean(mcc_strong_uncond)))
-    print('Median:\t\t{}\t{}'.format(np.median(mcc_strong_cond), np.median(mcc_strong_uncond)))
-    print('Std:\t\t{}\t{}'.format(np.std(mcc_strong_cond), np.std(mcc_strong_uncond)))
-    cond_sorted = np.sort(mcc_strong_cond)[::-1]
-    uncond_sorted = np.sort(mcc_strong_uncond)[::-1]
-    print('Top 2:\t\t{}\t{}\n\t\t{}\t{}\nLast 2:\t\t{}\t{}\n\t\t{}\t{}'.format(
-        cond_sorted[0], uncond_sorted[0], cond_sorted[1], uncond_sorted[1], cond_sorted[-2], uncond_sorted[-2],
-        cond_sorted[-1], uncond_sorted[-1]))
+    # print some statistics
+    print_stats(mcc_strong_cond_in, mcc_strong_uncond_in, title='strong iden. in sample')
+    print_stats(mcc_strong_cond_out, mcc_strong_uncond_out, title='strong iden. out of sample')
+    print_stats(mcc_weak_cond_in, mcc_weak_uncond_in, title='weak iden. in sample')
+    print_stats(mcc_weak_cond_out, mcc_weak_uncond_out, title='weak iden. out of sample')
 
-    print('Statistics for weak iden.:\tC\tU')
-    print('Mean:\t\t{}\t{}'.format(np.mean(mcc_weak_cond), np.mean(mcc_weak_uncond)))
-    print('Median:\t\t{}\t{}'.format(np.median(mcc_weak_cond), np.median(mcc_weak_uncond)))
-    print('Std:\t\t{}\t{}'.format(np.std(mcc_weak_cond), np.std(mcc_weak_uncond)))
-    cond_sorted = np.sort(mcc_weak_cond)[::-1]
-    uncond_sorted = np.sort(mcc_weak_uncond)[::-1]
-    print('Top 2:\t\t{}\t{}\n\t\t{}\t{}\nLast 2:\t\t{}\t{}\n\t\t{}\t{}'.format(
-        cond_sorted[0], uncond_sorted[0], cond_sorted[1], uncond_sorted[1], cond_sorted[-2], uncond_sorted[-2],
-        cond_sorted[-1], uncond_sorted[-1]))
-
-    # plot boxplot
-    sns.set_style("whitegrid")
-    sns.set_palette('deep')
-    data = [mcc_weak_cond, mcc_weak_uncond, mcc_strong_cond, mcc_strong_uncond]
-    labels = ['weak cond', 'weak uncond', 'strong cond', 'strong uncond']
-    colours = [sns.color_palette()[2], sns.color_palette()[4], sns.color_palette()[2], sns.color_palette()[4]]
-    fig, ax = plt.subplots()
-    bp = ax.boxplot(data, whis=1.5)
-    for i in range(len(colours)):
-        plt.setp(bp['boxes'][i], color=colours[i])
-        plt.setp(bp['whiskers'][2 * i], color=colours[i])
-        plt.setp(bp['whiskers'][2 * i + 1], color=colours[i])
-        plt.setp(bp['caps'][2 * i], color=colours[i])
-        plt.setp(bp['caps'][2 * i + 1], color=colours[i])
-        plt.setp(bp['fliers'][i], color=colours[i], marker='D')
-    ax.set_xlim(0.5, len(data) + 0.5)
-    ax.set_xticklabels(labels, rotation=45, fontsize=9)
-    ax.set_ylabel('MCC out of sample')
-    ax.set_title('Quality of representations on {}'.format(args.dataset))
-    fig.tight_layout()
-    file_name = 'representation_'
-    if config.model.positive:
-        file_name += 'p_'
-    if config.model.augment:
-        file_name += 'a_'
-    if config.model.final_layer:
-        file_name += str(config.model.feature_size) + '_'
-    plt.savefig(os.path.join(args.run, '{}{}.pdf'.format(file_name, args.dataset.lower())))
+    # boxplot
+    boxplot(mcc_strong_cond_in, mcc_strong_uncond_in, mcc_weak_cond_in, mcc_weak_uncond_in,
+         ylabel='in sample', filename_ext='in')
+    boxplot(mcc_strong_cond_out, mcc_strong_uncond_out, mcc_weak_cond_out, mcc_weak_uncond_out,
+         ylabel='out of sample', filename_ext='out')
 
 
 def plot_transfer(args, config):
