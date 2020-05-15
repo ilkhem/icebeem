@@ -343,14 +343,12 @@ def plot_representation(args, config):
         for i, res_i in enumerate(res):
             for j, res_j in enumerate(res):
                 if j > i:
-                    # in sample
-                    mcc_strong_in.append(
-                        mean_corr_coef(x=res_i['rep'], y=res_j['rep']))
                     # out of sample
-                    mcc_strong_out.append(
-                        mean_corr_coef_out_of_sample(x=res_i['rep'][ii], y=res_j['rep'][ii],
-                                                     x_test=res_i['rep'][iinot],
-                                                     y_test=res_j['rep'][iinot]))
+                    mcc_strong_out.append(mean_corr_coef_out_of_sample(x=res_i['rep'][ii], y=res_j['rep'][ii],
+                                                                       x_test=res_i['rep'][iinot],
+                                                                       y_test=res_j['rep'][iinot]))
+                    # in sample
+                    mcc_strong_in.append(mean_corr_coef(x=res_i['rep'][ii], y=res_j['rep'][ii]))
         return mcc_strong_in, mcc_strong_out
 
     def compute_weak_mcc(res, ii, iinot, cca_dim=20):
@@ -359,15 +357,14 @@ def plot_representation(args, config):
         for i, res_i in enumerate(res):
             for j, res_j in enumerate(res):
                 if j > i:
-                    # in sample
-                    cca = CCA(n_components=cca_dim)
-                    res_in = cca.fit_transform(res_i['rep'], res_j['rep'])
-                    mcc_weak_in.append(mean_corr_coef(res_in[0], res_in[1]))
-                    # out of sample
                     cca = CCA(n_components=cca_dim)
                     cca.fit(res_i['rep'][ii], res_j['rep'][ii])
-                    res_out = cca.transform(res_i['rep'][iinot], res_i['rep'][iinot])
+                    # out of sample
+                    res_out = cca.transform(res_i['rep'][iinot], res_j['rep'][iinot])
                     mcc_weak_out.append(mean_corr_coef(res_out[0], res_out[1]))
+                    # in sample
+                    res_in = cca.transform(res_i['rep'][ii], res_j['rep'][ii])
+                    mcc_weak_in.append(mean_corr_coef(res_in[0], res_in[1]))
         return mcc_weak_in, mcc_weak_out
 
     def check_saved():
@@ -458,9 +455,12 @@ def plot_representation(args, config):
         assert np.max(np.abs(res_cond[0]['lab'] - res_uncond[0]['lab'])) == 0
 
         # preparation
-        cutoff = 50 if args.dataset == 'CIFAR100' else 5
-        ii = np.where(res_cond[0]['lab'] < cutoff)[0]  # in sample points to learn from
-        iinot = np.where(res_cond[0]['lab'] >= cutoff)[0]  # out of sample points
+        # cutoff = 50 if args.dataset == 'CIFAR100' else 5
+        # ii = np.where(res_cond[0]['lab'] < cutoff)[0]  # in sample points to learn from
+        # iinot = np.where(res_cond[0]['lab'] >= cutoff)[0]  # out of sample points
+        cutoff = 5000  # half the test dataset
+        ii = np.arange(cutoff)
+        iinot = np.arange(cutoff, 2*cutoff)
 
         # compare representation identifiability (strong case)
         mcc_strong_cond_in, mcc_strong_cond_out = compute_strong_mcc(res_cond, ii, iinot)
