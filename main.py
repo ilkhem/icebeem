@@ -16,7 +16,7 @@ def parse():
     parser.add_argument('--config', type=str, default='mnist.yaml', help='Path to the config file')
     parser.add_argument('--run', type=str, default='run', help='Path for saving running related data.')
 
-    parser.add_argument('--nSims', type=int, default=5, help='Number of simulations to run')
+    parser.add_argument('--nSims', type=int, default=0, help='Number of simulations to run')
     parser.add_argument('--seed', type=int, default=0, help='Random seed')
 
     parser.add_argument('--baseline', action='store_true', help='Run the script for the baseline')

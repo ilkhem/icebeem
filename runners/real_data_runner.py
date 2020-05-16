@@ -337,6 +337,41 @@ def cca_representations(args, config, conditional=True):
 
 
 def plot_representation(args, config):
+
+    res_cond = []
+    res_uncond = []
+    seeds = sorted(os.listdir(args.checkpoints))
+    seeds_baseline = sorted(os.listdir(args.checkpoints_baseline))
+    if args.nSims > 0 and args.nSims <= min(len(seeds), len(seeds_baseline)):
+        seeds = seeds[:args.nSims]
+        seeds_baseline = seeds[:args.nSims]
+        name_ext_cond = name_ext_uncond = '_{}'.format(args.nSims)
+    elif args.nSims == 0 or (args.nSims > len(seeds) and args.nSims > len(seeds_baseline)) :
+        name_ext_cond = '_{}'.format(len(seeds))
+        name_ext_uncond = '_{}'.format(len(seeds_baseline))
+    elif args.nSims <= len(seeds) and args.nSims > len(seeds_baseline):
+        seeds = seeds[:args.nSims]
+        name_ext_cond = '_{}'.format(args.nSims)
+        name_ext_uncond = '_{}'.format(len(seeds_baseline))
+    elif args.nSims > len(seeds) and args.nSims <= len(seeds_baseline):
+        seeds_baseline = seeds_baseline[:args.nSims]
+        name_ext_uncond = '_{}'.format(args.nSims)
+        name_ext_cond = '_{}'.format(len(seeds))
+    else:
+        raise ValueError('args nSims :{}'.format(args.nSims))
+
+    def check_saved():
+        try:
+            pickle.load(open(os.path.join(args.output, 'strong_cond_MCC{}.p'.format(name_ext_cond)), 'rb'))
+            pickle.load(open(os.path.join(args.output_baseline, 'strong_uncond_MCC{}.p'.format(name_ext_uncond)), 'rb'))
+            pickle.load(open(os.path.join(args.output, 'weak_cond_MCC{}.p'.format(name_ext_cond)), 'rb'))
+            pickle.load(open(os.path.join(args.output_baseline, 'weak_uncond_MCC{}.p'.format(name_ext_uncond)), 'rb'))
+        except FileNotFoundError:
+            # file doesn't exist
+            return False
+        print('Loading saved MCCs')
+        return True
+
     def compute_strong_mcc(res, ii, iinot):
         mcc_strong_in = []
         mcc_strong_out = []
@@ -367,29 +402,6 @@ def plot_representation(args, config):
                     mcc_weak_in.append(mean_corr_coef(res_in[0], res_in[1]))
         return mcc_weak_in, mcc_weak_out
 
-    def check_saved():
-        strong_keys = ['mcc_strong_cond_in', 'mcc_strong_cond_out', 'mcc_strong_uncond_in', 'mcc_strong_uncond_out']
-        weak_keys = ['mcc_weak_cond_in', 'mcc_weak_cond_out', 'mcc_weak_uncond_in', 'mcc_weak_uncond_out']
-        try:
-            mcc_strong = pickle.load(open(os.path.join(args.output, 'strongMCC.p'), 'rb'))
-            for key in strong_keys:
-                if key not in mcc_strong.keys():
-                    # file exists but is old and doesn't have all fields
-                    return False
-        except:
-            # file doesn't exist
-            return False
-        try:
-            mcc_weak = pickle.load(open(os.path.join(args.output, 'weakMCC.p'), 'rb'))
-            for key in weak_keys:
-                if key not in mcc_weak.keys():
-                    # file exists but is old and doesn't have all fields
-                    return False
-        except:
-            # file doesn't exist
-            return False
-        print('Loading saved MCCs')
-        return True
 
     def print_stats(res_cond, res_uncond, title=''):
         print('Statistics for {}:\tC\tU'.format(title))
@@ -431,19 +443,18 @@ def plot_representation(args, config):
             file_name += str(config.model.feature_size) + '_'
         plt.savefig(os.path.join(args.run, '{}{}_{}.pdf'.format(file_name, args.dataset.lower(), filename_ext)))
 
+
     if not check_saved():
         print('Computing MCCs')
         # MCC values haven't been computed yet
         # load in trained representations
-        res_cond = []
-        res_uncond = []
-        for f in os.listdir(args.checkpoints):
+        for f in seeds:
             print('loading conditional test representations from: {}'.format(
                 os.path.join(args.checkpoints, f)))
             res_cond.append(
                 pickle.load(open(os.path.join(args.checkpoints, f, 'test_representations.p'), 'rb')))
 
-        for f_baseline in os.listdir(args.checkpoints_baseline):
+        for f_baseline in seeds_baseline:
             print('loading unconditional test representations from: {}'.format(
                 os.path.join(args.checkpoints_baseline, f_baseline)))
             res_uncond.append(
@@ -470,21 +481,27 @@ def plot_representation(args, config):
         mcc_weak_uncond_in, mcc_weak_uncond_out = compute_weak_mcc(res_uncond, ii, iinot)
 
         # save results:
-        pickle.dump({'mcc_strong_cond_in': mcc_strong_cond_in, 'mcc_strong_cond_out': mcc_strong_cond_out,
-                     'mcc_strong_uncond_in': mcc_strong_uncond_in, 'mcc_strong_uncond_out': mcc_strong_uncond_out},
-                    open(os.path.join(args.output, 'strongMCC.p'), 'wb'))
-        pickle.dump({'mcc_weak_cond_in': mcc_weak_cond_in, 'mcc_weak_cond_out': mcc_weak_cond_out,
-                     'mcc_weak_uncond_in': mcc_weak_uncond_in, 'mcc_weak_uncond_out': mcc_weak_uncond_out},
-                    open(os.path.join(args.output, 'weakMCC.p'), 'wb'))
+        pickle.dump({'in': mcc_strong_cond_in, 'out': mcc_strong_cond_out},
+                    open(os.path.join(args.output, 'strong_cond_MCC{}.p'.format(name_ext_cond)), 'wb'))
+        pickle.dump({'in': mcc_strong_uncond_in, 'out': mcc_strong_uncond_out},
+                    open(os.path.join(args.output_baseline, 'strong_uncond_MCC{}.p'.format(name_ext_uncond)), 'wb'))
+        pickle.dump({'in': mcc_weak_cond_in, 'out': mcc_weak_cond_out},
+                    open(os.path.join(args.output, 'weak_cond_MCC{}.p'.format(name_ext_cond)), 'wb'))
+        pickle.dump({'in': mcc_weak_uncond_in, 'out': mcc_weak_uncond_out},
+                    open(os.path.join(args.output_baseline, 'weak_uncond_MCC{}.p'.format(name_ext_uncond)), 'wb'))
+
     else:
-        mcc_strong = pickle.load(open(os.path.join(args.output, 'strongMCC.p'), 'rb'))
-        mcc_strong_cond_in, mcc_strong_uncond_in = mcc_strong['mcc_strong_cond_in'], mcc_strong[
-            'mcc_strong_uncond_in']
-        mcc_strong_cond_out, mcc_strong_uncond_out = mcc_strong['mcc_strong_cond_out'], mcc_strong[
-            'mcc_strong_uncond_out']
-        mcc_weak = pickle.load(open(os.path.join(args.output, 'weakMCC.p'), 'rb'))
-        mcc_weak_cond_in, mcc_weak_uncond_in = mcc_weak['mcc_weak_cond_in'], mcc_weak['mcc_weak_uncond_in']
-        mcc_weak_cond_out, mcc_weak_uncond_out = mcc_weak['mcc_weak_cond_out'], mcc_weak['mcc_weak_uncond_out']
+        mcc_strong_cond = pickle.load(
+            open(os.path.join(args.output, 'strong_cond_MCC{}.p'.format(name_ext_cond)), 'rb'))
+        mcc_strong_cond_in, mcc_strong_cond_out = mcc_strong_cond['in'], mcc_strong_cond['out']
+        mcc_strong_uncond = pickle.load(
+            open(os.path.join(args.output_baseline, 'strong_uncond_MCC{}.p'.format(name_ext_uncond)), 'rb'))
+        mcc_strong_uncond_in, mcc_strong_uncond_out = mcc_strong_uncond['in'], mcc_strong_uncond['out']
+        mcc_weak_cond = pickle.load(open(os.path.join(args.output, 'weak_cond_MCC{}.p'.format(name_ext_cond)), 'rb'))
+        mcc_weak_cond_in, mcc_weak_cond_out = mcc_weak_cond['in'], mcc_weak_cond['out']
+        mcc_weak_uncond = pickle.load(
+            open(os.path.join(args.output_baseline, 'weak_uncond_MCC{}.p'.format(name_ext_uncond)), 'rb'))
+        mcc_weak_uncond_in, mcc_weak_uncond_out = mcc_weak_uncond['in'], mcc_weak_uncond['out']
 
     # print some statistics
     print_stats(mcc_strong_cond_in, mcc_strong_uncond_in, title='strong iden. in sample')
