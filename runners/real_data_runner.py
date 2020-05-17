@@ -1,6 +1,5 @@
 import os
 import pickle
-import warnings
 
 import numpy as np
 import seaborn as sns
@@ -8,7 +7,6 @@ import torch
 import torchvision.transforms as transforms
 from matplotlib import pyplot as plt
 from sklearn.cross_decomposition import CCA
-from sklearn.exceptions import ConvergenceWarning
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import scale
@@ -103,7 +101,7 @@ def get_dataset(args, config, test=False, rev=False, one_hot=True, subset=False,
         dataset.data = dataset.data[idx]
     if one_hot:
         dataset.target_transform = target_transform
-    if subset:
+    if subset and args.subsetSize != 0:
         dataset = torch.utils.data.Subset(dataset, np.arange(args.subsetSize))
     dataloader = DataLoader(dataset, batch_size=config.training.batch_size, shuffle=shuffle, num_workers=0)
 
@@ -112,6 +110,8 @@ def get_dataset(args, config, test=False, rev=False, one_hot=True, subset=False,
 
 
 def train(args, config, conditional=True):
+    if args.subsetSize == 0:
+        conditional = False
     # load dataset
     dataloader, dataset, cond_size = get_dataset(args, config, one_hot=True)
     # define the energy model
@@ -214,6 +214,7 @@ def transfer(args, config):
     once an icebeem is pretrained on some labels (0-7), we train only secondary network (g in our manuscript)
     on unseen labels 8-9 (these are new datasets)
     """
+    conditional = args.subsetSize != 0
     # load data
     dataloader, dataset, cond_size = get_dataset(args, config, test=False, rev=True, one_hot=True, subset=True)
     # load the feature network f
@@ -222,30 +223,36 @@ def transfer(args, config):
     states = torch.load(ckpt_path, map_location=config.device)
     f = RefineNetDilated(config).to(config.device)
     f.load_state_dict(states[0])
-    # define the feature network g
-    g = SimpleLinear(cond_size, f.output_size, bias=False).to(config.device)
-    energy_net = ModularUnnormalizedConditionalEBM(f, g, augment=config.model.augment, positive=config.model.positive)
-    # define the optimizer
-    parameters = energy_net.g.parameters()
-    optimizer = get_optimizer(config, parameters)
+    if conditional:
+        # define the feature network g
+        g = SimpleLinear(cond_size, f.output_size, bias=False).to(config.device)
+        energy_net = ModularUnnormalizedConditionalEBM(f, g, augment=config.model.augment,
+                                                       positive=config.model.positive)
+        # define the optimizer
+        parameters = energy_net.g.parameters()
+        optimizer = get_optimizer(config, parameters)
+    else:
+        # no learning is involved: just evaluate f on the new labels, with g = 1
+        energy_net = ModularUnnormalizedEBM(f)
+        optimizer = None
     # start optimizing!
-    step = 0
     eCount = 10
     loss_track_epochs = []
     for epoch in range(eCount):
         print('epoch: ' + str(epoch))
         loss_track = []
         for i, (X, y) in enumerate(dataloader):
-            step += 1
-
             X = X.to(config.device)
             X = X / 256. * 255. + torch.rand_like(X) / 256.
 
-            loss = cdsm(energy_net, X, y, sigma=0.01)
-
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
+            if conditional:
+                loss = cdsm(energy_net, X, y, sigma=0.01)
+                optimizer.zero_grad()
+                loss.backward()
+                optimizer.step()
+            else:
+                # just evaluate the DSM loss using the pretarined f --- no learning
+                loss = dsm(energy_net, X, sigma=0.01)
 
             loss_track.append(loss.item())
             loss_track_epochs.append(loss.item())
@@ -275,7 +282,6 @@ def semisupervised(args, config):
     f = RefineNetDilated(config).to(config.device)
     f.load_state_dict(states[0])
 
-    # allow for multiple channels and distinct image sizes
     representations = np.zeros((10000, f.output_size))
     labels = np.zeros((10000,))
     counter = 0
@@ -288,7 +294,7 @@ def semisupervised(args, config):
     representations = representations[:counter]
     labels = labels[:counter]
 
-    labels -= 8
+    labels -= config.n_labels
     rep_train, rep_test, lab_train, lab_test = train_test_split(scale(representations), labels, test_size=test_size,
                                                                 random_state=config.data.random_state)
     clf = class_model(random_state=0, max_iter=2000).fit(rep_train, lab_train)
@@ -337,16 +343,15 @@ def cca_representations(args, config, conditional=True):
 
 
 def plot_representation(args, config):
-
     res_cond = []
     res_uncond = []
-    seeds = sorted(os.listdir(args.checkpoints))
-    seeds_baseline = sorted(os.listdir(args.checkpoints_baseline))
+    seeds = sorted(os.listdir(args.checkpoints), key=lambda s: int(s[4:]))
+    seeds_baseline = sorted(os.listdir(args.checkpoints_baseline), key=lambda s: int(s[4:]))
     if args.nSims > 0 and args.nSims <= min(len(seeds), len(seeds_baseline)):
         seeds = seeds[:args.nSims]
         seeds_baseline = seeds[:args.nSims]
         name_ext_cond = name_ext_uncond = '_{}'.format(args.nSims)
-    elif args.nSims == 0 or (args.nSims > len(seeds) and args.nSims > len(seeds_baseline)) :
+    elif args.nSims == 0 or (args.nSims > len(seeds) and args.nSims > len(seeds_baseline)):
         name_ext_cond = '_{}'.format(len(seeds))
         name_ext_uncond = '_{}'.format(len(seeds_baseline))
     elif args.nSims <= len(seeds) and args.nSims > len(seeds_baseline):
@@ -402,7 +407,6 @@ def plot_representation(args, config):
                     mcc_weak_in.append(mean_corr_coef(res_in[0], res_in[1]))
         return mcc_weak_in, mcc_weak_out
 
-
     def print_stats(res_cond, res_uncond, title=''):
         print('Statistics for {}:\tC\tU'.format(title))
         print('Mean:\t\t{}\t{}'.format(np.mean(res_cond), np.mean(res_uncond)))
@@ -414,7 +418,8 @@ def plot_representation(args, config):
             cond_sorted[0], uncond_sorted[0], cond_sorted[1], uncond_sorted[1], cond_sorted[-2], uncond_sorted[-2],
             cond_sorted[-1], uncond_sorted[-1]))
 
-    def boxplot(res_strong_cond, res_strong_uncond, res_weak_cond, res_weak_uncond, ylabel='in sample', filename_ext='in'):
+    def boxplot(res_strong_cond, res_strong_uncond, res_weak_cond, res_weak_uncond, ylabel='in sample',
+                filename_ext='in'):
         sns.set_style("whitegrid")
         sns.set_palette('deep')
         data = [res_weak_cond, res_weak_uncond, res_strong_cond, res_strong_uncond]
@@ -443,7 +448,6 @@ def plot_representation(args, config):
             file_name += str(config.model.feature_size) + '_'
         plt.savefig(os.path.join(args.run, '{}{}_{}.pdf'.format(file_name, args.dataset.lower(), filename_ext)))
 
-
     if not check_saved():
         print('Computing MCCs')
         # MCC values haven't been computed yet
@@ -471,7 +475,7 @@ def plot_representation(args, config):
         # iinot = np.where(res_cond[0]['lab'] >= cutoff)[0]  # out of sample points
         cutoff = 5000  # half the test dataset
         ii = np.arange(cutoff)
-        iinot = np.arange(cutoff, 2*cutoff)
+        iinot = np.arange(cutoff, 2 * cutoff)
 
         # compare representation identifiability (strong case)
         mcc_strong_cond_in, mcc_strong_cond_out = compute_strong_mcc(res_cond, ii, iinot)
@@ -511,9 +515,9 @@ def plot_representation(args, config):
 
     # boxplot
     boxplot(mcc_strong_cond_in, mcc_strong_uncond_in, mcc_weak_cond_in, mcc_weak_uncond_in,
-         ylabel='in sample', filename_ext='in')
+            ylabel='in sample', filename_ext='in')
     boxplot(mcc_strong_cond_out, mcc_strong_uncond_out, mcc_weak_cond_out, mcc_weak_uncond_out,
-         ylabel='out of sample', filename_ext='out')
+            ylabel='out of sample', filename_ext='out')
 
 
 def plot_transfer(args, config):
@@ -521,7 +525,7 @@ def plot_transfer(args, config):
     sns.set_palette('deep')
 
     # collect results for transfer learning
-    samplesSizes = [500, 1000, 2000, 3000, 5000, 6000]
+    samplesSizes = [0, 500, 1000, 2000, 3000, 5000, 6000]
 
     resTransfer = {x: [] for x in samplesSizes}
     resBaseline = {x: [] for x in samplesSizes}

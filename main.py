@@ -136,7 +136,7 @@ def main():
             transfer(args, config)
         else:
             new_args = argparse.Namespace(**vars(args))
-            for n in [500, 1000, 2000, 3000, 4000, 5000, 6000]:
+            for n in [0, 500, 1000, 2000, 3000, 4000, 5000, 6000]:
                 for seed in range(args.seed, args.nSims + args.seed):
                     print('Transfer for {} - subset size: {} - seed: {}'.format(config.data.dataset, n, seed))
                     new_args.subsetSize = n
@@ -160,7 +160,7 @@ def main():
             train(args, config)
         else:
             new_args = argparse.Namespace(**vars(args))
-            for n in [500, 1000, 2000, 3000, 4000, 5000, 6000]:
+            for n in [0, 500, 1000, 2000, 3000, 4000, 5000, 6000]:
                 for seed in range(args.seed, args.nSims + args.seed):
                     print('Transfer baseline for {} - subset size: {} - seed: {}'.format(
                         config.data.dataset.split('_')[0], n, seed))
@@ -192,7 +192,7 @@ def main():
             make_and_set_dirs(new_args, config)
             train(new_args, config)
         else:
-            for n in [500, 1000, 2000, 3000, 4000, 5000, 6000]:
+            for n in [0, 500, 1000, 2000, 3000, 4000, 5000, 6000]:
                 for seed in range(args.seed, args.nSims + args.seed):
                     print('Transfer baseline for {} - subset size: {} - seed: {}'.format(
                         config.data.dataset.split('_')[0], n, seed))
