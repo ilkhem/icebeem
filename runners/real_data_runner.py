@@ -515,9 +515,9 @@ def plot_representation(args, config):
 
     # boxplot
     boxplot(mcc_strong_cond_in, mcc_strong_uncond_in, mcc_weak_cond_in, mcc_weak_uncond_in,
-            ylabel='in sample', filename_ext='in')
+            ylabel='in sample', filename_ext='in_{}_{}'.format(name_ext_cond, name_ext_uncond))
     boxplot(mcc_strong_cond_out, mcc_strong_uncond_out, mcc_weak_cond_out, mcc_weak_uncond_out,
-            ylabel='out of sample', filename_ext='out')
+            ylabel='out of sample', filename_ext='out_{}_{}'.format(name_ext_cond, name_ext_uncond))
 
 
 def plot_transfer(args, config):
