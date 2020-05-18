@@ -244,7 +244,6 @@ def transfer(args, config):
         for i, (X, y) in enumerate(dataloader):
             X = X.to(config.device)
             X = X / 256. * 255. + torch.rand_like(X) / 256.
-
             if conditional:
                 loss = cdsm(energy_net, X, y, sigma=0.01)
                 optimizer.zero_grad()
@@ -253,7 +252,7 @@ def transfer(args, config):
             else:
                 # just evaluate the DSM loss using the pretarined f --- no learning
                 loss = dsm(energy_net, X, sigma=0.01)
-
+                loss.backward()  # strangely, without this line, the script requires twice as much GPU memory
             loss_track.append(loss.item())
             loss_track_epochs.append(loss.item())
 

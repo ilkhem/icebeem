@@ -106,7 +106,7 @@ def main():
         print('loading config file: {}'.format(os.path.join('configs', args.config)))
         config_raw = yaml.load(f, Loader=yaml.FullLoader)
     config = dict2namespace(config_raw)
-    config.device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+    config.device = torch.device('cuda:{}'.format(dev)) if torch.cuda.is_available() else torch.device('cpu')
     # print(config)
     # set random seeds
     np.random.seed(args.seed)
@@ -182,7 +182,7 @@ def main():
             print('loading baseline config file: {}'.format(os.path.join('configs', new_args.config)))
             config_raw = yaml.load(f, Loader=yaml.FullLoader)
         config = dict2namespace(config_raw)
-        config.device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+        config.device = torch.device('cuda:{}'.format(dev)) if torch.cuda.is_available() else torch.device('cpu')
         if not args.all:
             print(
                 'Transfer baseline for {} - subset size: {} - seed: {}'.format(config.data.dataset.split('_')[0],
