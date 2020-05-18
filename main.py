@@ -6,8 +6,8 @@ import numpy as np
 import torch
 import yaml
 
-from runners.real_data_runner import train, semisupervised, transfer, cca_representations, plot_transfer, \
-    plot_representation
+from runners.real_data_runner import train, semisupervised, transfer, compute_representations, plot_transfer, \
+    plot_representation, compute_mcc
 
 
 def parse():
@@ -15,24 +15,24 @@ def parse():
 
     parser.add_argument('--config', type=str, default='mnist.yaml', help='Path to the config file')
     parser.add_argument('--run', type=str, default='run', help='Path for saving running related data.')
-
-    parser.add_argument('--nSims', type=int, default=0, help='Number of simulations to run')
+    parser.add_argument('--n-sims', type=int, default=0, help='Number of simulations to run')
     parser.add_argument('--seed', type=int, default=0, help='Random seed')
-
     parser.add_argument('--baseline', action='store_true', help='Run the script for the baseline')
     parser.add_argument('--transfer', action='store_true',
                         help='Run the transfer learning experiments after pretraining')
     parser.add_argument('--semisupervised', action='store_true', help='Run semi-supervised experiments')
     parser.add_argument('--representation', action='store_true',
                         help='Run CCA representation validation across multiple seeds')
-
-    parser.add_argument('--subsetSize', type=int, default=6000,
+    parser.add_argument('--mcc', action='store_true', help='compute MCCs -- '
+                                                           'only relevant for representation experiments')
+    parser.add_argument('--second-seed', type=int, default=0, help='Second random seed for computing MCC -- '
+                                                                   'only relevant for representation experiments')
+    parser.add_argument('--subset-size', type=int, default=6000,
                         help='Number of data points per class to consider -- '
                              'only relevant for transfer learning if not run with --all flag')
     parser.add_argument('--all', action='store_true',
                         help='Run transfer learning experiment for many seeds and subset sizes -- '
-                             'only relevant for transfer learning')
-
+                             'only relevant for transfer and representation experiments')
     parser.add_argument('--plot', action='store_true',
                         help='Plot selected experiment for the selected dataset')
 
@@ -130,16 +130,16 @@ def main():
     if args.transfer and not args.baseline and not args.plot:
         if not args.all:
             print(
-                'Transfer for {} - subset size: {} - seed: {}'.format(config.data.dataset, args.subsetSize, args.seed))
+                'Transfer for {} - subset size: {} - seed: {}'.format(config.data.dataset, args.subset_size, args.seed))
             args.doc = 'transfer'
             make_and_set_dirs(args, config)
             transfer(args, config)
         else:
             new_args = argparse.Namespace(**vars(args))
             for n in [0, 500, 1000, 2000, 3000, 4000, 5000, 6000]:
-                for seed in range(args.seed, args.nSims + args.seed):
+                for seed in range(args.seed, args.n_sims + args.seed):
                     print('Transfer for {} - subset size: {} - seed: {}'.format(config.data.dataset, n, seed))
-                    new_args.subsetSize = n
+                    new_args.subset_size = n
                     new_args.seed = seed
                     # change random seed
                     np.random.seed(seed)
@@ -153,18 +153,18 @@ def main():
         # this is just here for debug, shouldn't be run, use --baseline --transfer instead
         if not args.all:
             print('Transfer baseline for {} - subset size: {} - seed: {}'.format(config.data.dataset.split('_')[0],
-                                                                                 args.subsetSize, args.seed))
+                                                                                 args.subset_size, args.seed))
             args.doc = 'transferBaseline'
-            args.doc2 = 'size{}_seed{}'.format(args.subsetSize, args.seed)
+            args.doc2 = 'size{}_seed{}'.format(args.subset_size, args.seed)
             make_and_set_dirs(args, config)
             train(args, config)
         else:
             new_args = argparse.Namespace(**vars(args))
             for n in [0, 500, 1000, 2000, 3000, 4000, 5000, 6000]:
-                for seed in range(args.seed, args.nSims + args.seed):
+                for seed in range(args.seed, args.n_sims + args.seed):
                     print('Transfer baseline for {} - subset size: {} - seed: {}'.format(
                         config.data.dataset.split('_')[0], n, seed))
-                    new_args.subsetSize = n
+                    new_args.subset_size = n
                     new_args.seed = seed
                     # change random seed
                     np.random.seed(seed)
@@ -186,17 +186,17 @@ def main():
         if not args.all:
             print(
                 'Transfer baseline for {} - subset size: {} - seed: {}'.format(config.data.dataset.split('_')[0],
-                                                                               new_args.subsetSize, new_args.seed))
+                                                                               new_args.subset_size, new_args.seed))
             new_args.doc = 'transferBaseline'
-            new_args.doc2 = 'size{}_seed{}'.format(args.subsetSize, args.seed)
+            new_args.doc2 = 'size{}_seed{}'.format(args.subset_size, args.seed)
             make_and_set_dirs(new_args, config)
             train(new_args, config)
         else:
             for n in [0, 500, 1000, 2000, 3000, 4000, 5000, 6000]:
-                for seed in range(args.seed, args.nSims + args.seed):
+                for seed in range(args.seed, args.n_sims + args.seed):
                     print('Transfer baseline for {} - subset size: {} - seed: {}'.format(
                         config.data.dataset.split('_')[0], n, seed))
-                    new_args.subsetSize = n
+                    new_args.subset_size = n
                     new_args.seed = seed
                     # change random seed
                     np.random.seed(seed)
@@ -245,13 +245,18 @@ def main():
     # different seeds
     # 2- --representation --baseline: trains unconditional EBM on train dataset, and save learnt rep of test data for
     # different seeds
+    # 3- --representation --mcc: compute pairwaise mccs for ICE-BeeM:
+    #       --all: do it for all random seeds used in step 1-
+    #       --seed X --second-seed Y: compute mcc between seeds X and Y
+    # 4- --representation --mcc --baseline: same as 3- for baseline
+    # 5- --representation --plot: plot boxplot of MCCs in and out of sample
+    #       --n-sims: only consider n_sims seeds and not all if n_ims < n seeds used in 1-
 
-    if args.representation and not args.plot:
-        # overwrite n_labels to full dataset
+    if args.representation:
         config.n_labels = 10 if config.data.dataset.lower().split('_')[0] != 'cifar100' else 100
-        if not args.baseline:
-            for seed in range(args.seed, args.nSims + args.seed):
-                print('Learning representation for {} - seed: {}'.format(config.data.dataset, args.seed))
+        if not args.mcc and not args.baseline and not args.plot:
+            for seed in range(args.seed, args.n_sims + args.seed):
+                print('Learning representation for {} - seed: {}'.format(config.data.dataset, seed))
                 new_args = argparse.Namespace(**vars(args))
                 new_args.seed = seed
                 np.random.seed(args.seed)
@@ -259,11 +264,11 @@ def main():
                 new_args.doc = 'representation'
                 new_args.doc2 = 'seed{}'.format(seed)
                 make_and_set_dirs(new_args, config)
-                cca_representations(new_args, config)
-        else:
-            # train unconditional EBMs
-            for seed in range(args.seed, args.nSims + args.seed):
-                print('Learning baseline representation for {} - seed: {}'.format(config.data.dataset, args.seed))
+                compute_representations(new_args, config)
+
+        if args.baseline and args.mcc and not args.plot:
+            for seed in range(args.seed, args.n_sims + args.seed):
+                print('Learning baseline representation for {} - seed: {}'.format(config.data.dataset, seed))
                 new_args = argparse.Namespace(**vars(args))
                 new_args.seed = seed
                 np.random.seed(args.seed)
@@ -271,17 +276,58 @@ def main():
                 new_args.doc = 'representationBaseline'
                 new_args.doc2 = 'seed{}'.format(seed)
                 make_and_set_dirs(new_args, config)
-                cca_representations(new_args, config, conditional=False)
+                compute_representations(new_args, config, conditional=False)
 
-    # PLOTTING REPRESENTATIONS BOXPLOT
-    # 1- just use of the flag --plot and representation AND NO other flag (except --config of course) to
-    # compute MCC before and after applying a CCA to the rep and display as boxplot
-    if args.plot and not args.baseline and not args.semisupervised and not args.transfer and args.representation:
-        print('Plotting representation experiment for {}'.format(config.data.dataset))
-        args.doc = 'representation'
-        args.doc_baseline = 'representationBaseline'
-        make_and_set_dirs(args, config)
-        plot_representation(args, config)
+        if args.mcc and not args.baseline and not args.plot:
+            if args.all:
+                for seed in range(args.seed, args.n_sims + args.seed - 1):
+                    for second_seed in range(seed + 1, args.n_sims + args.seed):
+                        print('Computing MCCs for {} - seeds: {} and {}'.format(config.data.dataset, seed,
+                                                                                second_seed))
+                        new_args = argparse.Namespace(**vars(args))
+                        new_args.seed = seed
+                        new_args.second_seed = second_seed
+                        np.random.seed(args.seed)
+                        torch.manual_seed(args.seed)
+                        new_args.doc = 'representation'
+                        make_and_set_dirs(new_args, config)
+                        compute_mcc(new_args, config)
+            else:
+                assert 'second_seed' in vars(args).keys()
+                print('Computing MCCs for {} - seeds: {} and {}'.format(config.data.dataset, args.seed,
+                                                                        args.second_seed))
+                args.doc = 'representation'
+                make_and_set_dirs(args, config)
+                compute_mcc(args, config)
+
+        if args.mcc and args.baseline and not args.plot:
+            if args.all:
+                for seed in range(args.seed, args.n_sims + args.seed - 1):
+                    for second_seed in range(seed + 1, args.n_sims + args.seed):
+                        print('Computing baseline MCCs for {} - seeds: {} and {}'.format(config.data.dataset, seed,
+                                                                                         second_seed))
+                        new_args = argparse.Namespace(**vars(args))
+                        new_args.seed = seed
+                        new_args.second_seed = second_seed
+                        np.random.seed(args.seed)
+                        torch.manual_seed(args.seed)
+                        new_args.doc = 'representationBaseline'
+                        make_and_set_dirs(new_args, config)
+                        compute_mcc(new_args, config)
+            else:
+                assert 'second_seed' in vars(args).keys()
+                print('Computing baseline MCCs for {} - seeds: {} and {}'.format(config.data.dataset, args.seed,
+                                                                                 args.second_seed))
+                args.doc = 'representationBaseline'
+                make_and_set_dirs(args, config)
+                compute_mcc(args, config)
+
+        if args.plot:
+            print('Plotting representation experiment for {}'.format(config.data.dataset))
+            args.doc = 'representation'
+            args.doc_baseline = 'representationBaseline'
+            make_and_set_dirs(args, config)
+            plot_representation(args, config)
 
 
 if __name__ == '__main__':

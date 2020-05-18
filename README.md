@@ -32,7 +32,7 @@ Type `python simulations.py --help` to learn about the arguments:
 
 ```
 usage: simulations.py [-h] [--dataset DATASET] [--method METHOD]
-                      [--config CONFIG] [--run RUN] [--nSims NSIMS] [--test]
+                      [--config CONFIG] [--run RUN] [--n-sims NSIMS] [--test]
                       [--plot]
 
 optional arguments:
@@ -41,7 +41,7 @@ optional arguments:
   --method METHOD    Method to employ. Should be TCL, iVAE or ICE-BeeM
   --config CONFIG    Path to the config file
   --run RUN          Path for saving running related data.
-  --nSims NSIMS      Number of simulations to run
+  --n-sims NSIMS      Number of simulations to run
   --test             Whether to evaluate the models from checkpoints
   --plot             Plot comparison of performances
 ```
@@ -53,21 +53,21 @@ The results of each simulation is saved in the value of the flag `--run` (defula
 These experiments are run through the script `main.py`. Below are details on how to use the script. To learn about its arguments type `python main.py --help`:
 
 ```
-usage: main.py [-h] [--config CONFIG] [--run RUN] [--nSims NSIMS]
+usage: main.py [-h] [--config CONFIG] [--run RUN] [--n-sims NSIMS]
                [--seed SEED] [--baseline] [--transfer] [--semisupervised]
-               [--representation] [--subsetSize SUBSETSIZE] [--all] [--plot]
+               [--representation] [--subset-size SUBSETSIZE] [--all] [--plot]
 
 optional arguments:
   -h, --help            show this help message and exit
   --config CONFIG       Path to the config file
   --run RUN             Path for saving running related data.
-  --nSims NSIMS         Number of simulations to run
+  --n-sims NSIMS         Number of simulations to run
   --seed SEED           Random seed
   --baseline            Run the script for the baseline
   --transfer            Run the transfer learning experiments after pretraining
   --semisupervised      Run semi-supervised experiments
   --representation      Run CCA representation validation across multiple seeds
-  --subsetSize SUBSETSIZE
+  --subset-size SUBSETSIZE
                         Number of data points per class to consider -- only
                         relevant for transfer learning if not run with --all flag
   --all                 Run transfer learning experiment for many seeds and
@@ -156,15 +156,29 @@ These experiments therefore do the following:
 
 To run the experiment on MNIST:
 ```
-# train an ICE-BeeM on all labels, for different seeds
-python main.py --config mnist.yaml --nSims 10 --representation
-# train an unconditional EBM on all labels, for different seeds
-python main.py --config mnist.yaml --nSims 10 --representation --baseline
+
+# train an ICE-BeeM on all labels, for seeds 0-9
+# starting seed can be specified using --seed
+python main.py --config mnist.yaml --representation --n-sims 10 
+# train an unconditional EBM on all labels, for seeds 0-9
+python main.py --config mnist.yaml --representation --n-sims 10 --baseline
 ```
 
 Then, MCC statistics can be computed and visualized using:
 
 ```
+# compute all pairwise MCCs for ICE-BeeM between seeds X and Y for X in {0..8} and Y in {X+1..9} 
+# starting seed can be specified using --seed
+python main.py --config mnist.yaml --representation --mcc --all --n-sims 10
+# compute all pairwise MCCs for an unconditional EBM between seeds X and Y for X in {0..8} and Y in {X+1..9} 
+python main.py --config mnist.yaml --representation --mcc --all --n-sims 10 --baseline
+```
+
+Finally, to visualize the MCC statistics with a boxplot:
+
+```
+# the number of seeds used for boxplot can be specified using --n-sims
+# starting seed can be specified using --seed
 python main.py --config mnist.yaml --representation --plot
 ```
 
@@ -173,7 +187,7 @@ The bash script `slurm_main.sbatch` is a SLURM wrapper around `main.py` and allo
 on a SLURM equipped server.
 You may have to change the `#SBATCH` configuration flags in the script according to your system.
 
-This script sets `--nSims` to `1`, and allows the user to select the seeds for which to run the experiments using the
+This script sets `--n-sims` to `1`, and allows the user to select the seeds for which to run the experiments using the
 `--array` flag of `sbatch`. The rest of the arguments/flags can be passed as arguments of `slurm_main.sbatch`:
 ```
 sbatch --array=some_seed_values slurm_main.sbatch --the_rest_of_the_arguments
@@ -183,14 +197,14 @@ sbatch --array=some_seed_values slurm_main.sbatch --the_rest_of_the_arguments
 
 A use case is to run the transfer learning experiments in parallel:
 ```
-sbatch --array=1-10 slurm_main.sbatch --config mnist.yaml --transfer --subsetSize 500
+sbatch --array=1-10 slurm_main.sbatch --config mnist.yaml --transfer --subset-size 500
 ```
 This is equivalent to running:
 ```
-python main.py --config mnist.yaml --seed x --transfer --subsetSize 500
+python main.py --config mnist.yaml --seed x --transfer --subset-size 500
 ```
 where `x` scans `[1-10]` for the value of the flag `--seed`.
-Following this approach requires to run the script for the flag `--subsetSize` in `[500, 1000, 2000, 3000, 4000, 5000, 6000]`.
+Following this approach requires to run the script for the flag `--subset-size` in `[500, 1000, 2000, 3000, 4000, 5000, 6000]`.
 
 ___
 
@@ -200,7 +214,7 @@ sbatch --array=42-51 slurm_main.sbatch --config mnist.yaml --representation
 ```
 This is equivalent to:
 ```
-python main.py --config mnist.yaml --seed 42 --nSims 10 --representation
+python main.py --config mnist.yaml --seed 42 --n-sims 10 --representation
 ```
 with the added advantage that all seeds are run in parallel.
 
@@ -217,24 +231,31 @@ python main.py --config mnist.yaml --seed 42
 ```
 
 ___
+To maximize the use of parallel computing, we can get around the `--all` flag which launches loops inside the `main.py`
+script by looping manually around the SLURM script as shown below. 
 To run everything, you can use the following two step bash script:
 ```
 CONFIG_FILE=mnist.yaml
 sbatch slurm_main.sbatch --config $CONFIG_FILE
 sbatch slurm_main.sbatch --config $CONFIG_FILE  --baseline
-for SIZE in 0 500 1000 2000 3000 4000 5000 6000
-do
-        sbatch --array=0-4 slurm_main.sbatch --config $CONFIG_FILE --transfer --subsetSize $SIZE --baseline
+for SIZE in 0 500 1000 2000 3000 4000 5000 6000; do
+        sbatch --array=0-4 slurm_main.sbatch --config $CONFIG_FILE --transfer --subset-size $SIZE --baseline
 done
-sbatch --array=0-9 slurm_main.sbatch --config $CONFIG_FILE  --representation
-sbatch --array=0-9 slurm_main.sbatch --config $CONFIG_FILE  --representation --baseline
+sbatch --array=0-19 slurm_main.sbatch --config $CONFIG_FILE  --representation
+sbatch --array=0-19 slurm_main.sbatch --config $CONFIG_FILE  --representation --baseline
 ```
-And then (when all previous jobs finish)
+After these jobs finish and save the necessary weights and tensors, run:
 ```
 CONFIG_FILE=mnist.yaml
-for SIZE in 0 500 1000 2000 3000 4000 5000 6000
-do
-        sbatch --array=0-4 slurm_main.sbatch --config $CONFIG_FILE --transfer --subsetSize $SIZE
+typeset -i SEED SECSEED
+for SEED in {0..18}; do
+    for ((SECSEED=SEED+1;SECSEED<=19;SECSEED++)); do
+        sbatch slurm_main.sbatch --config $CONFIG_FILE --representation --mcc --seed $SEED --second-seed $SECSEED
+        sbatch slurm_main.sbatch --config $CONFIG_FILE --representation --mcc --seed $SEED --second-seed $SECSEED --baseline
+    done
+done
+for SIZE in 0 500 1000 2000 3000 4000 5000 6000; do
+        sbatch --array=0-4 slurm_main.sbatch --config $CONFIG_FILE --transfer --subset-size $SIZE
 done
 sbatch slurm_main.sbatch --config $CONFIG_FILE  --semisupervised
 sbatch slurm_main.sbatch --config $CONFIG_FILE  --semisupervised --baseline

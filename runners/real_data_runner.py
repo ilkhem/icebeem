@@ -101,8 +101,8 @@ def get_dataset(args, config, test=False, rev=False, one_hot=True, subset=False,
         dataset.data = dataset.data[idx]
     if one_hot:
         dataset.target_transform = target_transform
-    if subset and args.subsetSize != 0:
-        dataset = torch.utils.data.Subset(dataset, np.arange(args.subsetSize))
+    if subset and args.subset_size != 0:
+        dataset = torch.utils.data.Subset(dataset, np.arange(args.subset_size))
     dataloader = DataLoader(dataset, batch_size=config.training.batch_size, shuffle=shuffle, num_workers=0)
 
     print('[DEBUG] len(dset) {}'.format(len(dataset)))
@@ -110,7 +110,7 @@ def get_dataset(args, config, test=False, rev=False, one_hot=True, subset=False,
 
 
 def train(args, config, conditional=True):
-    if args.subsetSize == 0:
+    if args.subset_size == 0:
         conditional = False
     # load dataset
     dataloader, dataset, cond_size = get_dataset(args, config, one_hot=True)
@@ -185,7 +185,7 @@ def train(args, config, conditional=True):
             # save loss track during epoch for transfer baseline
             pickle.dump(loss_track,
                         open(os.path.join(args.output,
-                                          'size{}_seed{}.p'.format(args.subsetSize, args.seed)), 'wb'))
+                                          'size{}_seed{}.p'.format(args.subset_size, args.seed)), 'wb'))
 
     if config.data.dataset.lower() in ['mnist_transferbaseline', 'cifar10_transferbaseline',
                                        'fashionmnist_transferbaseline', 'cifar100_transferbaseline']:
@@ -193,7 +193,7 @@ def train(args, config, conditional=True):
         print('saving loss track under: {}'.format(args.output))
         pickle.dump(loss_track_epochs,
                     open(os.path.join(args.output,
-                                      'all_epochs_SIZE{}_SEED{}.p'.format(args.subsetSize, args.seed)), 'wb'))
+                                      'all_epochs_SIZE{}_SEED{}.p'.format(args.subset_size, args.seed)), 'wb'))
 
     # save final checkpoints for distrubution!
     enet, energy_net_finalLayer = energy_net.f, energy_net.g
@@ -214,7 +214,7 @@ def transfer(args, config):
     once an icebeem is pretrained on some labels (0-7), we train only secondary network (g in our manuscript)
     on unseen labels 8-9 (these are new datasets)
     """
-    conditional = args.subsetSize != 0
+    conditional = args.subset_size != 0
     # load data
     dataloader, dataset, cond_size = get_dataset(args, config, test=False, rev=True, one_hot=True, subset=True)
     # load the feature network f
@@ -258,11 +258,11 @@ def transfer(args, config):
 
         pickle.dump(loss_track,
                     open(os.path.join(args.output,
-                                      'size{}_seed{}.p'.format(args.subsetSize, args.seed)), 'wb'))
+                                      'size{}_seed{}.p'.format(args.subset_size, args.seed)), 'wb'))
     print('saving loss track under: {}'.format(args.output))
     pickle.dump(loss_track_epochs,
                 open(os.path.join(args.output,
-                                  'all_epochs_SIZE{}_SEED{}.p'.format(args.subsetSize, args.seed)), 'wb'))
+                                  'all_epochs_SIZE{}_SEED{}.p'.format(args.subset_size, args.seed)), 'wb'))
 
 
 def semisupervised(args, config):
@@ -305,7 +305,7 @@ def semisupervised(args, config):
     print('#' * 10)
 
 
-def cca_representations(args, config, conditional=True):
+def compute_representations(args, config, conditional=True):
     """
     we train an icebeem model or an unconditional EBM across multiple random seeds and
     compare the reproducibility of representations via CCA
@@ -341,72 +341,80 @@ def cca_representations(args, config, conditional=True):
                 open(os.path.join(args.checkpoints, 'test_representations.p'), 'wb'))
 
 
+def compute_mcc(args, config):
+    rep1 = pickle.load(
+        open(os.path.join(args.checkpoints, 'seed{}'.format(args.seed), 'test_representations.p'), 'rb'))['rep']
+    rep2 = pickle.load(
+        open(os.path.join(args.checkpoints, 'seed{}'.format(args.second_seed), 'test_representations.p'), 'rb'))[
+        'rep']
+
+    # cutoff = 50 if args.dataset == 'CIFAR100' else 5
+    # ii = np.where(res_cond[0]['lab'] < cutoff)[0]  # in sample points to learn from
+    # iinot = np.where(res_cond[0]['lab'] >= cutoff)[0]  # out of sample points
+    cutoff = 5000  # half the test dataset
+    ii = np.arange(cutoff)
+    iinot = np.arange(cutoff, 2 * cutoff)
+
+    mcc_strong_out = mean_corr_coef_out_of_sample(x=rep1[ii], y=rep2[ii], x_test=rep1[iinot], y_test=rep2[iinot])
+    mcc_strong_in = (mean_corr_coef(x=rep1[ii], y=rep2[ii]))
+
+    cca_dim = 20
+    cca = CCA(n_components=cca_dim)
+    cca.fit(rep1[ii], rep2[ii])
+    res_out = cca.transform(rep1[iinot], rep2[iinot])
+    mcc_weak_out = mean_corr_coef(res_out[0], res_out[1])
+    res_in = cca.transform(rep1[ii], rep2[ii])
+    mcc_weak_in = mean_corr_coef(res_in[0], res_in[1])
+
+    pickle.dump({'in': mcc_strong_in, 'out': mcc_strong_out},
+                open(os.path.join(args.output, 'mcc_strong_{}_{}.p'.format(args.seed, args.second_seed), 'wb')))
+    pickle.dump({'in': mcc_weak_in, 'out': mcc_weak_out},
+                open(os.path.join(args.output, 'mcc_weak_{}_{}.p'.format(args.seed, args.second_seed), 'wb')))
+
+
 def plot_representation(args, config):
-    res_cond = []
-    res_uncond = []
-    seeds = sorted(os.listdir(args.checkpoints), key=lambda s: int(s[4:]))
-    seeds_baseline = sorted(os.listdir(args.checkpoints_baseline), key=lambda s: int(s[4:]))
-    if args.nSims > 0 and args.nSims <= min(len(seeds), len(seeds_baseline)):
-        seeds = seeds[:args.nSims]
-        seeds_baseline = seeds[:args.nSims]
-        name_ext_cond = name_ext_uncond = '_{}'.format(args.nSims)
-    elif args.nSims == 0 or (args.nSims > len(seeds) and args.nSims > len(seeds_baseline)):
-        name_ext_cond = '_{}'.format(len(seeds))
-        name_ext_uncond = '_{}'.format(len(seeds_baseline))
-    elif args.nSims <= len(seeds) and args.nSims > len(seeds_baseline):
-        seeds = seeds[:args.nSims]
-        name_ext_cond = '_{}'.format(args.nSims)
-        name_ext_uncond = '_{}'.format(len(seeds_baseline))
-    elif args.nSims > len(seeds) and args.nSims <= len(seeds_baseline):
-        seeds_baseline = seeds_baseline[:args.nSims]
-        name_ext_uncond = '_{}'.format(args.nSims)
-        name_ext_cond = '_{}'.format(len(seeds))
+    files = [os.path.join(args.output, f) for f in os.listdir(args.output)]
+    max_seed = max([max(int(x[-3]), int(x[-5])) for x in files])
+    files_baseline = [os.path.join(args.output_baseline, f) for f in os.listdir(args.output_baseline)]
+    max_seed_baseline = max([max(int(x[-3]), int(x[-5])) for x in files_baseline])
+
+    if args.n_sims == 0 or (args.n_sims + args.seed > max_seed and args.n_sims + args.seed > max_seed_baseline):
+        pass
+    elif args.n_sims + args.seed <= min(max_seed, max_seed_baseline):
+        max_seed = max_seed_baseline = args.n_sims + args.seed
+    elif args.n_sims + args.seed <= max_seed and args.n_sims + args.seed > max_seed_baseline:
+        max_seed = args.n_sims + args.seed
+    elif args.n_sims + args.seed > max_seed_baseline and args.n_sims + args.seed <= max_seed_baseline:
+        max_seed_baseline = args.n_sims + args.seed
     else:
-        raise ValueError('args nSims :{}'.format(args.nSims))
+        raise ValueError('args n_sims :{}'.format(args.n_sims))
 
-    def check_saved():
-        try:
-            pickle.load(open(os.path.join(args.output, 'strong_cond_MCC{}.p'.format(name_ext_cond)), 'rb'))
-            pickle.load(open(os.path.join(args.output_baseline, 'strong_uncond_MCC{}.p'.format(name_ext_uncond)), 'rb'))
-            pickle.load(open(os.path.join(args.output, 'weak_cond_MCC{}.p'.format(name_ext_cond)), 'rb'))
-            pickle.load(open(os.path.join(args.output_baseline, 'weak_uncond_MCC{}.p'.format(name_ext_uncond)), 'rb'))
-        except FileNotFoundError:
-            # file doesn't exist
-            return False
-        print('Loading saved MCCs')
-        return True
+    mcc_strong_cond_in = []
+    mcc_strong_cond_out = []
+    mcc_weak_cond_in = []
+    mcc_weak_cond_out = []
+    for i in range(args.seed, max_seed):
+        for j in range(i + 1, max_seed):
+            temp = pickle.load(open(os.path.join(args.output, 'mcc_strong_{}_{}.p'.format(i, j)), 'rb'))
+            mcc_strong_cond_in.append(temp['in'])
+            mcc_strong_cond_out.append(temp['out'])
+            temp = pickle.load(open(os.path.join(args.output, 'mcc_weak_{}_{}.p'.format(i, j)), 'rb'))
+            mcc_weak_cond_in.append(temp['in'])
+            mcc_weak_cond_out.append(temp['out'])
+    mcc_strong_uncond_in = []
+    mcc_strong_uncond_out = []
+    mcc_weak_uncond_in = []
+    mcc_weak_uncond_out = []
+    for i in range(args.seed, max_seed_baseline):
+        for j in range(i + 1, max_seed_baseline):
+            temp = pickle.load(open(os.path.join(args.output_baseline, 'mcc_strong_{}_{}.p'.format(i, j)), 'rb'))
+            mcc_strong_uncond_in.append(temp['in'])
+            mcc_strong_uncond_out.append(temp['out'])
+            temp = pickle.load(open(os.path.join(args.output_baseline, 'mcc_weak_{}_{}.p'.format(i, j)), 'rb'))
+            mcc_weak_uncond_in.append(temp['in'])
+            mcc_weak_uncond_out.append(temp['out'])
 
-    def compute_strong_mcc(res, ii, iinot):
-        mcc_strong_in = []
-        mcc_strong_out = []
-        for i, res_i in enumerate(res):
-            for j, res_j in enumerate(res):
-                if j > i:
-                    # out of sample
-                    mcc_strong_out.append(mean_corr_coef_out_of_sample(x=res_i['rep'][ii], y=res_j['rep'][ii],
-                                                                       x_test=res_i['rep'][iinot],
-                                                                       y_test=res_j['rep'][iinot]))
-                    # in sample
-                    mcc_strong_in.append(mean_corr_coef(x=res_i['rep'][ii], y=res_j['rep'][ii]))
-        return mcc_strong_in, mcc_strong_out
-
-    def compute_weak_mcc(res, ii, iinot, cca_dim=20):
-        mcc_weak_in = []
-        mcc_weak_out = []
-        for i, res_i in enumerate(res):
-            for j, res_j in enumerate(res):
-                if j > i:
-                    cca = CCA(n_components=cca_dim)
-                    cca.fit(res_i['rep'][ii], res_j['rep'][ii])
-                    # out of sample
-                    res_out = cca.transform(res_i['rep'][iinot], res_j['rep'][iinot])
-                    mcc_weak_out.append(mean_corr_coef(res_out[0], res_out[1]))
-                    # in sample
-                    res_in = cca.transform(res_i['rep'][ii], res_j['rep'][ii])
-                    mcc_weak_in.append(mean_corr_coef(res_in[0], res_in[1]))
-        return mcc_weak_in, mcc_weak_out
-
-    def print_stats(res_cond, res_uncond, title=''):
+    def _print_stats(res_cond, res_uncond, title=''):
         print('Statistics for {}:\tC\tU'.format(title))
         print('Mean:\t\t{}\t{}'.format(np.mean(res_cond), np.mean(res_uncond)))
         print('Median:\t\t{}\t{}'.format(np.median(res_cond), np.median(res_uncond)))
@@ -417,8 +425,7 @@ def plot_representation(args, config):
             cond_sorted[0], uncond_sorted[0], cond_sorted[1], uncond_sorted[1], cond_sorted[-2], uncond_sorted[-2],
             cond_sorted[-1], uncond_sorted[-1]))
 
-    def boxplot(res_strong_cond, res_strong_uncond, res_weak_cond, res_weak_uncond, ylabel='in sample',
-                filename_ext='in'):
+    def _boxplot(res_strong_cond, res_strong_uncond, res_weak_cond, res_weak_uncond, ylabel='in sample', ext='in'):
         sns.set_style("whitegrid")
         sns.set_palette('deep')
         data = [res_weak_cond, res_weak_uncond, res_strong_cond, res_strong_uncond]
@@ -445,78 +452,18 @@ def plot_representation(args, config):
             file_name += 'a_'
         if config.model.final_layer:
             file_name += str(config.model.feature_size) + '_'
-        plt.savefig(os.path.join(args.run, '{}{}_{}.pdf'.format(file_name, args.dataset.lower(), filename_ext)))
-
-    if not check_saved():
-        print('Computing MCCs')
-        # MCC values haven't been computed yet
-        # load in trained representations
-        for f in seeds:
-            print('loading conditional test representations from: {}'.format(
-                os.path.join(args.checkpoints, f)))
-            res_cond.append(
-                pickle.load(open(os.path.join(args.checkpoints, f, 'test_representations.p'), 'rb')))
-
-        for f_baseline in seeds_baseline:
-            print('loading unconditional test representations from: {}'.format(
-                os.path.join(args.checkpoints_baseline, f_baseline)))
-            res_uncond.append(
-                pickle.load(open(os.path.join(args.checkpoints_baseline, f_baseline, 'test_representations.p'), 'rb')))
-
-        # check things are in correct order
-        assert np.max(np.abs(res_cond[0]['lab'] - res_cond[1]['lab'])) == 0
-        assert np.max(np.abs(res_uncond[0]['lab'] - res_uncond[1]['lab'])) == 0
-        assert np.max(np.abs(res_cond[0]['lab'] - res_uncond[0]['lab'])) == 0
-
-        # preparation
-        # cutoff = 50 if args.dataset == 'CIFAR100' else 5
-        # ii = np.where(res_cond[0]['lab'] < cutoff)[0]  # in sample points to learn from
-        # iinot = np.where(res_cond[0]['lab'] >= cutoff)[0]  # out of sample points
-        cutoff = 5000  # half the test dataset
-        ii = np.arange(cutoff)
-        iinot = np.arange(cutoff, 2 * cutoff)
-
-        # compare representation identifiability (strong case)
-        mcc_strong_cond_in, mcc_strong_cond_out = compute_strong_mcc(res_cond, ii, iinot)
-        mcc_strong_uncond_in, mcc_strong_uncond_out = compute_strong_mcc(res_uncond, ii, iinot)
-        # compare representation identifiability (weaker case)
-        mcc_weak_cond_in, mcc_weak_cond_out = compute_weak_mcc(res_cond, ii, iinot)
-        mcc_weak_uncond_in, mcc_weak_uncond_out = compute_weak_mcc(res_uncond, ii, iinot)
-
-        # save results:
-        pickle.dump({'in': mcc_strong_cond_in, 'out': mcc_strong_cond_out},
-                    open(os.path.join(args.output, 'strong_cond_MCC{}.p'.format(name_ext_cond)), 'wb'))
-        pickle.dump({'in': mcc_strong_uncond_in, 'out': mcc_strong_uncond_out},
-                    open(os.path.join(args.output_baseline, 'strong_uncond_MCC{}.p'.format(name_ext_uncond)), 'wb'))
-        pickle.dump({'in': mcc_weak_cond_in, 'out': mcc_weak_cond_out},
-                    open(os.path.join(args.output, 'weak_cond_MCC{}.p'.format(name_ext_cond)), 'wb'))
-        pickle.dump({'in': mcc_weak_uncond_in, 'out': mcc_weak_uncond_out},
-                    open(os.path.join(args.output_baseline, 'weak_uncond_MCC{}.p'.format(name_ext_uncond)), 'wb'))
-
-    else:
-        mcc_strong_cond = pickle.load(
-            open(os.path.join(args.output, 'strong_cond_MCC{}.p'.format(name_ext_cond)), 'rb'))
-        mcc_strong_cond_in, mcc_strong_cond_out = mcc_strong_cond['in'], mcc_strong_cond['out']
-        mcc_strong_uncond = pickle.load(
-            open(os.path.join(args.output_baseline, 'strong_uncond_MCC{}.p'.format(name_ext_uncond)), 'rb'))
-        mcc_strong_uncond_in, mcc_strong_uncond_out = mcc_strong_uncond['in'], mcc_strong_uncond['out']
-        mcc_weak_cond = pickle.load(open(os.path.join(args.output, 'weak_cond_MCC{}.p'.format(name_ext_cond)), 'rb'))
-        mcc_weak_cond_in, mcc_weak_cond_out = mcc_weak_cond['in'], mcc_weak_cond['out']
-        mcc_weak_uncond = pickle.load(
-            open(os.path.join(args.output_baseline, 'weak_uncond_MCC{}.p'.format(name_ext_uncond)), 'rb'))
-        mcc_weak_uncond_in, mcc_weak_uncond_out = mcc_weak_uncond['in'], mcc_weak_uncond['out']
+        plt.savefig(os.path.join(args.run, '{}{}_{}.pdf'.format(file_name, args.dataset.lower(), ext)))
 
     # print some statistics
-    print_stats(mcc_strong_cond_in, mcc_strong_uncond_in, title='strong iden. in sample')
-    print_stats(mcc_strong_cond_out, mcc_strong_uncond_out, title='strong iden. out of sample')
-    print_stats(mcc_weak_cond_in, mcc_weak_uncond_in, title='weak iden. in sample')
-    print_stats(mcc_weak_cond_out, mcc_weak_uncond_out, title='weak iden. out of sample')
-
+    _print_stats(mcc_strong_cond_in, mcc_strong_uncond_in, title='strong iden. in sample')
+    _print_stats(mcc_strong_cond_out, mcc_strong_uncond_out, title='strong iden. out of sample')
+    _print_stats(mcc_weak_cond_in, mcc_weak_uncond_in, title='weak iden. in sample')
+    _print_stats(mcc_weak_cond_out, mcc_weak_uncond_out, title='weak iden. out of sample')
     # boxplot
-    boxplot(mcc_strong_cond_in, mcc_strong_uncond_in, mcc_weak_cond_in, mcc_weak_uncond_in,
-            ylabel='in sample', filename_ext='in_{}_{}'.format(name_ext_cond, name_ext_uncond))
-    boxplot(mcc_strong_cond_out, mcc_strong_uncond_out, mcc_weak_cond_out, mcc_weak_uncond_out,
-            ylabel='out of sample', filename_ext='out_{}_{}'.format(name_ext_cond, name_ext_uncond))
+    _boxplot(mcc_strong_cond_in, mcc_strong_uncond_in, mcc_weak_cond_in, mcc_weak_uncond_in,
+             ylabel='in sample', ext='in_{}_{}'.format(max_seed, max_seed_baseline))
+    _boxplot(mcc_strong_cond_out, mcc_strong_uncond_out, mcc_weak_cond_out, mcc_weak_uncond_out,
+             ylabel='out of sample', ext='out_{}_{}'.format(max_seed, max_seed_baseline))
 
 
 def plot_transfer(args, config):
