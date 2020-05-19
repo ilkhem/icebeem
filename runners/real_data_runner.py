@@ -358,6 +358,9 @@ def compute_mcc(args, config):
     mcc_strong_out = mean_corr_coef_out_of_sample(x=rep1[ii], y=rep2[ii], x_test=rep1[iinot], y_test=rep2[iinot])
     mcc_strong_in = (mean_corr_coef(x=rep1[ii], y=rep2[ii]))
 
+    pickle.dump({'in': mcc_strong_in, 'out': mcc_strong_out},
+                open(os.path.join(args.output, 'mcc_strong_{}_{}.p'.format(args.seed, args.second_seed)), 'wb'))
+
     cca_dim = 20
     cca = CCA(n_components=cca_dim)
     cca.fit(rep1[ii], rep2[ii])
@@ -366,10 +369,8 @@ def compute_mcc(args, config):
     res_in = cca.transform(rep1[ii], rep2[ii])
     mcc_weak_in = mean_corr_coef(res_in[0], res_in[1])
 
-    pickle.dump({'in': mcc_strong_in, 'out': mcc_strong_out},
-                open(os.path.join(args.output, 'mcc_strong_{}_{}.p'.format(args.seed, args.second_seed), 'wb')))
     pickle.dump({'in': mcc_weak_in, 'out': mcc_weak_out},
-                open(os.path.join(args.output, 'mcc_weak_{}_{}.p'.format(args.seed, args.second_seed), 'wb')))
+                open(os.path.join(args.output, 'mcc_weak_{}_{}.p'.format(args.seed, args.second_seed)), 'wb'))
 
 
 def plot_representation(args, config):
