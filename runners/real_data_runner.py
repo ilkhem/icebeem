@@ -471,7 +471,7 @@ def plot_transfer(args, config):
     sns.set_palette('deep')
 
     # collect results for transfer learning
-    samplesSizes = [0, 500, 1000, 2000, 3000, 5000, 6000]
+    samplesSizes = [0, 500, 1000, 2000, 3000, 4000, 5000, 6000]
 
     resTransfer = {x: [] for x in samplesSizes}
     resBaseline = {x: [] for x in samplesSizes}
