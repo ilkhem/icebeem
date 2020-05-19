@@ -1,16 +1,15 @@
 #!/bin/bash
 #
-#SBATCH --job-name=augice
-#SBATCH --output=slurm_log/augice.%A_%a.out
-#SBATCH --error=slurm_log/augice.%A_%a.err
+#SBATCH --job-name=ice_cpu
+#SBATCH --output=slurm_log/ice_cpu.%A.out
+#SBATCH --error=slurm_log/ice_cpu.%A.err
 #
-#SBATCH -p gpu
-#SBATCH -N 1-1
-#SBATCH --mem=24G
+#SBATCH -p cpu
+#SBATCH -N 1
+#SBATCH -c 12
+#SBATCH --mem=12G
 #SBATCH --time=3-12:00
 #
-#SBATCH --gres=gpu:1
-#SBATCH --exclusive
 
 export CUDA_DEVICE_ORDER=PCI_BUS_ID
 export CUDA_VISIBLE_DEVICES=0,1,2
