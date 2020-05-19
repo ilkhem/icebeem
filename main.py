@@ -266,7 +266,7 @@ def main():
                 make_and_set_dirs(new_args, config)
                 compute_representations(new_args, config)
 
-        if args.baseline and args.mcc and not args.plot:
+        if args.baseline and not args.mcc and not args.plot:
             for seed in range(args.seed, args.n_sims + args.seed):
                 print('Learning baseline representation for {} - seed: {}'.format(config.data.dataset, seed))
                 new_args = argparse.Namespace(**vars(args))
