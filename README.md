@@ -250,8 +250,8 @@ CONFIG_FILE=mnist.yaml
 typeset -i SEED SECSEED
 for SEED in {0..18}; do
     for ((SECSEED=SEED+1;SECSEED<=19;SECSEED++)); do
-        sbatch slurm_main.sbatch --config $CONFIG_FILE --representation --mcc --seed $SEED --second-seed $SECSEED
-        sbatch slurm_main.sbatch --config $CONFIG_FILE --representation --mcc --seed $SEED --second-seed $SECSEED --baseline
+        sbatch slurm_main_cpu.sbatch --config $CONFIG_FILE --representation --mcc --seed $SEED --second-seed $SECSEED
+        sbatch slurm_main_cpu.sbatch --config $CONFIG_FILE --representation --mcc --seed $SEED --second-seed $SECSEED --baseline
     done
 done
 for SIZE in 0 500 1000 2000 3000 4000 5000 6000; do
