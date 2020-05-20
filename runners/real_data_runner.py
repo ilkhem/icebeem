@@ -374,21 +374,22 @@ def compute_mcc(args, config):
 
 
 def plot_representation(args, config):
-    files = [os.path.join(args.output, f) for f in os.listdir(args.output)]
-    max_seed = max([max(int(x[-3]), int(x[-5])) for x in files])
-    files_baseline = [os.path.join(args.output_baseline, f) for f in os.listdir(args.output_baseline)]
-    max_seed_baseline = max([max(int(x[-3]), int(x[-5])) for x in files_baseline])
+    # files = [os.path.join(args.output, f) for f in os.listdir(args.output)]
+    # max_seed = max([max(int(x[-3]), int(x[-5])) for x in files])
+    # files_baseline = [os.path.join(args.output_baseline, f) for f in os.listdir(args.output_baseline)]
+    # max_seed_baseline = max([max(int(x[-3]), int(x[-5])) for x in files_baseline])
 
-    if args.n_sims == 0 or (args.n_sims + args.seed > max_seed and args.n_sims + args.seed > max_seed_baseline):
-        pass
-    elif args.n_sims + args.seed <= min(max_seed, max_seed_baseline):
-        max_seed = max_seed_baseline = args.n_sims + args.seed
-    elif args.n_sims + args.seed <= max_seed and args.n_sims + args.seed > max_seed_baseline:
-        max_seed = args.n_sims + args.seed
-    elif args.n_sims + args.seed > max_seed_baseline and args.n_sims + args.seed <= max_seed_baseline:
-        max_seed_baseline = args.n_sims + args.seed
-    else:
-        raise ValueError('args n_sims :{}'.format(args.n_sims))
+    # if args.n_sims == 0 or (args.n_sims + args.seed > max_seed and args.n_sims + args.seed > max_seed_baseline):
+    #     pass
+    # elif args.n_sims + args.seed <= min(max_seed, max_seed_baseline):
+    #     max_seed = max_seed_baseline = args.n_sims + args.seed
+    # elif args.n_sims + args.seed <= max_seed and args.n_sims + args.seed > max_seed_baseline:
+    #     max_seed = args.n_sims + args.seed
+    # elif args.n_sims + args.seed > max_seed_baseline and args.n_sims + args.seed <= max_seed_baseline:
+    #     max_seed_baseline = args.n_sims + args.seed
+    # else:
+    #     raise ValueError('args n_sims :{}'.format(args.n_sims))
+    max_seed = max_seed_baseline = args.n_sims
 
     mcc_strong_cond_in = []
     mcc_strong_cond_out = []
