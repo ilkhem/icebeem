@@ -480,13 +480,17 @@ def plot_transfer(args, config):
 
     # load transfer results
     for x in samplesSizes:
-        files = [f for f in os.listdir(args.output) if 'size{}'.format(x) in f]
+        files = [f for f in os.listdir(args.output) if 'SIZE{}'.format(x) in f]
+        f_temp = [f for f in os.listdir(args.output) if 'size{}'.format(x) in f][0]
+        x_len = len(pickle.load(open(os.path.join(args.output, f_temp), 'rb')))
         for f in files:
-            resTransfer[x].append(np.median(pickle.load(open(os.path.join(args.output, f), 'rb'))))
+            resTransfer[x].append(np.median(pickle.load(open(os.path.join(args.output, f), 'rb'))[-x_len:]))
 
-        files = [f for f in os.listdir(args.output_baseline) if 'size{}'.format(x) in f]
+        files = [f for f in os.listdir(args.output_baseline) if 'SIZE{}'.format(x) in f]
+        f_temp = [f for f in os.listdir(args.output_baseline) if 'size{}'.format(x) in f][0]
+        x_len = len(pickle.load(open(os.path.join(args.output_baseline, f_temp), 'rb')))
         for f in files:
-            resBaseline[x].append(np.median(pickle.load(open(os.path.join(args.output_baseline, f), 'rb'))))
+            resBaseline[x].append(np.median(pickle.load(open(os.path.join(args.output_baseline, f), 'rb'))[-x_len:]))
 
         print(
             'Transfer: ' + str(np.median(resTransfer[x]) * 1e4) + '\tBaseline: ' + str(np.median(resBaseline[x]) * 1e4))
