@@ -7,8 +7,8 @@
 #SBATCH -p cpu
 #SBATCH -N 1
 #SBATCH -c 12
-#SBATCH --mem=12G
-#SBATCH --time=3-12:00
+#SBATCH --mem=8G
+#SBATCH --time=0-12:00
 #
 
 export CUDA_DEVICE_ORDER=PCI_BUS_ID

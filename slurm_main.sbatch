@@ -5,9 +5,9 @@
 #SBATCH --error=slurm_log/augice.%A_%a.err
 #
 #SBATCH -p gpu
-#SBATCH -N 1-1
-#SBATCH --mem=24G
-#SBATCH --time=3-12:00
+#SBATCH -N 1
+#SBATCH --mem=12G
+#SBATCH --time=0-23:00
 #
 #SBATCH --gres=gpu:1
 #SBATCH --exclusive
