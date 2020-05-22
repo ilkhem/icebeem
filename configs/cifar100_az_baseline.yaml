@@ -24,7 +24,7 @@ model:
   num_classes: 10
   batch_norm: false
   ngf: 64
-  final_layer: true
+  final_layer: false
   feature_size: 20
   augment: true
   positive: false
