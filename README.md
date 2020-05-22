@@ -1,6 +1,4 @@
-# UAI SUBMISSION 344
-
-This repo is for the UAI submission number 344: ICE-BeeM: Identifiable Conditional Energy-Based Deep Models
+# ICE-BeeM: Identifiable Conditional Energy-Based Deep Models
 
 This is the code to run the simulations presented in the manuscript as well as the transfer learning experiments (it also allows for additional experiments not discussed in the manuscript)
 
