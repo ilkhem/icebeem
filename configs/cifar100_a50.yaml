@@ -1,0 +1,39 @@
+# config file for transfer learning example on CIFAR100
+
+training:
+  batch_size: 63
+  n_epochs: 500000
+  n_iters: 5001
+  ngpu: 1
+  snapshot_freq: 250
+  algo: 'dsm'
+  anneal_power: 2.0
+
+data:
+ dataset: "CIFAR100"
+ image_size: 32
+ channels: 3
+ logit_transform: false
+ random_flip: true
+ random_state: 0
+ split_size: .33
+
+model:
+  sigma_begin: 1
+  sigma_end: 0.01
+  num_classes: 10
+  batch_norm: false
+  ngf: 64
+  final_layer: true
+  feature_size: 50
+  augment: true
+  positive: false
+
+optim:
+  weight_decay: 0.000
+  optimizer: "Adam"
+  lr: 0.001
+  beta1: 0.9
+  amsgrad: false
+
+n_labels: 85
