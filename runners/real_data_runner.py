@@ -110,6 +110,7 @@ def get_dataset(args, config, test=False, rev=False, one_hot=True, subset=False,
 
 
 def train(args, config, conditional=True):
+    save_weights = 'baseline' not in config.data.dataset.lower()  # we don't need the
     if args.subset_size == 0:
         conditional = False
     # load dataset
@@ -151,7 +152,7 @@ def train(args, config, conditional=True):
             loss_track.append(loss.item())
             loss_track_epochs.append(loss.item())
 
-            if step >= config.training.n_iters:
+            if step >= config.training.n_iters and save_weights:
                 enet, energy_net_finalLayer = energy_net.f, energy_net.g
                 # save final checkpoints for distribution!
                 states = [
@@ -159,7 +160,7 @@ def train(args, config, conditional=True):
                     optimizer.state_dict(),
                 ]
                 print('saving weights under: {}'.format(args.checkpoints))
-                torch.save(states, os.path.join(args.checkpoints, 'checkpoint_{}.pth'.format(step)))
+                # torch.save(states, os.path.join(args.checkpoints, 'checkpoint_{}.pth'.format(step)))
                 torch.save(states, os.path.join(args.checkpoints, 'checkpoint.pth'))
                 torch.save([energy_net_finalLayer], os.path.join(args.checkpoints, 'finalLayerweights_.pth'))
                 pickle.dump(energy_net_finalLayer,
@@ -170,15 +171,15 @@ def train(args, config, conditional=True):
                 enet, energy_net_finalLayer = energy_net.f, energy_net.g
                 print('checkpoint at step: {}'.format(step))
                 # save checkpoint for transfer learning! !
-                torch.save([energy_net_finalLayer], os.path.join(args.log, 'finalLayerweights_.pth'))
-                pickle.dump(energy_net_finalLayer,
-                            open(os.path.join(args.log, 'finalLayerweights.p'), 'wb'))
-                states = [
-                    enet.state_dict(),
-                    optimizer.state_dict(),
-                ]
-                torch.save(states, os.path.join(args.log, 'checkpoint_{}.pth'.format(step)))
-                torch.save(states, os.path.join(args.log, 'checkpoint.pth'))
+                # torch.save([energy_net_finalLayer], os.path.join(args.log, 'finalLayerweights_.pth'))
+                # pickle.dump(energy_net_finalLayer,
+                #             open(os.path.join(args.log, 'finalLayerweights.p'), 'wb'))
+                # states = [
+                #     enet.state_dict(),
+                #     optimizer.state_dict(),
+                # ]
+                # torch.save(states, os.path.join(args.log, 'checkpoint_{}.pth'.format(step)))
+                # torch.save(states, os.path.join(args.log, 'checkpoint.pth'))
 
         if config.data.dataset.lower() in ['mnist_transferbaseline', 'cifar10_transferbaseline',
                                            'fashionmnist_transferbaseline', 'cifar100_transferbaseline']:
@@ -196,17 +197,18 @@ def train(args, config, conditional=True):
                                       'all_epochs_SIZE{}_SEED{}.p'.format(args.subset_size, args.seed)), 'wb'))
 
     # save final checkpoints for distrubution!
-    enet, energy_net_finalLayer = energy_net.f, energy_net.g
-    states = [
-        enet.state_dict(),
-        optimizer.state_dict(),
-    ]
-    print('saving weights under: {}'.format(args.checkpoints))
-    torch.save(states, os.path.join(args.checkpoints, 'checkpoint_{}.pth'.format(step)))
-    torch.save(states, os.path.join(args.checkpoints, 'checkpoint.pth'))
-    torch.save([energy_net_finalLayer], os.path.join(args.checkpoints, 'finalLayerweights_.pth'))
-    pickle.dump(energy_net_finalLayer,
-                open(os.path.join(args.checkpoints, 'finalLayerweights.p'), 'wb'))
+    if save_weights:
+        enet, energy_net_finalLayer = energy_net.f, energy_net.g
+        states = [
+            enet.state_dict(),
+            optimizer.state_dict(),
+        ]
+        print('saving weights under: {}'.format(args.checkpoints))
+        # torch.save(states, os.path.join(args.checkpoints, 'checkpoint_{}.pth'.format(step)))
+        torch.save(states, os.path.join(args.checkpoints, 'checkpoint.pth'))
+        torch.save([energy_net_finalLayer], os.path.join(args.checkpoints, 'finalLayerweights_.pth'))
+        pickle.dump(energy_net_finalLayer,
+                    open(os.path.join(args.checkpoints, 'finalLayerweights.p'), 'wb'))
 
 
 def transfer(args, config):
