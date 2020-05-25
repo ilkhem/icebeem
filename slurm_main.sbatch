@@ -10,10 +10,8 @@
 #SBATCH --time=0-23:00
 #
 #SBATCH --gres=gpu:1
-#SBATCH --exclusive
 
 export CUDA_DEVICE_ORDER=PCI_BUS_ID
-export CUDA_VISIBLE_DEVICES=0,1,2
 
 if [ -z ${SLURM_ARRAY_TASK_ID} ]
 then
