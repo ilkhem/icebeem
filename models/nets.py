@@ -207,10 +207,10 @@ class ConvMLP(nn.Module):
         # convolutional bit is [(conv, bn, relu, maxpool)*2, resize_conv)
         self.conv = nn.Sequential(
             # input is (nc, im, im)
-            nn.Conv2d(nc, ngf / 2, 3, 1, 1),  # (ngf/2, im, im)
-            nn.BatchNorm2d(ngf / 2),  # (ngf/2, im, im)
+            nn.Conv2d(nc, ngf // 2, 3, 1, 1),  # (ngf/2, im, im)
+            nn.BatchNorm2d(ngf // 2),  # (ngf/2, im, im)
             nn.ReLU(inplace=True),  # (ngf/2, im, im)
-            nn.Conv2d(ngf / 2, ngf, 3, 1, 1),  # (ngf, im, im)
+            nn.Conv2d(ngf // 2, ngf, 3, 1, 1),  # (ngf, im, im)
             nn.BatchNorm2d(ngf),  # (ngf, im, im)
             nn.ReLU(inplace=True),  # (ngf, im, im)
             nn.MaxPool2d(kernel_size=2, stride=2),  # (ngf, im/2, im/2)
@@ -221,7 +221,7 @@ class ConvMLP(nn.Module):
             nn.BatchNorm2d(ngf * 4),  # (ngf*4, im/2, im/2)
             nn.ReLU(inplace=True),  # (ngf*4, im/2, im/2)
             nn.MaxPool2d(kernel_size=2, stride=2),  # (ngf*4, im/4, im/4)
-            nn.Conv2d(ngf * 4, ngf * 4, im / 4, 1, 0)  # (ngf*4, 1, 1)
+            nn.Conv2d(ngf * 4, ngf * 4, im // 4, 1, 0)  # (ngf*4, 1, 1)
         )
         # linear bit is [drop, (lin, lrelu)*2, lin]
         self.linear = nn.Sequential(
@@ -234,6 +234,6 @@ class ConvMLP(nn.Module):
         )
 
     def forward(self, x):
-        h = self.conv(x)
+        h = self.conv(x).squeeze()
         output = self.linear(h)
         return output
