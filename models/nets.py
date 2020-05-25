@@ -3,6 +3,19 @@ import torch.nn.functional as F
 from torch import nn
 
 
+class smoothReLU(nn.Module):
+    """
+    smooth ReLU activation function
+    """
+
+    def __init__(self, beta=1):
+        super().__init__()
+        self.beta = 1
+
+    def forward(self, x):
+        return x / (1 + torch.exp(-self.beta * x))
+
+
 class LeafParam(nn.Module):
     """
     just ignores the input and outputs a parameter tensor
@@ -96,52 +109,7 @@ class MLPlayer(nn.Module):
         return H_x
 
 
-class SimpleLinear(nn.Linear):
-    """
-    a wrapper around nn.Linear that defines custom fields
-    """
-
-    def __init__(self, nin, nout, bias=False):
-        super().__init__(nin, nout, bias=bias)
-        self.input_size = nin
-        self.output_size = nout
-
-
 class MLP(nn.Module):
-    """
-    define a MLP network!
-    """
-
-    def __init__(self, input_size, hidden_size, n_layers, activation_function=F.relu):
-        """
-        Input:
-         - input_size  : dimension of input data (e.g., 784 for MNIST)
-         - hidden_size : size of hidden representations
-         - n_layers    : number of hidden layers
-        """
-        super().__init__()
-
-        output_size = 1  # because we approximating a log density, output should be scalar!
-
-        self.activation_function = activation_function
-        self.linear1st = nn.Linear(input_size, hidden_size)  # map from data dim to dimension of hidden units
-        self.Layers = nn.ModuleList(
-            [MLPlayer(hidden_size, activation_function=self.activation_function) for _ in range(n_layers)])
-        self.linearLast = nn.Linear(hidden_size,
-                                    output_size)  # map from dimension of hidden units to dimension of output
-
-    def forward(self, x):
-        """
-        forward pass through resnet
-        """
-        x = self.linear1st(x)
-        for _, current_layer in enumerate(self.Layers):
-            x = current_layer(x)
-        x = self.linearLast(x)
-        return x
-
-
-class MLP_general(nn.Module):
     """
     define a MLP network - this is a more general class than MLP4 above, allows for user to specify
     the dimensions at each layer of the network
@@ -179,19 +147,6 @@ class MLP_general(nn.Module):
         return x
 
 
-class smoothReLU(nn.Module):
-    """
-    smooth ReLU activation function
-    """
-
-    def __init__(self, beta=1):
-        super().__init__()
-        self.beta = 1
-
-    def forward(self, x):
-        return x / (1 + torch.exp(-self.beta * x))
-
-
 class CleanMLP(nn.Module):
     def __init__(self, input_size, hidden_size, n_hidden, output_size, activation='lrelu', batch_norm=False):
         super().__init__()
@@ -225,3 +180,14 @@ class CleanMLP(nn.Module):
 
     def forward(self, x, y=None):
         return self.net(x)
+
+
+class SimpleLinear(nn.Linear):
+    """
+    a wrapper around nn.Linear that defines custom fields
+    """
+
+    def __init__(self, nin, nout, bias=False):
+        super().__init__(nin, nout, bias=bias)
+        self.input_size = nin
+        self.output_size = nout

@@ -2,7 +2,6 @@
 #
 #
 import contextlib
-import os
 
 import numpy as np
 import torch
@@ -17,6 +16,7 @@ from data.imca import ContrastiveConditionalDataset, SimpleDataset
 from data.utils import to_one_hot
 
 torch.set_default_tensor_type('torch.cuda.FloatTensor')
+
 
 class ConditionalFCE(object):
     """

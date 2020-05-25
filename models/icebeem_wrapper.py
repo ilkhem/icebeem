@@ -7,8 +7,8 @@ import torch.nn.functional as F
 from sklearn.decomposition import FastICA
 from torch.distributions import Uniform, TransformedDistribution, SigmoidTransform
 
-from .fce import ConditionalFCE
-from .nets import MLP_general
+from losses.fce import ConditionalFCE
+from .nets import MLP
 from .nflib.flows import NormalizingFlowModel, Invertible1x1Conv, ActNorm
 from .nflib.spline_flows import NSF_AR
 
@@ -19,9 +19,9 @@ def ICEBEEM_wrapper(X, Y, ebm_hidden_size, n_layers_ebm, n_layers_flow, lr_flow,
     torch.manual_seed(seed)
     data_dim = X.shape[1]
 
-    model_ebm = MLP_general(input_size=data_dim, hidden_size=[ebm_hidden_size] * n_layers_ebm,
-                            n_layers=n_layers_ebm, output_size=data_dim, use_bn=True,
-                            activation_function=F.leaky_relu)
+    model_ebm = MLP(input_size=data_dim, hidden_size=[ebm_hidden_size] * n_layers_ebm,
+                    n_layers=n_layers_ebm, output_size=data_dim, use_bn=True,
+                    activation_function=F.leaky_relu)
 
     prior = TransformedDistribution(Uniform(torch.zeros(data_dim), torch.ones(data_dim)),
                                     SigmoidTransform().inv)
