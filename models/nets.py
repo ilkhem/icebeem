@@ -191,3 +191,49 @@ class SimpleLinear(nn.Linear):
         super().__init__(nin, nout, bias=bias)
         self.input_size = nin
         self.output_size = nout
+
+
+class ConvMLP(nn.Module):
+    def __init__(self, config):
+        super().__init__()
+        self.num_classes = config.model.num_classes
+        self.image_size = im = config.data.image_size
+        self.n_channels = nc = config.data.channels
+        self.ngf = ngf = config.model.ngf
+
+        self.input_size = config.data.image_size ** 2 * config.data.channels
+        self.output_size = config.model.feature_size
+
+        # convolutional bit is [(conv, bn, relu, maxpool)*2, resize_conv)
+        self.conv = nn.Sequential(
+            # input is (nc, im, im)
+            nn.Conv2d(nc, ngf / 2, 3, 1, 1),  # (ngf/2, im, im)
+            nn.BatchNorm2d(ngf / 2),  # (ngf/2, im, im)
+            nn.ReLU(inplace=True),  # (ngf/2, im, im)
+            nn.Conv2d(ngf / 2, ngf, 3, 1, 1),  # (ngf, im, im)
+            nn.BatchNorm2d(ngf),  # (ngf, im, im)
+            nn.ReLU(inplace=True),  # (ngf, im, im)
+            nn.MaxPool2d(kernel_size=2, stride=2),  # (ngf, im/2, im/2)
+            nn.Conv2d(ngf, ngf * 2, 3, 1, 1),  # (ngf*2, im/2, im/2)
+            nn.BatchNorm2d(ngf * 2),  # (ngf*2, im/2, im/2)
+            nn.ReLU(inplace=True),  # (ngf*2, im/2, im/2)
+            nn.Conv2d(ngf * 2, ngf * 4, 3, 1, 1),  # (ngf*4, im/2, im/2)
+            nn.BatchNorm2d(ngf * 4),  # (ngf*4, im/2, im/2)
+            nn.ReLU(inplace=True),  # (ngf*4, im/2, im/2)
+            nn.MaxPool2d(kernel_size=2, stride=2),  # (ngf*4, im/4, im/4)
+            nn.Conv2d(ngf * 4, ngf * 4, im / 4, 1, 0)  # (ngf*4, 1, 1)
+        )
+        # linear bit is [drop, (lin, lrelu)*2, lin]
+        self.linear = nn.Sequential(
+            nn.Dropout(p=0.1),
+            nn.Linear(ngf * 4, ngf * 2),
+            nn.LeakyReLU(inplace=True, negative_slope=.1),
+            nn.Linear(ngf * 2, ngf * 2),
+            nn.LeakyReLU(inplace=True, negative_slope=.1),
+            nn.Linear(ngf * 2, self.output_size)
+        )
+
+    def forward(self, x):
+        h = self.conv(x)
+        output = self.linear(h)
+        return output

@@ -20,8 +20,8 @@ from losses.dsm import dsm, cdsm
 from metrics.mcc import mean_corr_coef, mean_corr_coef_out_of_sample
 from models.ebm import ModularUnnormalizedConditionalEBM, ModularUnnormalizedEBM
 from models.nets import SimpleLinear
-from models.refinenet_dilated import RefineNetDilated
-
+# from models.refinenet_dilated import RefineNetDilated
+from models.nets import ConvMLP as RefineNetDilated
 
 def get_optimizer(config, parameters):
     if config.optim.optimizer == 'Adam':
