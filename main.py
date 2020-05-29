@@ -35,7 +35,6 @@ def parse():
                              'only relevant for transfer and representation experiments')
     parser.add_argument('--plot', action='store_true',
                         help='Plot selected experiment for the selected dataset')
-    parser.add_argument('--subdoc', default='', type=str, help='additional doc')
     args = parser.parse_args()
     return args
 
@@ -61,12 +60,11 @@ def make_and_set_dirs(args, config):
             args.doc += 'a'
         if config.model.final_layer:
             args.doc += str(config.model.feature_size)
-        args.doc = os.path.join(args.dataset, args.doc)  # group experiments by dataset
+        args.doc += config.model.architecture.lower()
     else:
         # args has no attribute doc
-        args.doc = args.dataset
-    if args.subdoc != '':
-        args.doc = os.path.join(args.doc, args.subdoc)  # for finer hierearchy, subdoc='' unless specified
+        args.doc = config.model.architecture.lower()
+    args.doc = os.path.join(args.dataset, args.doc)  # group experiments by dataset
     if 'doc2' in vars(args).keys():
         # add second level doc folder
         args.doc2 = os.path.join(args.doc, args.doc2)
@@ -88,13 +86,12 @@ def make_and_set_dirs(args, config):
             args.doc_baseline += 'a'
         if config.model.final_layer:
             args.doc_baseline += str(config.model.feature_size)
+        args.doc_baseline += config.model.architecture.lower()
         args.doc_baseline = os.path.join(args.dataset, args.doc_baseline)
-        if args.subdoc != '':
-            args.doc_baseline = os.path.join(args.doc_baseline, args.subdoc)
         args.checkpoints_baseline = os.path.join(args.run, 'checkpoints', args.doc_baseline)
-        os.makedirs(args.checkpoints, exist_ok=True)
+        os.makedirs(args.checkpoints_baseline, exist_ok=True)
         args.output_baseline = os.path.join(args.run, 'output', args.doc_baseline)
-        os.makedirs(args.output, exist_ok=True)
+        os.makedirs(args.output_baseline, exist_ok=True)
 
 
 def main():

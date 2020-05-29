@@ -20,8 +20,17 @@ from losses.dsm import dsm, cdsm
 from metrics.mcc import mean_corr_coef, mean_corr_coef_out_of_sample
 from models.ebm import ModularUnnormalizedConditionalEBM, ModularUnnormalizedEBM
 from models.nets import SimpleLinear
-# from models.refinenet_dilated import RefineNetDilated
-from models.nets import ConvMLP as RefineNetDilated
+from models.refinenet_dilated import RefineNetDilated
+from models.nets import ConvMLP, FullMLP
+
+def feature_net(config):
+    if config.model.architecture.lower() == 'convmlp':
+        return ConvMLP(config)
+    elif config.model.architecture.lower() == 'mlp':
+        return FullMLP(config)
+    elif config.model.architecture.lower() == 'unet':
+        return RefineNetDilated(config)
+
 
 def get_optimizer(config, parameters):
     if config.optim.optimizer == 'Adam':
@@ -117,13 +126,13 @@ def train(args, config, conditional=True):
     dataloader, dataset, cond_size = get_dataset(args, config, one_hot=True)
     # define the energy model
     if conditional:
-        f = RefineNetDilated(config).to(config.device)
+        f = feature_net(config).to(config.device)
         g = SimpleLinear(cond_size, f.output_size, bias=False).to(config.device)
         energy_net = ModularUnnormalizedConditionalEBM(f, g,
                                                        augment=config.model.augment,
                                                        positive=config.model.positive)
     else:
-        f = RefineNetDilated(config).to(config.device)
+        f = feature_net(config).to(config.device)
         energy_net = ModularUnnormalizedEBM(f)
     # get optimizer
     optimizer = get_optimizer(config, energy_net.parameters())
@@ -223,7 +232,7 @@ def transfer(args, config):
     ckpt_path = os.path.join(args.checkpoints, 'checkpoint.pth')
     print('loading weights from: {}'.format(ckpt_path))
     states = torch.load(ckpt_path, map_location=config.device)
-    f = RefineNetDilated(config).to(config.device)
+    f = feature_net(config).to(config.device)
     f.load_state_dict(states[0])
     if conditional:
         # define the feature network g
@@ -280,7 +289,7 @@ def semisupervised(args, config):
     ckpt_path = os.path.join(args.checkpoints, 'checkpoint.pth')
     print('loading weights from: {}'.format(ckpt_path))
     states = torch.load(ckpt_path, map_location=config.device)
-    f = RefineNetDilated(config).to(config.device)
+    f = feature_net(config).to(config.device)
     f.load_state_dict(states[0])
 
     representations = np.zeros((10000, f.output_size))
@@ -322,7 +331,7 @@ def compute_representations(args, config, conditional=True):
     ckpt_path = os.path.join(args.checkpoints, 'checkpoint.pth')
     print('loading weights from: {}'.format(ckpt_path))
     states = torch.load(ckpt_path, map_location=config.device)
-    f = RefineNetDilated(config).to(config.device)
+    f = feature_net(config).to(config.device)
     f.load_state_dict(states[0])
 
     # compute and save test features
@@ -376,21 +385,6 @@ def compute_mcc(args, config):
 
 
 def plot_representation(args, config):
-    # files = [os.path.join(args.output, f) for f in os.listdir(args.output)]
-    # max_seed = max([max(int(x[-3]), int(x[-5])) for x in files])
-    # files_baseline = [os.path.join(args.output_baseline, f) for f in os.listdir(args.output_baseline)]
-    # max_seed_baseline = max([max(int(x[-3]), int(x[-5])) for x in files_baseline])
-
-    # if args.n_sims == 0 or (args.n_sims + args.seed > max_seed and args.n_sims + args.seed > max_seed_baseline):
-    #     pass
-    # elif args.n_sims + args.seed <= min(max_seed, max_seed_baseline):
-    #     max_seed = max_seed_baseline = args.n_sims + args.seed
-    # elif args.n_sims + args.seed <= max_seed and args.n_sims + args.seed > max_seed_baseline:
-    #     max_seed = args.n_sims + args.seed
-    # elif args.n_sims + args.seed > max_seed_baseline and args.n_sims + args.seed <= max_seed_baseline:
-    #     max_seed_baseline = args.n_sims + args.seed
-    # else:
-    #     raise ValueError('args n_sims :{}'.format(args.n_sims))
     max_seed = max_seed_baseline = args.n_sims
 
     mcc_strong_cond_in = []
@@ -465,9 +459,9 @@ def plot_representation(args, config):
     _print_stats(mcc_weak_cond_out, mcc_weak_uncond_out, title='weak iden. out of sample')
     # boxplot
     _boxplot(mcc_strong_cond_in, mcc_strong_uncond_in, mcc_weak_cond_in, mcc_weak_uncond_in,
-             ylabel='in sample', ext='in_{}_{}'.format(max_seed, max_seed_baseline))
+             ylabel='in sample', ext='in_{}_{}_{}'.format(max_seed, max_seed_baseline, config.model.architecture.lower()))
     _boxplot(mcc_strong_cond_out, mcc_strong_uncond_out, mcc_weak_cond_out, mcc_weak_uncond_out,
-             ylabel='out of sample', ext='out_{}_{}'.format(max_seed, max_seed_baseline))
+             ylabel='out of sample', ext='out_{}_{}_{}'.format(max_seed, max_seed_baseline, config.model.architecture.lower()))
 
 
 def plot_transfer(args, config):
@@ -497,9 +491,10 @@ def plot_transfer(args, config):
         print(
             'Transfer: ' + str(np.median(resTransfer[x]) * 1e4) + '\tBaseline: ' + str(np.median(resBaseline[x]) * 1e4))
 
-    resTsd = np.array([np.std(resTransfer[x]) * 1e4 for x in samplesSizes if x!=0])
-    resT = np.array([np.median(resTransfer[x]) * 1e4 for x in samplesSizes if x!=0])
-    resBas = np.array([np.median(resBaseline[x]) * 1e4 for x in samplesSizes if x!=0])
+    samplesSizes.remove(0)
+    resTsd = np.array([np.std(resTransfer[x]) * 1e4 for x in samplesSizes])
+    resT = np.array([np.median(resTransfer[x]) * 1e4 for x in samplesSizes])
+    resBas = np.array([np.median(resBaseline[x]) * 1e4 for x in samplesSizes])
 
     f, (ax1) = plt.subplots(1, 1, figsize=(4, 4))
     ax1.plot(samplesSizes, resT, label='Transfer', linewidth=2, color=sns.color_palette()[2])
@@ -517,4 +512,4 @@ def plot_transfer(args, config):
         file_name += 'a_'
     if config.model.final_layer:
         file_name += str(config.model.feature_size) + '_'
-    plt.savefig(os.path.join(args.run, '{}{}.pdf'.format(file_name, args.dataset.lower())))
+    plt.savefig(os.path.join(args.run, '{}{}_{}.pdf'.format(file_name, args.dataset.lower(), config.model.architecture.lower())))

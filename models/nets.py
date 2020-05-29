@@ -193,6 +193,36 @@ class SimpleLinear(nn.Linear):
         self.output_size = nout
 
 
+class FullMLP(nn.Module):
+    def __init__(self, config):
+        super().__init__()
+        self.num_classes = config.model.num_classes
+        self.image_size = config.data.image_size
+        self.n_channels = config.data.channels
+        self.ngf = ngf = config.model.ngf
+
+        self.input_size = config.data.image_size ** 2 * config.data.channels
+        self.output_size = config.model.feature_size
+
+        self.linear = nn.Sequential(
+            nn.Linear(self.input_size, ngf * 8),
+            nn.LeakyReLU(inplace=True, negative_slope=.1),
+            nn.Linear(ngf * 8, ngf * 6),
+            nn.LeakyReLU(inplace=True, negative_slope=.1),
+            nn.Dropout(p=0.1),
+            nn.Linear(ngf * 6, ngf * 4),
+            nn.LeakyReLU(inplace=True, negative_slope=.1),
+            nn.Linear(ngf * 4, ngf * 4),
+            nn.LeakyReLU(inplace=True, negative_slope=.1),
+            nn.Linear(ngf * 4, self.output_size)
+        )
+
+    def forward(self, x):
+        output = x.view(x.shape[0], -1)
+        output = self.linear(output)
+        return output
+
+
 class ConvMLP(nn.Module):
     def __init__(self, config):
         super().__init__()

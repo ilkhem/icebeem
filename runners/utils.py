@@ -1,7 +1,7 @@
 import os
 
 
-def get_doc(doc, baseline, augment, positive, feature_size):
+def get_doc(doc, baseline, augment, positive, feature_size, arch):
     if baseline:
         doc += 'Baseline'
     if augment:
@@ -10,11 +10,12 @@ def get_doc(doc, baseline, augment, positive, feature_size):
         doc += 'p'
     if feature_size > 0:
         doc += str(feature_size)
+    doc += arch.lower()
     return doc
 
 
-def check_mcc(dset, baseline=False, augment=False, positive=False, feature_size=0):
-    doc = get_doc('representation', baseline, augment, positive, feature_size)
+def check_mcc(dset, baseline=False, augment=False, positive=False, feature_size=0, arch='ConvMLP'):
+    doc = get_doc('representation', baseline, augment, positive, feature_size, arch)
     path = os.path.join('run', 'output', dset, doc)
     files = os.listdir(path)
     acc = []
@@ -27,8 +28,8 @@ def check_mcc(dset, baseline=False, augment=False, positive=False, feature_size=
         print('Missing MCCs: {}'.format(acc))
 
 
-def check_rep(dset, baseline=False, augment=False, positive=False, feature_size=0):
-    doc = get_doc('representation', baseline, augment, positive, feature_size)
+def check_rep(dset, baseline=False, augment=False, positive=False, feature_size=0, arch='ConvMLP'):
+    doc = get_doc('representation', baseline, augment, positive, feature_size, arch)
     path = os.path.join('run', 'checkpoints', dset, doc)
     files = os.listdir(path)
     acc1 = []
@@ -47,8 +48,8 @@ def check_rep(dset, baseline=False, augment=False, positive=False, feature_size=
             print('Representations coorupted for {}'.format(acc2))
 
 
-def check_transfer(dset, baseline=False, augment=False, positive=False, feature_size=0):
-    doc = get_doc('transfer', baseline, augment, positive, feature_size)
+def check_transfer(dset, baseline=False, augment=False, positive=False, feature_size=0, arch='ConvMLP'):
+    doc = get_doc('transfer', baseline, augment, positive, feature_size, arch)
     path = os.path.join('run', 'output', dset, doc)
     files = os.listdir(path)
     acc = []

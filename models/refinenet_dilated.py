@@ -1,5 +1,3 @@
-### architecture for mnist experiments 
-#
 # adapted from: https://github.com/ermongroup/ncsn/
 
 from functools import partial
