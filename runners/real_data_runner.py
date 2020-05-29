@@ -433,21 +433,21 @@ def plot_representation(args, config):
         sns.set_style("whitegrid")
         sns.set_palette('deep')
         data = [res_weak_cond, res_weak_uncond, res_strong_cond, res_strong_uncond]
-        labels = ['weak cond', 'weak uncond', 'strong cond', 'strong uncond']
+        labels = ['ICE-BeeM\nWeak', 'Baseline\nWeak', 'ICE-BeeM\nStrong', 'Baseline\nStrong']
         colours = [sns.color_palette()[2], sns.color_palette()[4], sns.color_palette()[2], sns.color_palette()[4]]
-        fig, ax = plt.subplots()
-        bp = ax.boxplot(data, whis=1.5)
+        fig, ax = plt.subplots(figsize=(4,4))
+        bp = ax.boxplot(data, whis=1.5, showfliers=False)
         for i in range(len(colours)):
             plt.setp(bp['boxes'][i], color=colours[i])
             plt.setp(bp['whiskers'][2 * i], color=colours[i])
             plt.setp(bp['whiskers'][2 * i + 1], color=colours[i])
             plt.setp(bp['caps'][2 * i], color=colours[i])
             plt.setp(bp['caps'][2 * i + 1], color=colours[i])
-            plt.setp(bp['fliers'][i], color=colours[i], marker='D')
+            # plt.setp(bp['fliers'][i], color=colours[i], marker='D')
         ax.set_xlim(0.5, len(data) + 0.5)
-        ax.set_xticklabels(labels, rotation=45, fontsize=9)
+        ax.set_xticklabels(labels, fontsize=9)
         ax.set_ylabel('MCC {}'.format(ylabel))
-        ax.set_title('Quality of representations on {}'.format(args.dataset))
+        ax.set_title('Quality of rep. on {}'.format(args.dataset))
         fig.tight_layout()
         file_name = 'representation_'
         if config.model.positive:
@@ -497,10 +497,9 @@ def plot_transfer(args, config):
         print(
             'Transfer: ' + str(np.median(resTransfer[x]) * 1e4) + '\tBaseline: ' + str(np.median(resBaseline[x]) * 1e4))
 
-    resTsd = np.array([np.std(resTransfer[x]) * 1e4 for x in samplesSizes])
-
-    resT = np.array([np.median(resTransfer[x]) * 1e4 for x in samplesSizes])
-    resBas = np.array([np.median(resBaseline[x]) * 1e4 for x in samplesSizes])
+    resTsd = np.array([np.std(resTransfer[x]) * 1e4 for x in samplesSizes if x!=0])
+    resT = np.array([np.median(resTransfer[x]) * 1e4 for x in samplesSizes if x!=0])
+    resBas = np.array([np.median(resBaseline[x]) * 1e4 for x in samplesSizes if x!=0])
 
     f, (ax1) = plt.subplots(1, 1, figsize=(4, 4))
     ax1.plot(samplesSizes, resT, label='Transfer', linewidth=2, color=sns.color_palette()[2])

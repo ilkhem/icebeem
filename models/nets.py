@@ -226,11 +226,11 @@ class ConvMLP(nn.Module):
         # linear bit is [drop, (lin, lrelu)*2, lin]
         self.linear = nn.Sequential(
             nn.Dropout(p=0.1),
-            nn.Linear(ngf * 4, ngf * 2),
+            nn.Linear(ngf * 4, ngf * 4),
+            # nn.LeakyReLU(inplace=True, negative_slope=.1),
+            # nn.Linear(ngf * 2, ngf * 2),
             nn.LeakyReLU(inplace=True, negative_slope=.1),
-            nn.Linear(ngf * 2, ngf * 2),
-            nn.LeakyReLU(inplace=True, negative_slope=.1),
-            nn.Linear(ngf * 2, self.output_size)
+            nn.Linear(ngf * 4, self.output_size)
         )
 
     def forward(self, x):

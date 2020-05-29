@@ -35,7 +35,7 @@ def parse():
                              'only relevant for transfer and representation experiments')
     parser.add_argument('--plot', action='store_true',
                         help='Plot selected experiment for the selected dataset')
-
+    parser.add_argument('--subdoc', default='', type=str, help='additional doc')
     args = parser.parse_args()
     return args
 
@@ -65,6 +65,8 @@ def make_and_set_dirs(args, config):
     else:
         # args has no attribute doc
         args.doc = args.dataset
+    if args.subdoc != '':
+        args.doc = os.path.join(args.doc, args.subdoc)  # for finer hierearchy, subdoc='' unless specified
     if 'doc2' in vars(args).keys():
         # add second level doc folder
         args.doc2 = os.path.join(args.doc, args.doc2)
@@ -87,6 +89,8 @@ def make_and_set_dirs(args, config):
         if config.model.final_layer:
             args.doc_baseline += str(config.model.feature_size)
         args.doc_baseline = os.path.join(args.dataset, args.doc_baseline)
+        if args.subdoc != '':
+            args.doc_baseline = os.path.join(args.doc_baseline, args.subdoc)
         args.checkpoints_baseline = os.path.join(args.run, 'checkpoints', args.doc_baseline)
         os.makedirs(args.checkpoints, exist_ok=True)
         args.output_baseline = os.path.join(args.run, 'output', args.doc_baseline)
