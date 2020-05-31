@@ -498,6 +498,13 @@ def plot_transfer(args, config):
         print(
             'Transfer: ' + str(np.median(resTransfer[x]) * 1e4) + '\tBaseline: ' + str(np.median(resBaseline[x]) * 1e4))
 
+    config_type = config.model.architecture +'-'+ str(config.model.feature_size)*config.model.final_layer + 'p'*config.model.positive +'a'*config.model.augment
+    print('{} & \emph{{{}}} & ${:.2f} \pm {:.2f}$ & ${:.2f} \pm {:.2f}$ & ${:.2f} \pm {:.2f}$ & ${:.2f} \pm {:.2f}$ \\\\'.format(config.data.dataset, config_type,
+                                                                                                                1e4*np.mean(resTransfer[6000]), 1e4*np.std(resTransfer[6000]),
+                                                                                                                1e4*np.mean(resTransfer[0]), 1e4*np.std(resTransfer[0]),
+                                                                                                                1e4*np.mean(resBaseline[6000]), 1e4*np.std(resBaseline[6000]),
+                                                                                                                1e4*np.mean(resBaseline[0]), 1e4*np.std(resBaseline[0])))
+
     samplesSizes.remove(0)
     resTsd = np.array([np.std(resTransfer[x]) * 1e4 for x in samplesSizes])
     resT = np.array([np.median(resTransfer[x]) * 1e4 for x in samplesSizes])
