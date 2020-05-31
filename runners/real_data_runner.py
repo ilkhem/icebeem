@@ -59,7 +59,6 @@ def get_dataset(args, config, test=False, rev=False, one_hot=True, subset=False,
         test = False
         subset = True
         reduce_labels = True
-    print('[DEBUG] rev {} test {} subset {} no_collate {} one_hot {}'.format(rev, test, subset, reduce_labels, one_hot))
 
     if config.data.random_flip is False:
         transform = transforms.Compose([
@@ -114,7 +113,6 @@ def get_dataset(args, config, test=False, rev=False, one_hot=True, subset=False,
         dataset = torch.utils.data.Subset(dataset, np.arange(args.subset_size))
     dataloader = DataLoader(dataset, batch_size=config.training.batch_size, shuffle=shuffle, num_workers=0)
 
-    print('[DEBUG] len(dset) {}'.format(len(dataset)))
     return dataloader, dataset, cond_size
 
 
@@ -281,6 +279,8 @@ def semisupervised(args, config):
     after pretraining an icebeem (or unconditional EBM) on labels 0-7, we use the learnt features to classify
     labels in classes 8-9
     """
+    from warnings import filterwarnings
+    filterwarnings('ignore')
     class_model = LinearSVC  # LogisticRegression
     test_size = config.data.split_size
     # load data
@@ -292,26 +292,33 @@ def semisupervised(args, config):
     f = feature_net(config).to(config.device)
     f.load_state_dict(states[0])
 
-    representations = np.zeros((10000, f.output_size))
-    labels = np.zeros((10000,))
-    counter = 0
-    for i, (X, y) in enumerate(dataloader):
-        X = X.to(config.device)
-        rep_i = f(X).view(-1, f.output_size).data.cpu().numpy()
-        representations[counter:(counter + rep_i.shape[0])] = rep_i
-        labels[counter:(counter + rep_i.shape[0])] = y.data.cpu().numpy()
-        counter += rep_i.shape[0]
-    representations = representations[:counter]
-    labels = labels[:counter]
+    accs = []
+    for i in range(5):
+        representations = np.zeros((10000, f.output_size))
+        labels = np.zeros((10000,))
+        counter = 0
+        for i, (X, y) in enumerate(dataloader):
+            X = X.to(config.device)
+            rep_i = f(X).view(-1, f.output_size).data.cpu().numpy()
+            representations[counter:(counter + rep_i.shape[0])] = rep_i
+            labels[counter:(counter + rep_i.shape[0])] = y.data.cpu().numpy()
+            counter += rep_i.shape[0]
+        representations = representations[:counter]
+        labels = labels[:counter]
 
-    labels -= config.n_labels
-    rep_train, rep_test, lab_train, lab_test = train_test_split(scale(representations), labels, test_size=test_size,
-                                                                random_state=config.data.random_state)
-    clf = class_model(random_state=0, max_iter=2000).fit(rep_train, lab_train)
-    acc = accuracy_score(lab_test, clf.predict(rep_test)) * 100
+        labels -= config.n_labels
+        rep_train, rep_test, lab_train, lab_test = train_test_split(scale(representations), labels, test_size=test_size,
+                                                                    random_state=config.data.random_state)
+        clf = class_model(random_state=0, max_iter=2000).fit(rep_train, lab_train)
+        acc = accuracy_score(lab_test, clf.predict(rep_test)) * 100
+        accs.append(acc)
+
+    mean_acc = np.mean(accs)
+    std_acc = np.std(accs)
+
     print('#' * 10)
     msg = 'Accuracy of ' + args.baseline * 'unconditional' + (
-            1 - args.baseline) * 'transfer' + ' representation: acc={}'.format(np.round(acc, 2))
+            1 - args.baseline) * 'transfer' + ' representation: acc= {} \pm {}'.format(np.round(mean_acc, 2), np.round(std_acc, 2))
     print(msg)
     print('#' * 10)
 

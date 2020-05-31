@@ -62,7 +62,7 @@ def check_transfer(dset, baseline=False, augment=False, positive=False, feature_
         print('Missing transfer output for size/seed: {}'.format(acc))
 
 
-def check_all(dset, baseline=False, augment=False, positive=False, feature_size=0):
-    check_transfer(dset, baseline, augment, positive, feature_size)
-    check_rep(dset, baseline, augment, positive, feature_size)
-    check_mcc(dset, baseline, augment, positive, feature_size)
+def check_all(dset, baseline=False, augment=False, positive=False, feature_size=0, arch='ConvMLP'):
+    check_transfer(dset, baseline, augment, positive, feature_size, arch)
+    check_rep(dset, baseline, augment, positive, feature_size, arch)
+    check_mcc(dset, baseline, augment, positive, feature_size, arch)
