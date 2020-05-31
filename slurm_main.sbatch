@@ -1,8 +1,8 @@
 #!/bin/bash
 #
-#SBATCH --job-name=augice
-#SBATCH --output=slurm_log/augice.%A_%a.out
-#SBATCH --error=slurm_log/augice.%A_%a.err
+#SBATCH --job-name=newice
+#SBATCH --output=slurm_log/newice.%A_%a.out
+#SBATCH --error=slurm_log/newice.%A_%a.err
 #
 #SBATCH -p gpu
 #SBATCH -N 1

@@ -26,10 +26,10 @@ model:
   batch_norm: false
   ngf: 64
   final_layer: true
-  feature_size: 200
+  feature_size: 90
   augment: false
-  positive: true
-  architecture: 'MLP'
+  positive: false
+  architecture: 'ConvMLP'
 
 optim:
   weight_decay: 0.000
