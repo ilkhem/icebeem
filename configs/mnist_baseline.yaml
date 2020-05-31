@@ -22,10 +22,11 @@ model:
   sigma_end: 0.01
   num_classes: 10
   ngf: 64
-  final_layer: false
-  feature_size: 20
+  final_layer: true
+  feature_size: 200
   augment: false
   positive: false
+  architecture: 'MLP'
 
 optim:
   weight_decay: 0.000

@@ -25,10 +25,11 @@ model:
   num_classes: 10
   batch_norm: false
   ngf: 64
-  final_layer: false
-  feature_size: 50
+  final_layer: true
+  feature_size: 200
   augment: false
-  positive: false
+  positive: true
+  architecture: 'MLP'
 
 optim:
   weight_decay: 0.000
