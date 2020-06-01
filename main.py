@@ -35,6 +35,10 @@ def parse():
                              'only relevant for transfer and representation experiments')
     parser.add_argument('--plot', action='store_true',
                         help='Plot selected experiment for the selected dataset')
+    # THIS OPTIONS ARE FOR DEBUG ONLY --- WILL BE REMOVED
+    parser.add_argument('-a', action='store_true')
+    parser.add_argument('-p', action='store_true')
+    parser.add_argument('-z', type=int, default=0)
     args = parser.parse_args()
     return args
 
@@ -112,6 +116,14 @@ def main():
     # set random seeds
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)
+    # FOR DEBUG ONLY
+    if args.a:
+        config.model.augment = True
+    if args.p:
+        config.model.positive = True
+    if args.z > 0:
+        config.model.final_layer = True
+        config.model.feature_size = args.z
 
     # TRANSFER LEARNING EXPERIMENTS
     # 1- no special flag: pretrain icebeem on 0-7 // --doc should be different between datasets
