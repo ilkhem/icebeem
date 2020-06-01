@@ -448,7 +448,7 @@ def plot_representation(args, config):
         ax.set_xlim(0.5, len(data) + 0.5)
         ax.set_xticklabels(labels, fontsize=9)
         ax.set_ylabel('MCC {}'.format(ylabel))
-        ax.set_title('Quality of rep. on {}'.format(args.dataset))
+        ax.set_title('Identifiability of representations')
         fig.tight_layout()
         file_name = 'representation_'
         if config.model.positive:
@@ -516,8 +516,8 @@ def plot_transfer(args, config):
     ax1.plot(samplesSizes, resBas, label='Baseline', linewidth=2, color=sns.color_palette()[4])
     ax1.legend()
     ax1.set_xlabel('Train dataset size')
-    ax1.set_ylabel('DSM Objective (scaled)')
-    ax1.set_title('Conditional DSM Objective')
+    ax1.set_ylabel('CDSM Objective (scaled)')
+    ax1.set_title('Transfer learning')
     f.tight_layout()
     file_name = 'transfer_'
     if config.model.positive:
