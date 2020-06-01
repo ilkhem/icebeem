@@ -12,5 +12,5 @@ ivae:
 icebeem:
   lr_flow: 0.00001
   lr_ebm: 0.0003
-  n_layers_flow: 10
-  ebm_hidden_size: 32
+  n_layers_flow: 10 # make 5 for L=2 IMCA best perf
+  ebm_hidden_size: 32 # make 16 for L=2 IMCA best perf
