@@ -433,11 +433,14 @@ def plot_representation(args, config):
     def _boxplot(res_strong_cond, res_strong_uncond, res_weak_cond, res_weak_uncond, ylabel='in sample', ext='in'):
         sns.set_style("whitegrid")
         sns.set_palette('deep')
+        capsprops = whiskerprops = boxprops = dict(linewidth=2)
+        medianprops = dict(linewidth=2, color='firebrick')
         data = [res_weak_cond, res_weak_uncond, res_strong_cond, res_strong_uncond]
         labels = ['ICE-BeeM\nWeak', 'Baseline\nWeak', 'ICE-BeeM\nStrong', 'Baseline\nStrong']
         colours = [sns.color_palette()[2], sns.color_palette()[4], sns.color_palette()[2], sns.color_palette()[4]]
         fig, ax = plt.subplots(figsize=(4,4))
-        bp = ax.boxplot(data, whis=1.5, showfliers=False)
+        bp = ax.boxplot(data, whis=1.5, showfliers=False, boxprops=boxprops, capprops=capsprops,
+                        whiskerprops=whiskerprops, medianprops=medianprops)
         for i in range(len(colours)):
             plt.setp(bp['boxes'][i], color=colours[i])
             plt.setp(bp['whiskers'][2 * i], color=colours[i])
@@ -511,9 +514,9 @@ def plot_transfer(args, config):
     resBas = np.array([np.median(resBaseline[x]) * 1e4 for x in samplesSizes])
 
     f, (ax1) = plt.subplots(1, 1, figsize=(4, 4))
-    ax1.plot(samplesSizes, resT, label='Transfer', linewidth=2, color=sns.color_palette()[2])
+    ax1.plot(samplesSizes, resT, marker='v', label='Transfer', linewidth=2, color=sns.color_palette()[2])
     ax1.fill_between(samplesSizes, resT + 2 * resTsd, resT - 2 * resTsd, alpha=.25, color=sns.color_palette()[2])
-    ax1.plot(samplesSizes, resBas, label='Baseline', linewidth=2, color=sns.color_palette()[4])
+    ax1.plot(samplesSizes, resBas, marker='o', label='Baseline', linewidth=2, color=sns.color_palette()[4])
     ax1.legend()
     ax1.set_xlabel('Train dataset size')
     ax1.set_ylabel('CDSM Objective (scaled)')
