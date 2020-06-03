@@ -202,7 +202,10 @@ class FullMLP(nn.Module):
         self.ngf = ngf = config.model.ngf
 
         self.input_size = config.data.image_size ** 2 * config.data.channels
-        self.output_size = config.model.feature_size
+        self.output_size = self.input_size
+        if config.model.final_layer:
+            self.output_size = config.model.feature_size
+
 
         self.linear = nn.Sequential(
             nn.Linear(self.input_size, ngf * 8),
@@ -232,7 +235,9 @@ class ConvMLP(nn.Module):
         self.ngf = ngf = config.model.ngf
 
         self.input_size = config.data.image_size ** 2 * config.data.channels
-        self.output_size = config.model.feature_size
+        self.output_size = self.input_size
+        if config.model.final_layer:
+            self.output_size = config.model.feature_size
 
         # convolutional bit is [(conv, bn, relu, maxpool)*2, resize_conv)
         self.conv = nn.Sequential(

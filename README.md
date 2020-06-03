@@ -1,6 +1,6 @@
-# ICE-BeeM: Identifiable Conditional Energy-Based Deep Models
+# ICE-BeeM: Identifiable Conditional Energy-Based Deep Models Based on Nonlinear ICA 
 
-This is the code to run the simulations presented in the manuscript as well as the transfer learning experiments (it also allows for additional experiments not discussed in the manuscript)
+This is the code to run the experiments presented in the manuscript as.
 
 ## Dependencies
 
@@ -18,7 +18,7 @@ This project was tested with the following versions:
 
 We compared an ICE-BeeM model trained with flow contrastive estimation (FCE) to nonlinear ICA methods (iVAE and TCL).
 
- We first compared these methods on nonstationary data generated according to a nonlinear ICA model (we refer to this dataset as TCL. Second, the data was generated from a nonstationary IMCA model (where the latent variables are _dependent_) which we refer to as IMCA.
+We first compared these methods on nonstationary data generated according to a nonlinear ICA model (we refer to this dataset as `TCL`. Second, the data was generated from a nonstationary IMCA model (where the latent variables are _dependent_) which we refer to as `IMCA`.
 
 To reproduce the simulations, run for e.g.:
 
@@ -30,7 +30,7 @@ Type `python simulations.py --help` to learn about the arguments:
 
 ```
 usage: simulations.py [-h] [--dataset DATASET] [--method METHOD]
-                      [--config CONFIG] [--run RUN] [--n-sims NSIMS] [--test]
+                      [--config CONFIG] [--run RUN] [--nSims NSIMS] [--test]
                       [--plot]
 
 optional arguments:
@@ -39,7 +39,7 @@ optional arguments:
   --method METHOD    Method to employ. Should be TCL, iVAE or ICE-BeeM
   --config CONFIG    Path to the config file
   --run RUN          Path for saving running related data.
-  --n-sims NSIMS      Number of simulations to run
+  --nSims NSIMS      Number of simulations to run
   --test             Whether to evaluate the models from checkpoints
   --plot             Plot comparison of performances
 ```
@@ -51,25 +51,35 @@ The results of each simulation is saved in the value of the flag `--run` (defula
 These experiments are run through the script `main.py`. Below are details on how to use the script. To learn about its arguments type `python main.py --help`:
 
 ```
-usage: main.py [-h] [--config CONFIG] [--run RUN] [--n-sims NSIMS]
+usage: main.py [-h] [--config CONFIG] [--run RUN] [--n-sims N_SIMS]
                [--seed SEED] [--baseline] [--transfer] [--semisupervised]
-               [--representation] [--subset-size SUBSETSIZE] [--all] [--plot]
+               [--representation] [--mcc] [--second-seed SECOND_SEED]
+               [--subset-size SUBSET_SIZE] [--all] [--plot] [-a] [-p] [-z Z]
 
 optional arguments:
   -h, --help            show this help message and exit
   --config CONFIG       Path to the config file
   --run RUN             Path for saving running related data.
-  --n-sims NSIMS         Number of simulations to run
+  --n-sims N_SIMS       Number of simulations to run
   --seed SEED           Random seed
   --baseline            Run the script for the baseline
-  --transfer            Run the transfer learning experiments after pretraining
+  --transfer            Run the transfer learning experiments after
+                        pretraining
   --semisupervised      Run semi-supervised experiments
-  --representation      Run CCA representation validation across multiple seeds
-  --subset-size SUBSETSIZE
+  --representation      Run CCA representation validation across multiple
+                        seeds
+  --mcc                 compute MCCs -- only relevant for representation
+                        experiments
+  --second-seed SECOND_SEED
+                        Second random seed for computing MCC -- only relevant
+                        for representation experiments
+  --subset-size SUBSET_SIZE
                         Number of data points per class to consider -- only
-                        relevant for transfer learning if not run with --all flag
+                        relevant for transfer learning if not run with --all
+                        flag
   --all                 Run transfer learning experiment for many seeds and
-                        subset sizes -- only relevant for transfer learning
+                        subset sizes -- only relevant for transfer and
+                        representation experiments
   --plot                Plot selected experiment for the selected dataset
 ```
 
