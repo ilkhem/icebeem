@@ -1,6 +1,6 @@
 # ICE-BeeM: Identifiable Conditional Energy-Based Deep Models Based on Nonlinear ICA 
 
-This is the code to run the experiments presented in the manuscript as.
+This is the code to run the experiments presented in the manuscript.
 
 ## Dependencies
 
@@ -91,8 +91,7 @@ only considering the labels `0-n_labels`, the latter being specified by the conf
 while keeping the feature extractor **f** fixed (after it was trained using `train`).
 - `semisupervised`: loads a feature extractor **f** from a (conditional) EBM pretrained on labels `0-n_labels` and uses it
 to classify classes `n_labels-len(dset)`
-- `cca_representations`: trains a (conditional) energy model on a dataset (ignoring the `n_labels` field)
-, saves the feature network **f**, and uses it to compute and save the learnt representation on the test split of
+- `compute_representations`: trains a (conditional) energy model on a dataset (ignoring the `n_labels` field), saves the feature network **f**, and uses it to compute and save the learnt representation on the test split of
 the dataset.
 
 Below, we explain how to call these functions using the `main.py` script to recreate the experiments from the manuscript.
@@ -102,57 +101,13 @@ The experiments can be ran for:
 - CIFAR10: by setting the flag `--config` to `cifar10.yaml`.
 - CIFAR10: by setting the flag `--config` to `cifar100.yaml`.
 
-
-### Transfer learning
-
-In this experiment, we compare:
-
-- Training an ICE-BeeM **f**.**g** on labels 0-7, then fixing **f** and learning only **g** on new unseen labels 8-9.
-- Training an ICE-BeeM **f**.**g** directly on labels 8-9.
-
-The idea is to see whether the feature extractor **f** can learn meaningful representations from similar datasets, especially when the size of the dataset is small. We use the denoising dcore matching (DSM) loss as a comparison metric (lower is better).
-
-To run the experiment on MNIST:
-
-```
-# pretrain an ICE-BeeM on labels 0-7
-python main.py --config mnist.yaml
-# fix f and only learn g on labels 8-9 for many different dataset sizes and different seeds
-python main.py --config mnist.yaml --transfer --all
-# train an ICE-BeeM on labels 8-9 for many different dataset sizes and different seeds
-python main.py --config mnist.yaml --transfer --baseline --all
-```
-
-The results are saved in the value of the flag `--run` (defulat is `run/` folder). To plot the comparison for MNIST after running the steps above:
-
-```
-python main.py --config mnist.yaml --transfer --plot
-```
-
-We also provide model checkpoints and experimental log to skip the training step.
-
-### Semi-supervised learning
-
-In the semi-supervised learning experiment, we compare:
-
-- Training an ICE-BeeM **f**.**g** on labels 0-7, then using it to classify unseen labels 8-9.
-- Training an unconditional EBM **h**.**1** on labels 0-7, then using it to classify unseen labels 8-9.
-
-We use the classification accuracy as a comparison metric.
-
-```
-# pretrain an ICE-BeeM on labels 0-7 // same as first step in transfer learning exp
-python main.py --config mnist.yaml
-# pretrain an unconditional EBM on labels 0-7
-python main.py --config mnist.yaml --baseline
-# classify labels 8-9 using the pretrained ICE-BeeM
-python main.py --config mnist.yaml --semisupervised
-# classify labels 8-9 using the pretrained unconditional EBM
-python main.py --config mnist.yaml --semisupervised --baseline
-```
-
-We also provide model checkpoints and experimental log to skip the training steps.
-
+The configuration files control most of the hyperparameters used for training and evaluation.
+Notable fields are:
+- `final_layer`: whether to apply a final FC layer to reduce the dimension of the latent space. To be used in conjunction with `feature_size`, which specifies the output (latent/feature) dimension.
+- `architecture`: the architecture of the feature extractor **f**, can be `MLP`, `ConvMLP` or `Unet`. These different architectures are discussed in the Appendix.
+- `positive`: whether to use positive features by applying a ReLU to the output of **f** (condition 3 of Theorem 2).
+-  `positive`: whether to augment features by adding the square of **f** (condition 3 of Theorem 2).
+When changing these fields in configuration `X.yaml`, make sure to also change them in `X_baseline.yaml`. The latter only serves for the baseline of transfer learning.
 
 ### Identifiability of representations
 
@@ -190,8 +145,57 @@ Finally, to visualize the MCC statistics with a boxplot:
 python main.py --config mnist.yaml --representation --plot
 ```
 
+
+### Transfer learning
+
+In this experiment, we compare:
+
+- Training an ICE-BeeM **f**.**g** on labels 0-7, then fixing **f** and learning only **g** on new unseen labels 8-9. This has the advantage of simplifying the learning, since **g** is much easier to train than **f** (we set it to a vector in our experiments).
+- Training an ICE-BeeM **f**.**g** directly on labels 8-9.
+
+The idea is to see whether the feature extractor **f** can learn meaningful representations from similar datasets, especially when the size of the dataset is small. We use the denoising dcore matching (DSM) loss as a comparison metric (lower is better).
+
+To run the experiment on MNIST:
+
+```
+# pretrain an ICE-BeeM on labels 0-7
+python main.py --config mnist.yaml
+# fix f and only learn g on labels 8-9 for many different dataset sizes and different seeds
+python main.py --config mnist.yaml --transfer --all
+# train an ICE-BeeM on labels 8-9 for many different dataset sizes and different seeds
+python main.py --config mnist.yaml --transfer --baseline --all
+```
+
+The results are saved in the value of the flag `--run` (defulat is `run/` folder). To plot the comparison for MNIST after running the steps above:
+
+```
+python main.py --config mnist.yaml --transfer --plot
+```
+
+
+### Semi-supervised learning
+
+In the semi-supervised learning experiment, we compare:
+
+- Training an ICE-BeeM **f**.**g** on labels 0-7, then using it to classify unseen labels 8-9.
+- Training an unconditional EBM **h**.**1** on labels 0-7, then using it to classify unseen labels 8-9.
+
+We use the classification accuracy as a comparison metric.
+
+```
+# pretrain an ICE-BeeM on labels 0-7 // same as first step in transfer learning exp
+python main.py --config mnist.yaml
+# pretrain an unconditional EBM on labels 0-7
+python main.py --config mnist.yaml --baseline
+# classify labels 8-9 using the pretrained ICE-BeeM -- outputs accuracy to stdout
+python main.py --config mnist.yaml --semisupervised
+# classify labels 8-9 using the pretrained unconditional EBM -- outputs accuracy to stdout
+python main.py --config mnist.yaml --semisupervised --baseline
+```
+
+
 ## Using SLURM
-The bash script `slurm_main.sbatch` is a SLURM wrapper around `main.py` and allows to run multiple experiments in parallel
+The bash scripts `slurm_main.sbatch` (GPU) and `slurm_main_cpu.sbatch` (CPU) are SLURM wrapper around `main.py` and allow to run multiple experiments in parallel
 on a SLURM equipped server.
 You may have to change the `#SBATCH` configuration flags in the script according to your system.
 
