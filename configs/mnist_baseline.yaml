@@ -23,10 +23,10 @@ model:
   num_classes: 10
   ngf: 64
   final_layer: true
-  feature_size: 200
+  feature_size: 90
   augment: false
   positive: false
-  architecture: 'MLP'
+  architecture: 'ConvMLP'
 
 optim:
   weight_decay: 0.000

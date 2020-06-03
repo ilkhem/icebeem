@@ -27,7 +27,7 @@ model:
   final_layer: true
   feature_size: 200
   augment: false
-  positive: true
+  positive: false
   architecture: 'ConvMLP'
 
 optim:
