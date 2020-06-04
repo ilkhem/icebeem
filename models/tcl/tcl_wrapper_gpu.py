@@ -19,7 +19,6 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 def TCL_wrapper(sensor, label, list_hidden_nodes, random_seed=0, max_steps=int(7e4), max_steps_init=int(7e4),
                 ckpt_dir='./', test=False):
-
     # Training ----------------------------------------------------
     initial_learning_rate = 0.01  # initial learning rate
     momentum = 0.9  # momentum parameter of SGD

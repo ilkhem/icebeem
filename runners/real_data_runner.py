@@ -19,9 +19,9 @@ from data.utils import single_one_hot_encode, single_one_hot_encode_rev
 from losses.dsm import dsm, cdsm
 from metrics.mcc import mean_corr_coef, mean_corr_coef_out_of_sample
 from models.ebm import ModularUnnormalizedConditionalEBM, ModularUnnormalizedEBM
-from models.nets import SimpleLinear
+from models.nets import ConvMLP, FullMLP, SimpleLinear
 from models.refinenet_dilated import RefineNetDilated
-from models.nets import ConvMLP, FullMLP
+
 
 def feature_net(config):
     if config.model.architecture.lower() == 'convmlp':
@@ -318,7 +318,8 @@ def semisupervised(args, config):
 
     print('#' * 10)
     msg = 'Accuracy of ' + args.baseline * 'unconditional' + (
-            1 - args.baseline) * 'transfer' + ' representation: acc= {} \pm {}'.format(np.round(mean_acc, 2), np.round(std_acc, 2))
+            1 - args.baseline) * 'transfer' + ' representation: acc= {} \pm {}'.format(np.round(mean_acc, 2),
+                                                                                       np.round(std_acc, 2))
     print(msg)
     print('#' * 10)
 
@@ -438,7 +439,7 @@ def plot_representation(args, config):
         data = [res_weak_cond, res_weak_uncond, res_strong_cond, res_strong_uncond]
         labels = ['ICE-BeeM\nWeak', 'Baseline\nWeak', 'ICE-BeeM\nStrong', 'Baseline\nStrong']
         colours = [sns.color_palette()[2], sns.color_palette()[4], sns.color_palette()[2], sns.color_palette()[4]]
-        fig, ax = plt.subplots(figsize=(4,4))
+        fig, ax = plt.subplots(figsize=(4, 4))
         bp = ax.boxplot(data, whis=1.5, showfliers=False, boxprops=boxprops, capprops=capsprops,
                         whiskerprops=whiskerprops, medianprops=medianprops)
         for i in range(len(colours)):
@@ -469,9 +470,11 @@ def plot_representation(args, config):
     _print_stats(mcc_weak_cond_out, mcc_weak_uncond_out, title='weak iden. out of sample')
     # boxplot
     _boxplot(mcc_strong_cond_in, mcc_strong_uncond_in, mcc_weak_cond_in, mcc_weak_uncond_in,
-             ylabel='in sample', ext='in_{}_{}_{}'.format(max_seed, max_seed_baseline, config.model.architecture.lower()))
+             ylabel='in sample',
+             ext='in_{}_{}_{}'.format(max_seed, max_seed_baseline, config.model.architecture.lower()))
     _boxplot(mcc_strong_cond_out, mcc_strong_uncond_out, mcc_weak_cond_out, mcc_weak_uncond_out,
-             ylabel='out of sample', ext='out_{}_{}_{}'.format(max_seed, max_seed_baseline, config.model.architecture.lower()))
+             ylabel='out of sample',
+             ext='out_{}_{}_{}'.format(max_seed, max_seed_baseline, config.model.architecture.lower()))
 
 
 def plot_transfer(args, config):
@@ -501,12 +504,15 @@ def plot_transfer(args, config):
         print(
             'Transfer: ' + str(np.median(resTransfer[x]) * 1e4) + '\tBaseline: ' + str(np.median(resBaseline[x]) * 1e4))
 
-    config_type = config.model.architecture +'-'+ str(config.model.feature_size)*config.model.final_layer + 'p'*config.model.positive +'a'*config.model.augment
-    print('{} & \emph{{{}}} & ${:.2f} \pm {:.2f}$ & ${:.2f} \pm {:.2f}$ & ${:.2f} \pm {:.2f}$ & ${:.2f} \pm {:.2f}$ \\\\'.format(config.data.dataset, config_type,
-                                                                                                                1e4*np.mean(resTransfer[6000]), 1e4*np.std(resTransfer[6000]),
-                                                                                                                1e4*np.mean(resTransfer[0]), 1e4*np.std(resTransfer[0]),
-                                                                                                                1e4*np.mean(resBaseline[6000]), 1e4*np.std(resBaseline[6000]),
-                                                                                                                1e4*np.mean(resBaseline[0]), 1e4*np.std(resBaseline[0])))
+    config_type = config.model.architecture + '-' + str(
+        config.model.feature_size) * config.model.final_layer + 'p' * config.model.positive + 'a' * config.model.augment
+    tex_msg = '{} & \emph{{{}}} & ${:.2f} \pm {:.2f}$ & ${:.2f} \pm {:.2f}$ & ${:.2f} \pm {:.2f}$ & ${:.2f} \pm {:.2f}$ \\\\'
+    print(tex_msg.format(
+        config.data.dataset, config_type,
+        1e4 * np.mean(resTransfer[6000]), 1e4 * np.std(resTransfer[6000]),
+        1e4 * np.mean(resTransfer[0]), 1e4 * np.std(resTransfer[0]),
+        1e4 * np.mean(resBaseline[6000]), 1e4 * np.std(resBaseline[6000]),
+        1e4 * np.mean(resBaseline[0]), 1e4 * np.std(resBaseline[0])))
 
     samplesSizes.remove(0)
     resTsd = np.array([np.std(resTransfer[x]) * 1e4 for x in samplesSizes])
@@ -529,4 +535,5 @@ def plot_transfer(args, config):
         file_name += 'a_'
     if config.model.final_layer:
         file_name += str(config.model.feature_size) + '_'
-    plt.savefig(os.path.join(args.run, '{}{}_{}.pdf'.format(file_name, args.dataset.lower(), config.model.architecture.lower())))
+    plt.savefig(os.path.join(args.run,
+                             '{}{}_{}.pdf'.format(file_name, args.dataset.lower(), config.model.architecture.lower())))

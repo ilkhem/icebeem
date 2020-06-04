@@ -1,13 +1,14 @@
 import os
 
 import numpy as np
+from sklearn.decomposition import FastICA
 
 from data.imca import generate_synthetic_data
 from metrics.mcc import mean_corr_coef
 from models.icebeem_wrapper import ICEBEEM_wrapper
 from models.ivae.ivae_wrapper import IVAE_wrapper
 from models.tcl.tcl_wrapper_gpu import TCL_wrapper
-from sklearn.decomposition import FastICA
+
 
 def run_ivae_exp(args, config):
     """run iVAE simulations"""
@@ -18,7 +19,7 @@ def run_ivae_exp(args, config):
     data_seed = config.data_seed
 
     max_iter = config.ivae.max_iter
-    iter_dict = {2: 70000, 4: 70000} # 100000
+    iter_dict = {2: 70000, 4: 70000}  # 100000
     lr = config.ivae.lr
     cuda = config.ivae.cuda
 
@@ -35,12 +36,15 @@ def run_ivae_exp(args, config):
                 print('Running exp with L={} and n={}; seed={}'.format(l, n, seed))
                 # run iVAE
                 ckpt_file = os.path.join(args.checkpoints, 'ivae_{}_l{}_n{}_s{}.pt'.format(dataset, l, n, seed))
-                res_iVAE = IVAE_wrapper(X=x, U=y, n_layers=3 , hidden_dim=data_dim * 2 ,
+                res_iVAE = IVAE_wrapper(X=x, U=y, n_layers=3, hidden_dim=data_dim * 2,
                                         cuda=cuda, max_iter=iter_dict[l], lr=lr,
                                         ckpt_file=ckpt_file, seed=seed, test=test)
 
                 # store results
-                results[l][n].append( max(mean_corr_coef(res_iVAE[0].detach().numpy(), s), mean_corr_coef(res_iVAE[2]['encoder'][0].detach().numpy(), s), mean_corr_coef( FastICA().fit_transform( res_iVAE[2]['encoder'][0].detach().numpy() ) , s) ) )
+                results[l][n].append(max(mean_corr_coef(res_iVAE[0].detach().numpy(), s),
+                                         mean_corr_coef(res_iVAE[2]['encoder'][0].detach().numpy(), s),
+                                         mean_corr_coef(
+                                             FastICA().fit_transform(res_iVAE[2]['encoder'][0].detach().numpy()), s)))
                 print(results[l][n])
     # prepare output
     Results = {

@@ -346,8 +346,7 @@ def mean_corr_coef(x, y, method='pearson'):
         raise ValueError('not a supported input type: {}'.format(type(x)))
 
 
-
-def mean_corr_coef_out_of_sample( x, y, x_test, y_test, method='pearson'):
+def mean_corr_coef_out_of_sample(x, y, x_test, y_test, method='pearson'):
     """
     we compare mean correlation coefficients out of sample 
     -> we use (x,y) to learn permutation and then evaluate the correlations
@@ -357,7 +356,7 @@ def mean_corr_coef_out_of_sample( x, y, x_test, y_test, method='pearson'):
     d = x.shape[1]
     if method == 'pearson':
         cc = np.corrcoef(x, y, rowvar=False)[:d, d:]
-        cc_test = np.corrcoef( x_test, y_test, rowvar=False)[:d, d:]
+        cc_test = np.corrcoef(x_test, y_test, rowvar=False)[:d, d:]
     elif method == 'spearman':
         cc = spearmanr(x, y)[0][:d, d:]
         cc_test = spearmanr(x_test, y_test)[0][:d, d:]
@@ -367,6 +366,3 @@ def mean_corr_coef_out_of_sample( x, y, x_test, y_test, method='pearson'):
 
     score = np.abs(cc_test)[linear_sum_assignment(-1 * cc)].mean()
     return score
-
-
-

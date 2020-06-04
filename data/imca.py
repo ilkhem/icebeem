@@ -289,7 +289,8 @@ def gen_IMCA_data(Ncomp, Nlayer, Nsegment, NsegmentObs, BaseCovariance, NonLin='
         latents[(i * NsegmentObs):((i + 1) * NsegmentObs), :] = np.random.multivariate_normal(mean=np.zeros((Ncomp,)),
                                                                                               cov=np.linalg.inv(Pres_i),
                                                                                               size=NsegmentObs)
-        latents[(i * NsegmentObs):((i + 1) * NsegmentObs), :] = np.add( latents[(i * NsegmentObs):((i + 1) * NsegmentObs), :] , meanMat[:, i])
+        latents[(i * NsegmentObs):((i + 1) * NsegmentObs), :] = np.add(
+            latents[(i * NsegmentObs):((i + 1) * NsegmentObs), :], meanMat[:, i])
         labels[(i * NsegmentObs):((i + 1) * NsegmentObs)] = i
 
     # now we are ready to apply the non-linear mixtures:

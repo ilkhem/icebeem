@@ -206,7 +206,6 @@ class FullMLP(nn.Module):
         if config.model.final_layer:
             self.output_size = config.model.feature_size
 
-
         self.linear = nn.Sequential(
             nn.Linear(self.input_size, ngf * 8),
             nn.LeakyReLU(inplace=True, negative_slope=.1),

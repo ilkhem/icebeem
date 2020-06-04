@@ -7,6 +7,7 @@ import yaml
 
 from runners.simulation_runner import run_icebeem_exp, run_ivae_exp, run_tcl_exp
 
+
 def parse_sim():
     parser = argparse.ArgumentParser(description='')
     parser.add_argument('--dataset', type=str, default='TCL', help='Dataset to run experiments. Should be TCL or IMCA')
@@ -45,7 +46,30 @@ if __name__ == '__main__':
     # make checkpoint and log folders
     make_dirs_simulations(args)
 
-    if args.plot:
+    if not args.plot:
+        if args.dataset.lower() in ['tcl', 'imca']:
+            with open(os.path.join('configs', args.config), 'r') as f:
+                config = yaml.load(f)
+            new_config = dict2namespace(config)
+            new_config.device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+
+            if args.method.lower() == 'tcl':
+                r = run_tcl_exp(args, new_config)
+            elif args.method.lower() == 'ivae':
+                r = run_ivae_exp(args, new_config)
+            elif args.method.lower() in ['ice-beem', 'icebeem']:
+                r = run_icebeem_exp(args, new_config)
+            else:
+                raise ValueError('Unsupported method {}'.format(args.method))
+
+            # save results
+            # Each of the runners loops over many seeds, so the saved file contains results from multiple runs
+            fname = os.path.join(args.run, args.method + 'res_' + args.dataset + 'exp_' + str(args.nSims) + '.p')
+            pickle.dump(r, open(fname, "wb"))
+
+        else:
+            raise ValueError('Unsupported dataset {}'.format(args.dataset))
+    else:
         import pylab as plt
         import seaborn as sns
         import numpy as np
@@ -80,27 +104,3 @@ if __name__ == '__main__':
         ax1.set_ylim([0, 1])
         plt.savefig('ExpsResults_' + args.dataset + '.pdf', dpi=300)
         print(os.getcwd())
-
-    else:
-        if args.dataset.lower() in ['tcl', 'imca']:
-            with open(os.path.join('configs', args.config), 'r') as f:
-                config = yaml.load(f)
-            new_config = dict2namespace(config)
-            new_config.device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
-
-            if args.method.lower() == 'tcl':
-                r = run_tcl_exp(args, new_config)
-            elif args.method.lower() == 'ivae':
-                r = run_ivae_exp(args, new_config)
-            elif args.method.lower() in ['ice-beem', 'icebeem']:
-                r = run_icebeem_exp(args, new_config)
-            else:
-                raise ValueError('Unsupported method {}'.format(args.method))
-
-            # save results
-            # Each of the runners loops over many seeds, so the saved file contains results from multiple runs
-            fname = os.path.join(args.run, args.method + 'res_' + args.dataset + 'exp_' + str(args.nSims) + '.p')
-            pickle.dump(r, open(fname, "wb"))
-
-        else:
-            raise ValueError('Unsupported dataset {}'.format(args.dataset))
