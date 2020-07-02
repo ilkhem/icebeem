@@ -16,7 +16,7 @@ This project was tested with the following versions:
 
 ## Running Simulations
 
-We compared an ICE-BeeM model trained with flow contrastive estimation (FCE) to nonlinear ICA methods (iVAE and TCL).
+We compared an ICE-BeeM model trained with flow contrastive estimation ([FCE](https://arxiv.org/abs/1605.06336)) to nonlinear ICA methods ([iVAE](https://arxiv.org/abs/1907.04809) and [TCL](https://arxiv.org/abs/1605.06336)).
 
 We first compared these methods on nonstationary data generated according to a nonlinear ICA model (we refer to this dataset as `TCL`. Second, the data was generated from a nonstationary IMCA model (where the latent variables are _dependent_) which we refer to as `IMCA`.
 
@@ -54,7 +54,7 @@ These experiments are run through the script `main.py`. Below are details on how
 usage: main.py [-h] [--config CONFIG] [--run RUN] [--n-sims N_SIMS]
                [--seed SEED] [--baseline] [--transfer] [--semisupervised]
                [--representation] [--mcc] [--second-seed SECOND_SEED]
-               [--subset-size SUBSET_SIZE] [--all] [--plot] [-a] [-p] [-z Z]
+               [--subset-size SUBSET_SIZE] [--all] [--plot]
 
 optional arguments:
   -h, --help            show this help message and exit
