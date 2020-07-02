@@ -16,7 +16,7 @@ This project was tested with the following versions:
 
 ## Running Simulations
 
-We compared an ICE-BeeM model trained with flow contrastive estimation ([FCE](https://arxiv.org/abs/1605.06336)) to nonlinear ICA methods ([iVAE](https://arxiv.org/abs/1907.04809) and [TCL](https://arxiv.org/abs/1605.06336)).
+We compared an ICE-BeeM model trained with flow contrastive estimation ([FCE](https://arxiv.org/abs/1912.00589)) to nonlinear ICA methods ([iVAE](https://arxiv.org/abs/1907.04809) and [TCL](https://arxiv.org/abs/1605.06336)).
 
 We first compared these methods on nonstationary data generated according to a nonlinear ICA model (we refer to this dataset as `TCL`. Second, the data was generated from a nonstationary IMCA model (where the latent variables are _dependent_) which we refer to as `IMCA`.
 
