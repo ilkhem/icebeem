@@ -1,6 +1,6 @@
 # ICE-BeeM: Identifiable Conditional Energy-Based Deep Models Based on Nonlinear ICA 
 
-This is the code to run the experiments presented in the manuscript.
+This is the code to run the experiments presented in https://arxiv.org/pdf/2002.11537.pdf.
 
 ## Dependencies
 
