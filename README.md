@@ -276,7 +276,7 @@ sbatch slurm_main.sbatch --config $CONFIG_FILE  --semisupervised --baseline
 
 ## References
 
-If you find this code helpful/inspiring for your research, we would appreciate if you cite the following:
+If you find this code helpful/inspiring for your research, we would be grateful if you cite the following:
 
 ```bib
 @article{khemakhem2020ice,
