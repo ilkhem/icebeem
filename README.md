@@ -290,7 +290,7 @@ If you find this code helpful/inspiring for your research, we would appreciate i
   
   
 ## License
-A full copy of the license is found [here](LICENSE).
+A full copy of the license can be found [here](LICENSE).
 
     Copyright (C) 2020 Ilyes Khemakhem
 
