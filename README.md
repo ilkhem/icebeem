@@ -1,6 +1,7 @@
 # ICE-BeeM: Identifiable Conditional Energy-Based Deep Models Based on Nonlinear ICA 
 
-This is the code to run the experiments presented in https://arxiv.org/abs/2002.11537.
+This repository contains code to run and reproduce the experiments presented in [ICE-BeeM: Identifiable Conditional Energy-Based Deep Models Based on Nonlinear ICA](https://arxiv.org/abs/2002.11537).
+Work done by **Ilyes Khemakhem** (Gatsby Unit, UCL), **Ricardo Pio Monti** (Gatsby Unit, UCL), **Diederik P. Kingma** (Google Research) and **Aapo Hyvärinen** (University of Helsinki).
 
 ## Dependencies
 
@@ -197,10 +198,10 @@ python main.py --config mnist.yaml --semisupervised --baseline
 ## Using SLURM
 The bash scripts `slurm_main.sbatch` (GPU) and `slurm_main_cpu.sbatch` (CPU) are SLURM wrapper around `main.py` and allow to run multiple experiments in parallel
 on a SLURM equipped server.
-You may have to change the `#SBATCH` configuration flags in the script according to your system.
+You may have to change the `#SBATCH` configuration flags in the scripts according to your system.
 
-This script sets `--n-sims` to `1`, and allows the user to select the seeds for which to run the experiments using the
-`--array` flag of `sbatch`. The rest of the arguments/flags can be passed as arguments of `slurm_main.sbatch`:
+These scripts set `--n-sims` to `1`, and allows the user to select the seeds for which to run the experiments using the
+`--array` flag of `sbatch`. The rest of the arguments/flags can be passed as arguments of `slurm_main.sbatch` or `slurm_main_cpu.sbatch`:
 ```
 sbatch --array=some_seed_values slurm_main.sbatch --the_rest_of_the_arguments
 ```
@@ -242,7 +243,7 @@ is equivalent to
 python main.py --config mnist.yaml --seed 42
 ```
 
-___
+### Run everything using SLURM
 To maximize the use of parallel computing, we can get around the `--all` flag which launches loops inside the `main.py`
 script by looping manually around the SLURM script as shown below. 
 To run everything, you can use the following two step bash script:
@@ -272,3 +273,39 @@ done
 sbatch slurm_main.sbatch --config $CONFIG_FILE  --semisupervised
 sbatch slurm_main.sbatch --config $CONFIG_FILE  --semisupervised --baseline
 ```
+
+## References
+
+If you find this code helpful/inspiring for your research, we would appreciate if you cite the following:
+
+```bib
+@article{khemakhem2020ice,
+  title={ICE-BeeM: Identifiable conditional energy-based deep models},
+  author={Khemakhem, Ilyes and Monti, Ricardo Pio and Kingma, Diederik P and Hyv{\"a}rinen, Aapo},
+  journal={arXiv preprint arXiv:2002.11537},
+  year={2020}
+}
+```
+  
+  
+  
+## License
+A full copy of the license is found [here](LICENSE).
+
+    Copyright (C) 2020 Ilyes Khemakhem
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+
+
