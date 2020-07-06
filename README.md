@@ -280,7 +280,7 @@ If you find this code helpful/inspiring for your research, we would appreciate i
 
 ```bib
 @article{khemakhem2020ice,
-  title={ICE-BeeM: Identifiable conditional energy-based deep models},
+  title={ICE-BeeM: Identifiable conditional energy-based deep models based on nonlinear ICA},
   author={Khemakhem, Ilyes and Monti, Ricardo Pio and Kingma, Diederik P and Hyv{\"a}rinen, Aapo},
   journal={arXiv preprint arXiv:2002.11537},
   year={2020}
