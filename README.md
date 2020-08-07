@@ -107,7 +107,7 @@ Notable fields are:
 - `final_layer`: whether to apply a final FC layer to reduce the dimension of the latent space. To be used in conjunction with `feature_size`, which specifies the output (latent/feature) dimension.
 - `architecture`: the architecture of the feature extractor **f**, can be `MLP`, `ConvMLP` or `Unet`. These different architectures are discussed in the Appendix.
 - `positive`: whether to use positive features by applying a ReLU to the output of **f** (condition 3 of Theorem 2).
--  `augment`: whether to augment features by adding the square of **f** (condition 3 of Theorem 2).
+-  `augment`: whether to augment features by adding the square of **f** (condition 4 of Theorem 2).
 When changing these fields in configuration `X.yaml`, make sure to also change them in `X_baseline.yaml`. The latter only serves for the baseline of transfer learning.
 
 ### Identifiability of representations
