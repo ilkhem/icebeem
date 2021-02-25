@@ -1,6 +1,6 @@
 # ICE-BeeM: Identifiable Conditional Energy-Based Deep Models Based on Nonlinear ICA 
 
-This repository contains code to run and reproduce the experiments presented in [ICE-BeeM: Identifiable Conditional Energy-Based Deep Models Based on Nonlinear ICA](https://arxiv.org/abs/2002.11537).
+This repository contains code to run and reproduce the experiments presented in [ICE-BeeM: Identifiable Conditional Energy-Based Deep Models Based on Nonlinear ICA](https://arxiv.org/abs/2002.11537), published at NeurIPS 2020.
 Work done by **Ilyes Khemakhem** (Gatsby Unit, UCL), **Ricardo Pio Monti** (Gatsby Unit, UCL), **Diederik P. Kingma** (Google Research) and **Aapo Hyvärinen** (University of Helsinki).
 
 ## Dependencies
@@ -45,7 +45,7 @@ optional arguments:
   --plot             Plot comparison of performances
 ```
 
-The results of each simulation is saved in the value of the flag `--run` (defulat is `run/` folder).
+The result of each simulation is saved in the value of the flag `--run` (defulat is `run/` folder).
 
 ## Running real data experiments
 
@@ -278,15 +278,20 @@ sbatch slurm_main.sbatch --config $CONFIG_FILE  --semisupervised --baseline
 
 If you find this code helpful/inspiring for your research, we would be grateful if you cite the following:
 
+
 ```bib
-@article{khemakhem2020ice,
-  title={ICE-BeeM: Identifiable conditional energy-based deep models based on nonlinear ICA},
-  author={Khemakhem, Ilyes and Monti, Ricardo Pio and Kingma, Diederik P and Hyv{\"a}rinen, Aapo},
-  journal={arXiv preprint arXiv:2002.11537},
-  year={2020}
+@inproceedings{khemakhem2020ice,
+ author = {Khemakhem, Ilyes and Monti, Ricardo and Kingma, Diederik and Hyvarinen, Aapo},
+ booktitle = {Advances in Neural Information Processing Systems},
+ editor = {H. Larochelle and M. Ranzato and R. Hadsell and M. F. Balcan and H. Lin},
+ pages = {12768--12778},
+ publisher = {Curran Associates, Inc.},
+ title = {ICE-BeeM: Identifiable Conditional Energy-Based Deep Models Based on Nonlinear ICA},
+ url = {https://proceedings.neurips.cc/paper/2020/file/962e56a8a0b0420d87272a682bfd1e53-Paper.pdf},
+ volume = {33},
+ year = {2020}
 }
 ```
-  
   
   
 ## License
