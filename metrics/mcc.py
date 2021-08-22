@@ -1,7 +1,87 @@
 import numpy as np
+import scipy
 import torch
+from numpy.linalg import svd
 from scipy.optimize import linear_sum_assignment
 from scipy.stats import spearmanr
+
+
+def rdc(x, y, k=20, s=.5, nonlinearity='sin'):
+    """
+    Python implementation of the Randomized Dependence Coefficient (RDC) [1] algorithm
+    the RDC is a measure of correlation between two (scalar) random variables x and y
+    that is invariant to permutation, scaling, and most importantly nonlinear scaling
+
+    Parameters:
+        x: numpy array of shape (n,)
+        y: numpy array of shape (n,)
+        k: number of random projections in RDC
+        s: covariance of the Gaussian dist used for sampling the random weights
+        nonlinearity: nonlinear feature map used to transform the random projections
+
+    Return:
+        rdc_cc: flaot in [0,1] --- the RDC correlation coefficient
+
+    References:
+    [1] https://papers.nips.cc/paper/2013/file/aab3238922bcc25a6f606eb525ffdc56-Paper.pdf
+
+    """
+    cx = copula_projection(x, k, s, nonlinearity)
+    cy = copula_projection(y, k, s, nonlinearity)
+    rdc_cc = largest_cancorr(cx, cy)
+    return rdc_cc
+
+
+def copula_projection(x, k=20, s=.5, nonlinearity='sin'):
+    n = x.shape[0]
+    k = min(k, n)
+    # compute the empirical cdf (copula) of x evaluated at x
+    p = rank_array(x) / n  # (n, )
+    # augment the copula with 1
+    pt = np.vstack([p, np.ones(n)]).T  # (n, 2)
+    # sample k random weights
+    wt = np.random.normal(0, s, size=(pt.shape[1], k))
+    # wt = np.random.randn(2, k)
+    # phix = np.sin(s/pt.shape[1]*pt.dot(wt))  # (n, k)
+    if nonlinearity == 'sin':
+        phix = np.sin(pt.dot(wt))  # (n, k)
+    elif nonlinearity == 'cos':
+        phix = np.cos(pt.dot(wt))  # (n, k)
+    else:
+        raise ValueError(f'{nonlinearity} not supported')
+    return np.hstack([phix, np.ones((n, 1))])
+
+
+def make_diag(el, nrows, ncols):
+    diag = np.zeros((nrows, ncols))
+    for i in range(min(nrows, ncols)):
+        diag[i, i] = el
+    return diag
+
+
+def largest_cancorr(x, y):
+    """
+    Return the largest correlation coefficient after solving CCA between two matrices `x` and `y`.
+    inspired from R's `cancor` function
+    """
+    n = x.shape[0]
+    x = x - x.mean(axis=0)
+    y = y - y.mean(axis=0)
+    qx, _ = scipy.linalg.qr(x, mode='full')
+    qy, _ = scipy.linalg.qr(y, mode='full')
+    dx = np.linalg.matrix_rank(x)
+    dy = np.linalg.matrix_rank(y)
+    qxy = qx.T.dot(qy.dot(make_diag(1, n, dy)))[:dx]
+    _, s, _ = scipy.linalg.svd(qxy, lapack_driver='gesvd')
+    return s[0]
+
+
+def rank_array(x):
+    """rank the elements of a vector"""
+    tmp = x.argsort()
+    ranks = np.empty_like(tmp)
+    ranks[tmp] = np.arange(len(x))
+    return ranks + 1
 
 
 def auction_linear_assignment(x, eps=None, reduce='sum'):
@@ -308,7 +388,7 @@ def mean_corr_coef_pt(x, y, method='pearson'):
     return score
 
 
-def mean_corr_coef_np(x, y, method='pearson'):
+def mean_corr_coef_np(x, y, method='rdc'):
     """
     A numpy implementation of the mean correlation coefficient metric.
 
@@ -328,6 +408,11 @@ def mean_corr_coef_np(x, y, method='pearson'):
         cc = np.corrcoef(x, y, rowvar=False)[:d, d:]
     elif method == 'spearman':
         cc = spearmanr(x, y)[0][:d, d:]
+    elif method == 'rdc':
+        cc = np.zeros((d, d))
+        for i in range(x.shape[1]):
+            for j in range(y.shape[1]):
+                cc[i, j] = rdc(x[:, i], y[:, j])
     else:
         raise ValueError('not a valid method: {}'.format(method))
     cc = np.abs(cc)
@@ -335,7 +420,7 @@ def mean_corr_coef_np(x, y, method='pearson'):
     return score
 
 
-def mean_corr_coef(x, y, method='pearson'):
+def mean_corr_coef(x, y, method='rdc'):
     if type(x) != type(y):
         raise ValueError('inputs are of different types: ({}, {})'.format(type(x), type(y)))
     if isinstance(x, np.ndarray):
@@ -360,9 +445,46 @@ def mean_corr_coef_out_of_sample(x, y, x_test, y_test, method='pearson'):
     elif method == 'spearman':
         cc = spearmanr(x, y)[0][:d, d:]
         cc_test = spearmanr(x_test, y_test)[0][:d, d:]
+    elif method == 'rdc':
+        cc = np.zeros((d, d))
+        for i in range(x.shape[1]):
+            for j in range(y.shape[1]):
+                cc[i, j] = rdc(x[:, i], y[:, j])
+        cc_test = np.zeros((d, d))
+        for i in range(x_test.shape[1]):
+            for j in range(y_test.shape[1]):
+                cc_test[i, j] = rdc(x_test[:, i], y_test[:, j])
     else:
         raise ValueError('not a valid method: {}'.format(method))
     cc = np.abs(cc)
 
     score = np.abs(cc_test)[linear_sum_assignment(-1 * cc)].mean()
     return score
+
+
+if __name__ == "__main__":
+    print("Test the MCC for difference correlation coefficients\n")
+    x_test = np.random.randn(500, 3)
+    xx = np.random.rand(*x_test.shape)
+    print("Correlation with random")
+    print(f"Pearson corr: {mean_corr_coef_np(x_test, xx, method='pearson')}")
+    print(f"Spearman corr: {mean_corr_coef_np(x_test, xx, method='spearman')}")
+    print(f"RDC corr: {mean_corr_coef_np(x_test, xx, method='rdc')}")
+    print('\n')
+    w = np.array([x_test[:, 2], x_test[:, 0], x_test[:, 1]]).T
+    print("Correlation after permutation")
+    print(f"Pearson corr: {mean_corr_coef_np(x_test, w, method='pearson')}")
+    print(f"Spearman corr: {mean_corr_coef_np(x_test, w, method='spearman')}")
+    print(f"RDC corr: {mean_corr_coef_np(x_test, w, method='rdc')}")
+    print('\n')
+    z = np.array([x_test[:, 1], np.exp(x_test[:, 0]), x_test[:, 2] ** 3]).T
+    print("Correlation after monotonic scaling")
+    print(f"Pearson corr: {mean_corr_coef_np(x_test, z, method='pearson')}")
+    print(f"Spearman corr: {mean_corr_coef_np(x_test, z, method='spearman')}")
+    print(f"RDC corr: {mean_corr_coef_np(x_test, z, method='rdc')}")
+    print('\n')
+    t = np.array([np.exp(x_test[:, 2]), x_test[:, 1] ** 2, np.abs(x_test[:, 0])]).T
+    print("Correlation after non-monotonic scaling")
+    print(f"Pearson corr: {mean_corr_coef_np(x_test, t, method='pearson')}")
+    print(f"Spearman corr: {mean_corr_coef_np(x_test, t, method='spearman')}")
+    print(f"RDC corr: {mean_corr_coef_np(x_test, t, method='rdc')}")
