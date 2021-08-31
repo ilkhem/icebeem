@@ -1,4 +1,4 @@
-# ICE-BeeM: Identifiable Conditional Energy-Based Deep Models Based on Nonlinear ICA 
+# ICE-BeeM: Identifiable Conditional Energy-Based Deep Models Based on Nonlinear ICA
 
 This repository contains code to run and reproduce the experiments presented in [ICE-BeeM: Identifiable Conditional Energy-Based Deep Models Based on Nonlinear ICA](https://arxiv.org/abs/2002.11537), published at NeurIPS 2020.
 Work done by **Ilyes Khemakhem** (Gatsby Unit, UCL), **Ricardo Pio Monti** (Gatsby Unit, UCL), **Diederik P. Kingma** (Google Research) and **Aapo Hyvärinen** (University of Helsinki).
@@ -45,7 +45,7 @@ optional arguments:
   --plot             Plot comparison of performances
 ```
 
-The result of each simulation is saved in the value of the flag `--run` (defulat is `run/` folder).
+The result of each simulation is saved in the value of the flag `--run` (default is `run/` folder).
 
 ## Running real data experiments
 
@@ -123,7 +123,7 @@ To run the experiment on MNIST:
 
 # train an ICE-BeeM on all labels, for seeds 0-9
 # starting seed can be specified using --seed
-python main.py --config mnist.yaml --representation --n-sims 10 
+python main.py --config mnist.yaml --representation --n-sims 10
 # train an unconditional EBM on all labels, for seeds 0-9
 python main.py --config mnist.yaml --representation --n-sims 10 --baseline
 ```
@@ -131,14 +131,14 @@ python main.py --config mnist.yaml --representation --n-sims 10 --baseline
 Then, MCC statistics can be computed and visualized using:
 
 ```
-# compute all pairwise MCCs for ICE-BeeM between seeds X and Y for X in {0..8} and Y in {X+1..9} 
+# compute all pairwise MCCs for ICE-BeeM between seeds X and Y for X in {0..8} and Y in {X+1..9}
 # starting seed can be specified using --seed
 python main.py --config mnist.yaml --representation --mcc --all --n-sims 10
-# compute all pairwise MCCs for an unconditional EBM between seeds X and Y for X in {0..8} and Y in {X+1..9} 
+# compute all pairwise MCCs for an unconditional EBM between seeds X and Y for X in {0..8} and Y in {X+1..9}
 python main.py --config mnist.yaml --representation --mcc --all --n-sims 10 --baseline
 ```
 
-Finally, to visualize the MCC statistics with a boxplot:
+Finally, to visualize the MCC statistics with a box-plot:
 
 ```
 # the number of seeds used for boxplot can be specified using --n-sims
@@ -154,7 +154,7 @@ In this experiment, we compare:
 - Training an ICE-BeeM **f**.**g** on labels 0-7, then fixing **f** and learning only **g** on new unseen labels 8-9. This has the advantage of simplifying the learning, since **g** is much easier to train than **f** (we set it to a vector in our experiments).
 - Training an ICE-BeeM **f**.**g** directly on labels 8-9.
 
-The idea is to see whether the feature extractor **f** can learn meaningful representations from similar datasets, especially when the size of the dataset is small. We use the denoising dcore matching (DSM) loss as a comparison metric (lower is better).
+The idea is to see whether the feature extractor **f** can learn meaningful representations from similar datasets, especially when the size of the dataset is small. We use the denoising score matching (DSM) loss as a comparison metric (lower is better).
 
 To run the experiment on MNIST:
 
@@ -167,7 +167,7 @@ python main.py --config mnist.yaml --transfer --all
 python main.py --config mnist.yaml --transfer --baseline --all
 ```
 
-The results are saved in the value of the flag `--run` (defulat is `run/` folder). To plot the comparison for MNIST after running the steps above:
+The results are saved in the value of the flag `--run` (default is `run/` folder). To plot the comparison for MNIST after running the steps above:
 
 ```
 python main.py --config mnist.yaml --transfer --plot
@@ -245,7 +245,7 @@ python main.py --config mnist.yaml --seed 42
 
 ### Run everything using SLURM
 To maximize the use of parallel computing, we can get around the `--all` flag which launches loops inside the `main.py`
-script by looping manually around the SLURM script as shown below. 
+script by looping manually around the SLURM script as shown below.
 To run everything, you can use the following two step bash script:
 ```
 CONFIG_FILE=mnist.yaml
@@ -274,7 +274,7 @@ sbatch slurm_main.sbatch --config $CONFIG_FILE  --semisupervised
 sbatch slurm_main.sbatch --config $CONFIG_FILE  --semisupervised --baseline
 ```
 
-## References
+## Reference
 
 If you find this code helpful/inspiring for your research, we would be grateful if you cite the following:
 
@@ -292,25 +292,34 @@ If you find this code helpful/inspiring for your research, we would be grateful 
  year = {2020}
 }
 ```
-  
-  
+
+
 ## License
 A full copy of the license can be found [here](LICENSE).
 
-    Copyright (C) 2020 Ilyes Khemakhem
+```
+MIT License
 
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
+Copyright (c) 2020 Ilyes Khemakhem
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
 
 
 
